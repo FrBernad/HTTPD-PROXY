@@ -320,9 +320,8 @@ static void processRequest(int socketfd, fd_set *readfds, fd_set *writefds, conn
 static void handleReadSet(int socketfd, client_t *client, client_t *peer, connectionsManager_t *connectionsManager) {
     size_t maxBytes;
     uint8_t *data = buffer_write_ptr(&client->buffer, &maxBytes);
-    int totalBytes;
 
-    totalBytes = read(socketfd, data, maxBytes);
+    int totalBytes = read(socketfd, data, maxBytes);
     if (totalBytes < 0)
         ERROR_MANAGER("read", totalBytes, errno);
     if (totalBytes == 0) {
@@ -356,9 +355,9 @@ static void handleWriteSet(int socketfd, client_t *client, client_t *peer, conne
 
     if (buffer_can_read(&peer->buffer)) {
         size_t maxBytes;
-        uint8_t *data = buffer_read_ptr(&client->buffer, &maxBytes);
-        buffer_read_adv(&peer->buffer, maxBytes);
-        send(socketfd, data, maxBytes, 0);
+        uint8_t *data = buffer_read_ptr(&peer->buffer, &maxBytes);
+        int totalBytes = send(socketfd, data, maxBytes, 0);
+        buffer_read_adv(&peer->buffer, totalBytes);
     }
 }
 
