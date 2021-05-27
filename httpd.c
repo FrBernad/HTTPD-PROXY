@@ -5,6 +5,7 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h> /* superset of previous */
+#include <parser_utils.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,10 +19,15 @@
 #define MAX_CLIENTS 500
 #define MAX_CONNECTIONS (MAX_CLIENTS * 2)
 #define MAX_BUFF 256
+#define PROXY_BUFF_LENGTH 256
+#define MAX_HOST_LENGTH 25
 #define ADDR_LENGTH 40
 
 typedef enum status { INACTIVE = 0,
+                      AWAITING_HOST,
+                      PARSING_HOST,
                       CONNECTING,
+                      RESOLVING,
                       CONNECTED
 } status_t;
 
@@ -35,9 +41,13 @@ typedef struct client_t {
     int peerfd;
     status_t status;
     buffer buffer;
-    uint8_t data[MAX_BUFF];
+    uint8_t * data;
     char address[ADDR_LENGTH];
     uint16_t port;
+
+    char host[MAX_HOST_LENGTH];
+    uint8_t hostLength;
+    unsigned state;
 } client_t;
 
 typedef struct connectionsManager_t {
@@ -46,25 +56,29 @@ typedef struct connectionsManager_t {
     uint16_t maxClients;
     client_t clients[MAX_CONNECTIONS];
     int passiveSocket;
+    struct parser *hostParser;
 } connectionsManager_t;
-
 
 // ----------- SOCKET MANAGMENT -----------
 
+// Initializes connection manager structure
+static void initConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d, int listeningPort);
+
+static void closeConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d);
+
 // Initializes passive sockets for connections request and starts listening in the port given by the user
 static int initializePassiveSocket(int listeningPort);
-
 // Establish new connection CLIENT - PROXY - SERVER
-static void establishNewConnection(fd_set *writefds, connectionsManager_t *connectionsManager);
+static void establishNewConnection(connectionsManager_t *connectionsManager);
 
 // Establish the connection between the client and the proxy
 static int handleNewClient(connectionsManager_t *connectionsManager);
 
 // Establish the conection between the proxy and the server
-static int handleServerConnection(fd_set *writefds, connectionsManager_t *connectionsManager);
+static void handleServerConnection(int clientSocket, connectionsManager_t *connectionsManager);
 
 // Initialize client_t structure
-static void initClient(client_t *client, struct sockaddr_in6 *address);
+static void initClient(client_t *client, struct sockaddr_in *address);
 
 // Set peer and client status
 static void initPairStatus(int clientSocket, int serverSocket, connectionsManager_t *connectionsManager);
@@ -86,7 +100,6 @@ static void handleReadSet(int socketfd, client_t *client, client_t *peer, connec
 // process write set
 static void handleWriteSet(int socketfd, client_t *client, client_t *peer, connectionsManager_t *connectionsManager);
 
-
 int main(int argc, char const *argv[]) {
     if (argc != 2) {
         fprintf(stderr, "Usage : %s <port>", argv[0]);
@@ -104,20 +117,14 @@ int main(int argc, char const *argv[]) {
         ERROR_MANAGER("Closing STDIN fd", -1, errno);
 
     connectionsManager_t connectionsManager;
-    memset(&connectionsManager, 0, sizeof(connectionsManager_t));
-    connectionsManager.maxConnections = MAX_CONNECTIONS;
-    connectionsManager.maxClients = MAX_CLIENTS;
-
-    //create listenting non-blocking socket
-    int passiveSocket = initializePassiveSocket(listeningPort);
-
-    connectionsManager.passiveSocket=passiveSocket;
+    const struct parser_definition d = parser_utils_strcmpi("host:");
+    initConnectionManager(&connectionsManager, &d, listeningPort);
 
     //set of socket descriptors
     fd_set readfds;
     fd_set writefds;
 
-    int maxfd = passiveSocket;
+    int maxfd = connectionsManager.passiveSocket;
     int activity;
 
     while (true) {
@@ -128,13 +135,15 @@ int main(int argc, char const *argv[]) {
             ERROR_MANAGER("select", activity, errno);
 
         //Receive a new connection in passive socket
-        if (FD_ISSET(passiveSocket, &readfds))
-            establishNewConnection(&writefds, &connectionsManager);
+        if (FD_ISSET(connectionsManager.passiveSocket, &readfds))
+            establishNewConnection(&connectionsManager);
 
         //else its some IO operation on some other socket
         for (size_t i = 0; i < connectionsManager.maxConnections; i++)
             processRequest(i, &readfds, &writefds, &connectionsManager);
     }
+
+    closeConnectionManager(&connectionsManager,&d);
 
     return 0;
 }
@@ -142,6 +151,20 @@ int main(int argc, char const *argv[]) {
 //TODO: cerrar conexiones. Ver casos no felices. GetaddressInfo. Parseo. Ver indices array que empieza desde 3.
 //Habria que ver de hacer que escuche en ipv6. Que pasa con UDP si nuestro socket maneja TCP
 //Cambiar maxClients
+
+static void initConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d, int listeningPort) {
+    memset(connectionsManager, 0, sizeof(connectionsManager_t));
+    connectionsManager->maxConnections = MAX_CONNECTIONS;
+    connectionsManager->maxClients = MAX_CLIENTS;
+    connectionsManager->hostParser = parser_init(parser_no_classes(), d);
+    //create listenting non-blocking socket
+    connectionsManager->passiveSocket = initializePassiveSocket(listeningPort);
+}
+
+static void closeConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d) {
+    parser_utils_strcmpi_destroy(d);
+    parser_destroy(connectionsManager->hostParser);
+}
 
 static int initializePassiveSocket(int listeningPort) {
     //create listenting non-blocking socket
@@ -198,31 +221,44 @@ static void resetSets(fd_set *readfds, fd_set *writefds, int *maxfd, connections
 
     for (int i = 0; i < connectionsManager->maxConnections; i++) {
         client = &connectionsManager->clients[i];
+        status_t status = client->status;
 
-        if (client->status == CONNECTED) {
-            if (buffer_can_write(&client->buffer))
-                FD_SET(i, readfds);
-
-            peer = &connectionsManager->clients[client->peerfd];
-            //Me suscribo para escritura si tengo para leer bytes para enviar por el socket
-            if (peer->status == CONNECTED && buffer_can_read(&peer->buffer))
-                FD_SET(i, writefds);
+        if (status != INACTIVE) {
 
             if (i > *maxfd)
                 *maxfd = i;
+
+            if(status == CONNECTING){
+                FD_SET(i,writefds);
+                break;
+            }
+
+            //Suscribo para lectura si tiene lugar en el buffer
+            if (buffer_can_write(&client->buffer))
+                FD_SET(i, readfds);
+
+            if (status == CONNECTED) {
+                peer = &connectionsManager->clients[client->peerfd];
+                /*Me suscribo para escritura si la conexion con el server ya está establecida y 
+                 tengo para leer bytes para enviar por el socket*/
+                if (peer->status == CONNECTED && buffer_can_read(&peer->buffer))
+                    FD_SET(i, writefds);
+            }
+
         }
     }
 }
 
-static void establishNewConnection(fd_set *writefds, connectionsManager_t *connectionsManager) {
+static void establishNewConnection(connectionsManager_t *connectionsManager) {
     int clientSocket = handleNewClient(connectionsManager);
-    int serverSocket = handleServerConnection(writefds, connectionsManager);
-    initPairStatus(clientSocket, serverSocket, connectionsManager);
+    connectionsManager->clients[clientSocket].peerfd = -1;
+    connectionsManager->clients[clientSocket].status = AWAITING_HOST;
 }
 
-static int handleServerConnection(fd_set *writefds, connectionsManager_t *connectionsManager) {
+static void handleServerConnection(int clientSocket, connectionsManager_t *connectionsManager) {
+
     //create listenting non-blocking socket
-    int serverSocket = socket(AF_INET6, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
+    int serverSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
 
     if (serverSocket < 0)
         ERROR_MANAGER("server socket creation", serverSocket, errno);
@@ -232,33 +268,30 @@ static int handleServerConnection(fd_set *writefds, connectionsManager_t *connec
     if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
         ERROR_MANAGER("setsockopt", -1, errno);
 
-    opt = 0;
-
-    if (setsockopt(serverSocket, IPPROTO_IPV6, IPV6_V6ONLY, &opt, sizeof(opt)) < 0)
-        ERROR_MANAGER("Setsockopt opt: IPV6_ONLY", -1, errno);
-
-    struct sockaddr_in6 address;
+    struct sockaddr_in address;
     socklen_t addrlen = sizeof(address);
 
     memset(&address, 0, addrlen);
-    //TODO: Cambiar a getaddrinfo
-    address.sin6_family = AF_INET6;
-    if (inet_pton(address.sin6_family, "::1", &address.sin6_addr) <= 0)
+    address.sin_family = AF_INET;    
+    address.sin_port = htons(80);
+
+    client_t *client = &connectionsManager->clients[clientSocket];
+
+    if (inet_pton(AF_INET, client->host, &address.sin_addr) <= 0)
         ERROR_MANAGER("inet_pton", -1, errno);
-    address.sin6_port = htons(9091);
-
-    client_t *newClient = &connectionsManager->clients[serverSocket];
-    initClient(newClient, &address);
-    connectionsManager->establishedConnections++;
-
-    FD_SET(serverSocket, writefds);
 
     if (connect(serverSocket, (struct sockaddr *)&address, addrlen) < 0) {
         if (errno != EINPROGRESS)
             ERROR_MANAGER("connect", -1, errno);  //FIXME: aca habria que ver que hacer
     }
 
-    return serverSocket;
+    client_t *newClient = &connectionsManager->clients[serverSocket];
+
+    initClient(newClient, &address);
+
+    connectionsManager->establishedConnections++;
+
+    initPairStatus(clientSocket,serverSocket,connectionsManager);
 }
 
 static int handleNewClient(connectionsManager_t *connectionsManager) {
@@ -277,7 +310,13 @@ static int handleNewClient(connectionsManager_t *connectionsManager) {
         ERROR_MANAGER("fnctl", -1, errno);
 
     client_t *newClient = &connectionsManager->clients[clientSocket];
-    initClient(newClient, &address);
+    // initClient(newClient, &address);
+    newClient->data = malloc(PROXY_BUFF_LENGTH);
+    buffer_init(&newClient->buffer, MAX_BUFF, newClient->data);
+    if (inet_ntop(address.sin6_family, &address.sin6_addr, newClient->address, ADDR_LENGTH) == NULL)
+        ERROR_MANAGER("inet_ntop", 0, errno);
+
+    newClient->port = ntohs(address.sin6_port);
 
     printf("New connection:\n-Socket fd: %d\n-IP: %s\n-Port: %d\n\n", clientSocket, newClient->address, newClient->port);
 
@@ -286,12 +325,13 @@ static int handleNewClient(connectionsManager_t *connectionsManager) {
     return clientSocket;
 }
 
-static void initClient(client_t *client, struct sockaddr_in6 *address) {
+static void initClient(client_t *client, struct sockaddr_in *address) {
+    client->data=malloc(PROXY_BUFF_LENGTH);
     buffer_init(&client->buffer, MAX_BUFF, client->data);
-    if (inet_ntop(address->sin6_family, &address->sin6_addr, client->address, ADDR_LENGTH) == NULL)
+    if (inet_ntop(AF_INET, &address->sin_addr, client->address, ADDR_LENGTH) == NULL)
         ERROR_MANAGER("inet_ntop", 0, errno);
 
-    client->port = ntohs(address->sin6_port);
+    client->port = ntohs(address->sin_port);
 }
 
 static void initPairStatus(int clientSocket, int serverSocket, connectionsManager_t *connectionsManager) {
@@ -302,17 +342,16 @@ static void initPairStatus(int clientSocket, int serverSocket, connectionsManage
     connectionsManager->clients[clientSocket].status = CONNECTED;
 }
 
-
 static void processRequest(int socketfd, fd_set *readfds, fd_set *writefds, connectionsManager_t *connectionsManager) {
     client_t *client = &connectionsManager->clients[socketfd];
 
     if (client->status != INACTIVE) {
         client_t *peer = &connectionsManager->clients[client->peerfd];
 
-        if (FD_ISSET(socketfd, readfds)) 
-            handleReadSet(socketfd,client,peer,connectionsManager);
-        
-        if (FD_ISSET(socketfd, writefds)) 
+        if (FD_ISSET(socketfd, readfds))
+            handleReadSet(socketfd, client, peer, connectionsManager);
+
+        if (FD_ISSET(socketfd, writefds))
             handleWriteSet(socketfd, client, peer, connectionsManager);
     }
 }
@@ -326,12 +365,53 @@ static void handleReadSet(int socketfd, client_t *client, client_t *peer, connec
         ERROR_MANAGER("read", totalBytes, errno);
     if (totalBytes == 0) {
         printf("Connection closed.\n\n");
-        endConnection(peer, client->peerfd, connectionsManager);
+
+        if (client->peerfd > 0)
+            endConnection(peer, client->peerfd, connectionsManager);
+
         endConnection(client, socketfd, connectionsManager);
         return;
     }
 
     buffer_write_adv(&client->buffer, totalBytes);
+
+    if (client->status != CONNECTED) {
+        int i = 0;
+        if (client->status == AWAITING_HOST) {
+            changeState(connectionsManager->hostParser, client->state);
+            const struct parser_event *event;
+            for (i = 0; i < totalBytes; i++) {
+                event = parser_feed(connectionsManager->hostParser, data[i]);
+                if (event->type == STRING_CMP_EQ) {
+                    client->status = PARSING_HOST;
+                    i++;
+                    break;
+                } else if (event->type == STRING_CMP_NEQ)
+                    parser_reset(connectionsManager->hostParser);
+            }
+            client->state = getState(connectionsManager->hostParser);
+        }
+        if (client->status == PARSING_HOST) {
+            while (i < totalBytes && client->hostLength < MAX_HOST_LENGTH) {
+                if (client->hostLength == MAX_HOST_LENGTH - 1 && data[i] != '\r') {
+                    endConnection(client, socketfd, connectionsManager);
+                    break;
+                }
+
+                if (data[i] == '\r' && data[i + 1] == '\n') {
+                    client->host[client->hostLength] = 0;
+                    handleServerConnection(socketfd, connectionsManager);
+                    break;
+                }
+
+                if (data[i] != '\t' && data[i] != ' ') {
+                    client->host[client->hostLength] = data[i];
+                    client->hostLength++;
+                }
+                i++;
+            }
+        }
+    }
 }
 
 static void handleWriteSet(int socketfd, client_t *client, client_t *peer, connectionsManager_t *connectionsManager) {
@@ -354,6 +434,9 @@ static void handleWriteSet(int socketfd, client_t *client, client_t *peer, conne
     }
 
     if (buffer_can_read(&peer->buffer)) {
+        // char c = buffer_read(&peer->buffer);
+        // send(socketfd, &c, 1, 0);
+
         size_t maxBytes;
         uint8_t *data = buffer_read_ptr(&peer->buffer, &maxBytes);
         int totalBytes = send(socketfd, data, maxBytes, 0);
@@ -366,5 +449,6 @@ static void endConnection(client_t *client, int fd, connectionsManager_t *connec
         ERROR_MANAGER("close", -1, errno);
 
     connectionsManager->establishedConnections--;
+    free(client->data);
     memset(client, 0, sizeof(client_t));  // Zero out structure
 }

@@ -12,9 +12,9 @@ SOURCES_C=$(wildcard *.c)
 SOURCES_CPP=$(SOURCES_C:.c=.cpp)
 
 all:
-	$(CC) $(GCCFLAGS) $(SOURCES_SERVER) $(SOURCES_UTILS) -I./utils -o $(EXECUTABLE_SERVER)
+	$(CC) $(GCCFLAGS) $(SOURCES_SERVER) $(SOURCES_UTILS) -I./includes -o $(EXECUTABLE_SERVER)
 
-test: cpp scanbuild complexity 
+test: cpp scanbuild #complexity 
 
 cpp: $(SOURCES_CPP)
 
@@ -24,13 +24,15 @@ cpp: $(SOURCES_CPP)
 scanbuild: 
 	CC=gcc scan-build -disable-checker deadcode.DeadStores -o scanBuildResults make >  results.sb
 
-complexity:
-	complexity --histogram --score $(SOURCES_C) >results.cpxt 2> /dev/null
+#complexity:
+#	complexity --histogram --score $(SOURCES_C) >results.cpxt 2> /dev/null
 
 clean:
 	rm -rf httpd
 
 cleanTest:
-	rm -rf results.cppOut results.sb results.cpxt scanBuildResults
+	rm -rf results.cppOut results.sb scanBuildResults 
+
+#results.cpxt 
 
 .PHONY: all clean cleanTest cpp pvs test

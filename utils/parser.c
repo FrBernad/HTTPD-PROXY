@@ -3,7 +3,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "parser.h"
+#include <parser.h>
 
 /* CDT del parser */
 struct parser {
@@ -13,13 +13,21 @@ struct parser {
     const struct parser_definition *def;
 
     /* estado actual */
-    unsigned            state;
+    unsigned state;
 
     /* evento que se retorna */
     struct parser_event e1;
     /* evento que se retorna */
     struct parser_event e2;
 };
+
+void changeState(struct parser *p, unsigned state) {
+    p->state=state;
+}
+
+unsigned getState(struct parser *p){
+    return p->state;
+}
 
 void
 parser_destroy(struct parser *p) {
@@ -60,7 +68,7 @@ parser_feed(struct parser *p, const uint8_t c) {
         const int when = state[i].when;
         if (state[i].when <= 0xFF) {
             matched = (c == when);
-        } else if(state[i].when == ANY) {
+        } else if(state[i].when == (int)ANY) {
             matched = true;
         } else if(state[i].when > 0xFF) {
             matched = (type & when);

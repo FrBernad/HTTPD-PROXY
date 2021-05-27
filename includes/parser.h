@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
+
 /**
  * Evento que retorna el parser.
  * Cada tipo de evento tendrá sus reglas en relación a data.
@@ -41,7 +42,7 @@ struct parser_state_transition {
     void    (*act2)(struct parser_event *ret, const uint8_t c);
 };
 
-/** predicado para utilizar en `when' que retorna siempre true */
+/** prdicado para utilizar en `when' que retorna siempre true */
 static const unsigned ANY = 1 << 9;
 
 /** declaración completa de una máquina de estados */
@@ -89,5 +90,9 @@ parser_feed     (struct parser *p, const uint8_t c);
 const unsigned *
 parser_no_classes(void);
 
+void 
+changeState     (struct parser *p, unsigned state);
+
+unsigned getState(struct parser *p);
 
 #endif
