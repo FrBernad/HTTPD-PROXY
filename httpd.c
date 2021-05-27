@@ -44,6 +44,7 @@ typedef struct client_t {
     uint8_t *data;
     char address[ADDR_LENGTH];
     uint16_t port;
+    int family;
 
     char host[MAX_HOST_LENGTH];
     uint8_t hostLength;
@@ -255,46 +256,49 @@ static void establishNewConnection(connectionsManager_t *connectionsManager) {
 static int handleServerConnection(int clientSocket, connectionsManager_t *connectionsManager) {
     client_t *client = &connectionsManager->clients[clientSocket];
 
-    int ready = false;
-    int af;
-    socklen_t addrlen;
     void *address;
-    uint16_t port = 80;
+    int af;
+    switch (client->family)
+    {
+    case AF_INET:
+        af = AF_INET;
+        struct sockaddr_in ipv4addr;
+        addrlen = sizeof(ipv4addr);
 
-    //try ipv4
-    af = AF_INET;
-    struct sockaddr_in ipv4addr;
-    addrlen = sizeof(ipv4addr);
-
-    memset(&ipv4addr, 0, addrlen);
-    int res;
-    if ((res = inet_pton(AF_INET, client->host, &ipv4addr.sin_addr)) <= 0) {
-        if (res < 0)
-            ERROR_MANAGER("inet_pton", -1, errno);
-    } else {
-        ready = true;
-        address = &ipv4addr;
-        ipv4addr.sin_family = AF_INET;
-        ipv4addr.sin_port = htons(80);
-    }
-
-    //try ipv6
-    if (!ready) {
-        af = AF_INET6;
-        struct sockaddr_in6 ipv6addr;
-        addrlen = sizeof(ipv6addr);
-
-        memset(&ipv6addr, 0, addrlen);
+        memset(&ipv4addr, 0, addrlen);
         int res;
-        if ((res = inet_pton(AF_INET6, client->host, &ipv6addr.sin6_addr)) <= 0) {
+        if ((res = inet_pton(AF_INET, client->host, &ipv4addr.sin_addr)) <= 0) {
             if (res < 0)
                 ERROR_MANAGER("inet_pton", -1, errno);
+            return -1;
         } else {
-            ready = true;
-            address = &ipv6addr;
-            ipv6addr.sin6_family = AF_INET6;
-            ipv6addr.sin6_port = htons(80);
+            address = &ipv4addr;
+            ipv4addr.sin_family = AF_INET;
+            ipv4addr.sin_port = htons(client->port);
         }
+    break;
+    
+    case AF_INET6:
+            af = AF_INET6;
+            struct sockaddr_in6 ipv6addr;
+            addrlen = sizeof(ipv6addr);
+
+            memset(&ipv6addr, 0, addrlen);
+            int res;
+            if ((res = inet_pton(AF_INET6, client->host, &ipv6addr.sin6_addr)) <= 0) {
+                if (res < 0)
+                    ERROR_MANAGER("inet_pton", -1, errno);
+                return -1;
+            } else {
+                address = &ipv6addr;
+                ipv6addr.sin6_family = AF_INET6;
+                ipv6addr.sin6_port = htons(client->port);
+            }
+            break;
+
+    default:
+        // never reaches
+        break;
     }
 
     //create listenting non-blocking socket
@@ -431,6 +435,8 @@ static void handleReadSet(int socketfd, client_t *client, client_t *peer, connec
 
                 if (data[i] == '\r' && data[i + 1] == '\n') {
                     client->host[client->hostLength] = 0;
+                    splitHostAndPort(client->host,client->hostLength,&client->family, &client->port);
+
                     if (!handleServerConnection(socketfd, connectionsManager))
                         endConnection(client, socketfd, connectionsManager);
 
@@ -486,14 +492,3 @@ static void endConnection(client_t *client, int fd, connectionsManager_t *connec
     free(client->data);
     memset(client, 0, sizeof(client_t));  // Zero out structure
 }
-
-// static int getPort(char * host) {
-//     while(*host) {
-//         if(*host == ":") {
-//             *host++;
-//             return host;
-//         }
-//         *host++;
-//     }
-//     return 80;
-// }

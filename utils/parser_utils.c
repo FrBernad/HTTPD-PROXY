@@ -142,3 +142,27 @@ parser_utils_strcmpi_destroy(const struct parser_definition *p) {
     free((void *)p->states);
     free((void *)p->states_n);
 }
+
+void splitHostAndPort(char* host,int n,int * family, uint16_t * port) {
+    char* mayBePort = strrchr(host, ':');
+    *port = 80;
+    if (mayBePort != 0) {
+        if (*host == '[') {
+            //es una ipv6
+            if (*(mayBePort - 1) == ']') { //es una ipv6 con puerto
+                *(mayBePort - 1) = 0;  //corto el host sacando el corchete
+                *port = atoi(mayBePort +1);
+            }else{ //es una ipv6 sin puerto
+                char * aux = strrchr(mayBePort,']');  
+                *aux = 0; //saco el corchete al final
+            }
+            memcpy(host,host+1,n);
+            *family=AF_INET6;
+        } else {
+            //es una ipv4 con puerto o hostString con puerto
+            *mayBePort = 0; //saco ':'
+            *port = atoi(mayBePort +1);
+            *family=AF_INET;
+        }
+    }
+}

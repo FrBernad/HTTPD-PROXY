@@ -36,4 +36,6 @@ parser_utils_strcmpi(const char *s);
 void
 parser_utils_strcmpi_destroy(const struct parser_definition *p);
 
+void splitHostAndPort(char* host,int n, int * family,char* port);
+
 #endif
