@@ -22,6 +22,14 @@
 #define PROXY_BUFF_LENGTH 8 * 1024
 #define MAX_HOST_LENGTH 25
 #define ADDR_LENGTH 40
+#define START_OF_AUTHORITY "://"
+
+/*
+The authority component is preceded by a double slash ("//") and is
+   terminated by the next slash ("/"), question mark ("?"), or number
+   sign ("#") character, or by the end of the URI.
+*/
+#define END_OF_AUTHORITY(x) ((x) == ' ' || (x) == '/' || (x) == '#' || (x) == '?')
 
 typedef enum status { INACTIVE = 0,
                       AWAITING_HOST,
@@ -79,7 +87,8 @@ static int handleNewClient(connectionsManager_t *connectionsManager);
 static int handleServerConnection(int clientSocket, connectionsManager_t *connectionsManager);
 
 // Initialize client_t structure
-static void initClient(client_t *client, void *address, uint16_t port, int af);
+static void initClient(client_t *client, void *address, int af);
+
 // Set peer and client status
 static void initPairStatus(int clientSocket, int serverSocket, connectionsManager_t *connectionsManager);
 
@@ -117,7 +126,7 @@ int main(int argc, char const *argv[]) {
         ERROR_MANAGER("Closing STDIN fd", -1, errno);
 
     connectionsManager_t connectionsManager;
-    const struct parser_definition d = parser_utils_strcmpi("host:");
+    const struct parser_definition d = parser_utils_strcmpi(START_OF_AUTHORITY);
     initConnectionManager(&connectionsManager, &d, listeningPort);
 
     //set of socket descriptors
@@ -256,35 +265,40 @@ static void establishNewConnection(connectionsManager_t *connectionsManager) {
 static int handleServerConnection(int clientSocket, connectionsManager_t *connectionsManager) {
     client_t *client = &connectionsManager->clients[clientSocket];
 
-    void *address;
-    int af;
-    switch (client->family)
-    {
-    case AF_INET:
-        af = AF_INET;
-        struct sockaddr_in ipv4addr;
-        addrlen = sizeof(ipv4addr);
+    void *address = NULL;
+    int af=0;
+    int addrlen = 0;
+    int res;
+    uint16_t port;
+    struct sockaddr_in ipv4addr;
+    struct sockaddr_in6 ipv6addr;
 
-        memset(&ipv4addr, 0, addrlen);
-        int res;
-        if ((res = inet_pton(AF_INET, client->host, &ipv4addr.sin_addr)) <= 0) {
-            if (res < 0)
-                ERROR_MANAGER("inet_pton", -1, errno);
-            return -1;
-        } else {
-            address = &ipv4addr;
-            ipv4addr.sin_family = AF_INET;
-            ipv4addr.sin_port = htons(client->port);
-        }
-    break;
-    
-    case AF_INET6:
+    splitHostAndPort(client->host, client->hostLength - 1, &client->family, &port);
+
+    printf("origin ip: %s\n",client->host);
+
+    switch (client->family) {
+        case AF_INET:
+            af = AF_INET;
+            addrlen = sizeof(ipv4addr);
+
+            memset(&ipv4addr, 0, addrlen);
+            if ((res = inet_pton(AF_INET, client->host, &ipv4addr.sin_addr)) <= 0) {
+                if (res < 0)
+                    ERROR_MANAGER("inet_pton", -1, errno);
+                return -1;
+            } else {
+                address = &ipv4addr;
+                ipv4addr.sin_family = AF_INET;
+                ipv4addr.sin_port = htons(port);
+            }
+            break;
+
+        case AF_INET6:
             af = AF_INET6;
-            struct sockaddr_in6 ipv6addr;
             addrlen = sizeof(ipv6addr);
 
             memset(&ipv6addr, 0, addrlen);
-            int res;
             if ((res = inet_pton(AF_INET6, client->host, &ipv6addr.sin6_addr)) <= 0) {
                 if (res < 0)
                     ERROR_MANAGER("inet_pton", -1, errno);
@@ -292,13 +306,13 @@ static int handleServerConnection(int clientSocket, connectionsManager_t *connec
             } else {
                 address = &ipv6addr;
                 ipv6addr.sin6_family = AF_INET6;
-                ipv6addr.sin6_port = htons(client->port);
+                ipv6addr.sin6_port = htons(port);
             }
             break;
 
-    default:
-        // never reaches
-        break;
+        default:
+            // never reaches
+            break;
     }
 
     //create listenting non-blocking socket
@@ -319,7 +333,7 @@ static int handleServerConnection(int clientSocket, connectionsManager_t *connec
             ERROR_MANAGER("connect", -1, errno);  //FIXME: aca habria que ver que hacer
     }
 
-    initClient(newClient, address, port, af);
+    initClient(newClient, address, af);
 
     connectionsManager->establishedConnections++;
 
@@ -359,14 +373,12 @@ static int handleNewClient(connectionsManager_t *connectionsManager) {
     return clientSocket;
 }
 
-static void initClient(client_t *client, void *address, uint16_t port, int af) {
+static void initClient(client_t *client, void *address, int af) {
     client->data = malloc(PROXY_BUFF_LENGTH);  //FIXME: chequear malloc
     buffer_init(&client->buffer, MAX_BUFF, client->data);
 
     if (inet_ntop(af, address, client->address, ADDR_LENGTH) == NULL)
         ERROR_MANAGER("inet_ntop", 0, errno);
-
-    client->port = ntohs(port);
 }
 
 static void initPairStatus(int clientSocket, int serverSocket, connectionsManager_t *connectionsManager) {
@@ -416,6 +428,11 @@ static void handleReadSet(int socketfd, client_t *client, client_t *peer, connec
             changeState(connectionsManager->hostParser, client->state);
             const struct parser_event *event;
             for (i = 0; i < totalBytes; i++) {
+                if(data[i]=='\n'){
+                    printf("BAD REQUEST\n");
+                    endConnection(client, socketfd, connectionsManager);
+                    break;
+                }
                 event = parser_feed(connectionsManager->hostParser, data[i]);
                 if (event->type == STRING_CMP_EQ) {
                     client->status = PARSING_HOST;
@@ -428,26 +445,18 @@ static void handleReadSet(int socketfd, client_t *client, client_t *peer, connec
         }
         if (client->status == PARSING_HOST) {
             while (i < totalBytes && client->hostLength < MAX_HOST_LENGTH) {
-                if (client->hostLength == MAX_HOST_LENGTH - 1 && data[i] != '\r') {
+                if (client->hostLength == MAX_HOST_LENGTH && !END_OF_AUTHORITY(data[i])) {
                     endConnection(client, socketfd, connectionsManager);
                     break;
                 }
 
-                if (data[i] == '\r' && data[i + 1] == '\n') {
+                if (END_OF_AUTHORITY(data[i])) {
                     client->host[client->hostLength] = 0;
-                    splitHostAndPort(client->host,client->hostLength,&client->family, &client->port);
-
                     if (!handleServerConnection(socketfd, connectionsManager))
                         endConnection(client, socketfd, connectionsManager);
-
                     break;
                 }
-
-                if (data[i] != '\t' && data[i] != ' ') {
-                    client->host[client->hostLength] = data[i];
-                    client->hostLength++;
-                }
-                i++;
+                client->host[client->hostLength++]=data[i++];
             }
         }
     }
@@ -492,3 +501,37 @@ static void endConnection(client_t *client, int fd, connectionsManager_t *connec
     free(client->data);
     memset(client, 0, sizeof(client_t));  // Zero out structure
 }
+
+/* 
+
+Example http Request:
+
+        POST /cgi-bin/process.cgi HTTP/1.1
+        User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
+        Host: www.tutorialspoint.com
+        Content-Type: text/xml; charset=utf-8
+        Content-Length: length
+        Accept-Language: en-us
+        Accept-Encoding: gzip, deflate
+        Connection: Keep-Alive
+
+        <?xml version="1.0" encoding="utf-8"?>
+        <string xmlns="http://clearforest.com/">string</string>
+
+Example http Response: 
+
+        HTTP/1.1 200 OK
+        Date: Mon, 27 Jul 2009 12:28:53 GMT
+        Server: Apache/2.2.14 (Win32)
+        Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT
+        Content-Length: 88
+        Content-Type: text/html
+        Connection: Closed
+
+        <html>
+        <body>
+        <h1>Hello, World!</h1>
+        </body>
+        </html>
+        */
+

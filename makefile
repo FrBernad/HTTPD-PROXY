@@ -1,5 +1,4 @@
-CC= gcc
-GCCFLAGS= -std=c99 -Wall -pedantic -pedantic-errors -Wextra -Werror -Wno-unused-parameter -Wno-implicit-fallthrough -fsanitize=address 
+CCFLAGS= -std=c11 -Wall -g -pedantic -Wno-newline-eof -pedantic-errors -Wextra -Werror -Wno-unused-parameter -O3 -Wno-implicit-fallthrough -fsanitize=address -D_POSIX_C_SOURCE=200112L
 
 SOURCES_SERVER= httpd.c
 
@@ -12,7 +11,7 @@ SOURCES_C=$(wildcard *.c)
 SOURCES_CPP=$(SOURCES_C:.c=.cpp)
 
 all:
-	$(CC) $(GCCFLAGS) $(SOURCES_SERVER) $(SOURCES_UTILS) -I./includes -o $(EXECUTABLE_SERVER)
+	$(CC) $(CCFLAGS) $(SOURCES_SERVER) $(SOURCES_UTILS) $(CFLAGS) -I./includes -o $(EXECUTABLE_SERVER)
 
 test: cpp scanbuild #complexity 
 
