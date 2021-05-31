@@ -65,3 +65,5 @@ dkms.conf
 # Compiled files
 /httpd
 .vscode/
+
+.idea/

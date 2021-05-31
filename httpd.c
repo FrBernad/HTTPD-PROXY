@@ -5,7 +5,6 @@
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/ip.h> /* superset of previous */
-#include <parser_utils.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,29 +13,19 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <request.h>
 
 #define MAX_PENDING 5
 #define MAX_CLIENTS 500
 #define MAX_CONNECTIONS (MAX_CLIENTS * 2)
 #define MAX_BUFF 256
 #define PROXY_BUFF_LENGTH 8 * 1024
-#define MAX_HOST_LENGTH 25
-#define ADDR_LENGTH 40
-#define START_OF_AUTHORITY "://"
 
-/*
-The authority component is preceded by a double slash ("//") and is
-   terminated by the next slash ("/"), question mark ("?"), or number
-   sign ("#") character, or by the end of the URI.
-*/
-#define END_OF_AUTHORITY(x) ((x) == ' ' || (x) == '/' || (x) == '#' || (x) == '?')
-
-typedef enum status { INACTIVE = 0,
-                      AWAITING_HOST,
-                      PARSING_HOST,
-                      CONNECTING,
-                      RESOLVING,
-                      CONNECTED
+typedef enum status {
+    INACTIVE = 0,
+    AWAITING_ORIGIN,
+    CONNECTING,
+    CONNECTED
 } status_t;
 
 #define ERROR_MANAGER(msg, retVal, errno)                                                                                      \
@@ -50,13 +39,8 @@ typedef struct client_t {
     status_t status;
     buffer buffer;
     uint8_t *data;
-    char address[ADDR_LENGTH];
-    uint16_t port;
-    int family;
-
-    char host[MAX_HOST_LENGTH];
-    uint8_t hostLength;
-    unsigned state;
+    struct request_parser parser;
+    struct request_line request;
 } client_t;
 
 typedef struct connectionsManager_t {
@@ -65,18 +49,16 @@ typedef struct connectionsManager_t {
     uint16_t maxClients;
     client_t clients[MAX_CONNECTIONS];
     int passiveSocket;
-    struct parser *hostParser;
 } connectionsManager_t;
 
 // ----------- SOCKET MANAGMENT -----------
 
 // Initializes connection manager structure
-static void initConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d, int listeningPort);
-
-static void closeConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d);
+static void initConnectionManager(connectionsManager_t *connectionsManager, int listeningPort);
 
 // Initializes passive sockets for connections request and starts listening in the port given by the user
 static int initializePassiveSocket(int listeningPort);
+
 // Establish new connection CLIENT - PROXY - SERVER
 static void establishNewConnection(connectionsManager_t *connectionsManager);
 
@@ -87,7 +69,7 @@ static int handleNewClient(connectionsManager_t *connectionsManager);
 static int handleServerConnection(int clientSocket, connectionsManager_t *connectionsManager);
 
 // Initialize client_t structure
-static void initClient(client_t *client, void *address, int af);
+static void initClient(client_t *client);
 
 // Set peer and client status
 static void initPairStatus(int clientSocket, int serverSocket, connectionsManager_t *connectionsManager);
@@ -126,8 +108,7 @@ int main(int argc, char const *argv[]) {
         ERROR_MANAGER("Closing STDIN fd", -1, errno);
 
     connectionsManager_t connectionsManager;
-    const struct parser_definition d = parser_utils_strcmpi(START_OF_AUTHORITY);
-    initConnectionManager(&connectionsManager, &d, listeningPort);
+    initConnectionManager(&connectionsManager, listeningPort);
 
     //set of socket descriptors
     fd_set readfds;
@@ -148,11 +129,9 @@ int main(int argc, char const *argv[]) {
             establishNewConnection(&connectionsManager);
 
         //else its some IO operation on some other socket
-        for (size_t i = 0; i < connectionsManager.maxConnections; i++)
+        for (int i = 0; i < connectionsManager.maxConnections; i++)
             processRequest(i, &readfds, &writefds, &connectionsManager);
     }
-
-    closeConnectionManager(&connectionsManager, &d);
 
     return 0;
 }
@@ -161,18 +140,12 @@ int main(int argc, char const *argv[]) {
 //Habria que ver de hacer que escuche en ipv6. Que pasa con UDP si nuestro socket maneja TCP
 //Cambiar maxClients
 
-static void initConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d, int listeningPort) {
+static void initConnectionManager(connectionsManager_t *connectionsManager, int listeningPort) {
     memset(connectionsManager, 0, sizeof(connectionsManager_t));
     connectionsManager->maxConnections = MAX_CONNECTIONS;
     connectionsManager->maxClients = MAX_CLIENTS;
-    connectionsManager->hostParser = parser_init(parser_no_classes(), d);
     //create listenting non-blocking socket
     connectionsManager->passiveSocket = initializePassiveSocket(listeningPort);
-}
-
-static void closeConnectionManager(connectionsManager_t *connectionsManager, const struct parser_definition *d) {
-    parser_utils_strcmpi_destroy(d);
-    parser_destroy(connectionsManager->hostParser);
 }
 
 static int initializePassiveSocket(int listeningPort) {
@@ -208,7 +181,7 @@ static int initializePassiveSocket(int listeningPort) {
     address.sin6_addr = in6addr_any;
     address.sin6_port = htons(listeningPort);
 
-    if (bind(passiveSocket, (struct sockaddr *)&address, addrlen) < 0)
+    if (bind(passiveSocket, (struct sockaddr *) &address, addrlen) < 0)
         ERROR_MANAGER("bind", -1, errno);
 
     if (listen(passiveSocket, MAX_PENDING) < 0)
@@ -259,85 +232,54 @@ static void resetSets(fd_set *readfds, fd_set *writefds, int *maxfd, connections
 static void establishNewConnection(connectionsManager_t *connectionsManager) {
     int clientSocket = handleNewClient(connectionsManager);
     connectionsManager->clients[clientSocket].peerfd = -1;
-    connectionsManager->clients[clientSocket].status = AWAITING_HOST;
+    connectionsManager->clients[clientSocket].status = AWAITING_ORIGIN;
 }
 
 static int handleServerConnection(int clientSocket, connectionsManager_t *connectionsManager) {
     client_t *client = &connectionsManager->clients[clientSocket];
 
-    void *address = NULL;
-    int af=0;
-    int addrlen = 0;
-    int res;
-    uint16_t port;
-    struct sockaddr_in ipv4addr;
-    struct sockaddr_in6 ipv6addr;
+    if (client->request.request_target.host_type == domain) {
+        return 0;
+        //TODO: DO DOH RESOLUTION
+    } else {
+        //create listenting non-blocking socket
+        enum request_line_addr_type type = client->request.request_target.host_type;
 
-    splitHostAndPort(client->host, client->hostLength - 1, &client->family, &port);
+        int af = type == ipv4 ? AF_INET : AF_INET6;
 
-    printf("origin ip: %s\n",client->host);
+        int serverSocket = socket(af, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
 
-    switch (client->family) {
-        case AF_INET:
-            af = AF_INET;
-            addrlen = sizeof(ipv4addr);
+        if (serverSocket < 0)
+            ERROR_MANAGER("server socket creation", serverSocket, errno);
 
-            memset(&ipv4addr, 0, addrlen);
-            if ((res = inet_pton(AF_INET, client->host, &ipv4addr.sin_addr)) <= 0) {
-                if (res < 0)
-                    ERROR_MANAGER("inet_pton", -1, errno);
-                return -1;
-            } else {
-                address = &ipv4addr;
-                ipv4addr.sin_family = AF_INET;
-                ipv4addr.sin_port = htons(port);
+        int opt = 1;
+
+        if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+            ERROR_MANAGER("setsockopt", -1, errno);
+
+        client_t *newClient = &connectionsManager->clients[serverSocket];
+
+        if (type == ipv4) {
+            struct sockaddr_in addr = client->request.request_target.host.ipv4;
+            if (connect(serverSocket, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+                if (errno != EINPROGRESS)
+                    ERROR_MANAGER("connect", -1, errno);  //FIXME: aca habria que ver que hacer
             }
-            break;
-
-        case AF_INET6:
-            af = AF_INET6;
-            addrlen = sizeof(ipv6addr);
-
-            memset(&ipv6addr, 0, addrlen);
-            if ((res = inet_pton(AF_INET6, client->host, &ipv6addr.sin6_addr)) <= 0) {
-                if (res < 0)
-                    ERROR_MANAGER("inet_pton", -1, errno);
-                return -1;
-            } else {
-                address = &ipv6addr;
-                ipv6addr.sin6_family = AF_INET6;
-                ipv6addr.sin6_port = htons(port);
+        } else {
+            struct sockaddr_in6 addr = client->request.request_target.host.ipv6;
+            if (connect(serverSocket, (struct sockaddr *) &addr, sizeof(addr)) < 0) {
+                if (errno != EINPROGRESS)
+                    ERROR_MANAGER("connect", -1, errno);  //FIXME: aca habria que ver que hacer
             }
-            break;
+        }
 
-        default:
-            // never reaches
-            break;
+        initClient(newClient);
+
+        connectionsManager->establishedConnections++;
+
+        initPairStatus(clientSocket, serverSocket, connectionsManager);
+
     }
-
-    //create listenting non-blocking socket
-    int serverSocket = socket(af, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
-
-    if (serverSocket < 0)
-        ERROR_MANAGER("server socket creation", serverSocket, errno);
-
-    int opt = 1;
-
-    if (setsockopt(serverSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-        ERROR_MANAGER("setsockopt", -1, errno);
-
-    client_t *newClient = &connectionsManager->clients[serverSocket];
-
-    if (connect(serverSocket, (struct sockaddr *)address, addrlen) < 0) {
-        if (errno != EINPROGRESS)
-            ERROR_MANAGER("connect", -1, errno);  //FIXME: aca habria que ver que hacer
-    }
-
-    initClient(newClient, address, af);
-
-    connectionsManager->establishedConnections++;
-
-    initPairStatus(clientSocket, serverSocket, connectionsManager);
 
     return 1;
 }
@@ -348,7 +290,7 @@ static int handleNewClient(connectionsManager_t *connectionsManager) {
 
     int clientSocket;
 
-    if ((clientSocket = accept(connectionsManager->passiveSocket, (struct sockaddr *)&address, &addrlen)) < 0)
+    if ((clientSocket = accept(connectionsManager->passiveSocket, (struct sockaddr *) &address, &addrlen)) < 0)
         ERROR_MANAGER("accept", clientSocket, errno);
 
     int flags = fcntl(clientSocket, F_GETFL, 0);
@@ -358,27 +300,30 @@ static int handleNewClient(connectionsManager_t *connectionsManager) {
         ERROR_MANAGER("fnctl", -1, errno);
 
     client_t *newClient = &connectionsManager->clients[clientSocket];
-    // initClient(newClient, &address);
-    newClient->data = malloc(PROXY_BUFF_LENGTH);
-    buffer_init(&newClient->buffer, MAX_BUFF, newClient->data);
-    if (inet_ntop(address.sin6_family, &address.sin6_addr, newClient->address, ADDR_LENGTH) == NULL)
-        ERROR_MANAGER("inet_ntop", 0, errno);
-
-    newClient->port = ntohs(address.sin6_port);
-
-    printf("New connection:\n-Socket fd: %d\n-IP: %s\n-Port: %d\n\n", clientSocket, newClient->address, newClient->port);
+    initClient(newClient);
+    //    newClient->data = malloc(PROXY_BUFF_LENGTH);
+    //    buffer_init(&newClient->buffer, MAX_BUFF, newClient->data);
+    //    if (inet_ntop(address.sin6_family, &address.sin6_addr, newClient->address, ADDR_LENGTH) == NULL)
+    //        ERROR_MANAGER("inet_ntop", 0, errno);
+    //
+    //    newClient->port = ntohs(address.sin6_port);
+    //
+    //    printf("New connection:\n-Socket fd: %d\n-IP: %s\n-Port: %d\n\n", clientSocket, newClient->address, newClient->port);
+    printf("New connection:\n-Socket fd: %d\n", clientSocket);
 
     connectionsManager->establishedConnections++;
 
     return clientSocket;
 }
 
-static void initClient(client_t *client, void *address, int af) {
+static void initClient(client_t *client) {
     client->data = malloc(PROXY_BUFF_LENGTH);  //FIXME: chequear malloc
     buffer_init(&client->buffer, MAX_BUFF, client->data);
+    client->parser.request = &client->request;
+    request_parser_init(&client->parser);
 
-    if (inet_ntop(af, address, client->address, ADDR_LENGTH) == NULL)
-        ERROR_MANAGER("inet_ntop", 0, errno);
+//    if (inet_ntop(af, address, client->address, ADDR_LENGTH) == NULL)
+//        ERROR_MANAGER("inet_ntop", 0, errno);
 }
 
 static void initPairStatus(int clientSocket, int serverSocket, connectionsManager_t *connectionsManager) {
@@ -423,40 +368,16 @@ static void handleReadSet(int socketfd, client_t *client, client_t *peer, connec
     buffer_write_adv(&client->buffer, totalBytes);
 
     if (client->status != CONNECTED) {
-        int i = 0;
-        if (client->status == AWAITING_HOST) {
-            changeState(connectionsManager->hostParser, client->state);
-            const struct parser_event *event;
-            for (i = 0; i < totalBytes; i++) {
-                if(data[i]=='\n'){
-                    printf("BAD REQUEST\n");
+        for (int i = 0; i < totalBytes; i++) {
+            request_state state = request_parser_feed(&client->parser, data[i]);
+            if (state == request_error) {
+                printf("BAD REQUEST\n");
+                endConnection(client, socketfd, connectionsManager);
+                break;
+            } else if (state == request_done) {
+                if (!handleServerConnection(socketfd, connectionsManager))
                     endConnection(client, socketfd, connectionsManager);
-                    break;
-                }
-                event = parser_feed(connectionsManager->hostParser, data[i]);
-                if (event->type == STRING_CMP_EQ) {
-                    client->status = PARSING_HOST;
-                    i++;
-                    break;
-                } else if (event->type == STRING_CMP_NEQ)
-                    parser_reset(connectionsManager->hostParser);
-            }
-            client->state = getState(connectionsManager->hostParser);
-        }
-        if (client->status == PARSING_HOST) {
-            while (i < totalBytes && client->hostLength < MAX_HOST_LENGTH) {
-                if (client->hostLength == MAX_HOST_LENGTH && !END_OF_AUTHORITY(data[i])) {
-                    endConnection(client, socketfd, connectionsManager);
-                    break;
-                }
-
-                if (END_OF_AUTHORITY(data[i])) {
-                    client->host[client->hostLength] = 0;
-                    if (!handleServerConnection(socketfd, connectionsManager))
-                        endConnection(client, socketfd, connectionsManager);
-                    break;
-                }
-                client->host[client->hostLength++]=data[i++];
+                break;
             }
         }
     }
@@ -501,37 +422,4 @@ static void endConnection(client_t *client, int fd, connectionsManager_t *connec
     free(client->data);
     memset(client, 0, sizeof(client_t));  // Zero out structure
 }
-
-/* 
-
-Example http Request:
-
-        POST /cgi-bin/process.cgi HTTP/1.1
-        User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
-        Host: www.tutorialspoint.com
-        Content-Type: text/xml; charset=utf-8
-        Content-Length: length
-        Accept-Language: en-us
-        Accept-Encoding: gzip, deflate
-        Connection: Keep-Alive
-
-        <?xml version="1.0" encoding="utf-8"?>
-        <string xmlns="http://clearforest.com/">string</string>
-
-Example http Response: 
-
-        HTTP/1.1 200 OK
-        Date: Mon, 27 Jul 2009 12:28:53 GMT
-        Server: Apache/2.2.14 (Win32)
-        Last-Modified: Wed, 22 Jul 2009 19:15:56 GMT
-        Content-Length: 88
-        Content-Type: text/html
-        Connection: Closed
-
-        <html>
-        <body>
-        <h1>Hello, World!</h1>
-        </body>
-        </html>
-        */
 
