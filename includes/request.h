@@ -1,3 +1,6 @@
+#ifndef _REQUEST_H_
+#define _REQUEST_H_
+
 #include <netinet/in.h>
 
 /*   The HTTP request line is formed as follows:
@@ -137,3 +140,5 @@ void request_parser_init(struct request_parser *p);
 
 /** returns true if done */
 enum request_state request_parser_feed(struct request_parser *p, const uint8_t c);
+
+#endif
