@@ -4,8 +4,8 @@
 #include <doh_parser.h>
 #include <netdb.h>
 #include <request.h>
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <stm.h>
 
 #define ATTACHMENT(key) ((proxyConnection *)(key)->data)
 

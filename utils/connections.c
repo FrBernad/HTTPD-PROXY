@@ -7,7 +7,6 @@
 #include <selector.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stm.h>
 
 #define ATTACHMENT(key) ((proxyConnection *)(key)->data)
 
@@ -31,9 +30,20 @@ enum connection_state {
 
 static proxyConnection *
 create_new_connection();
+
 static void
 init_proxy_connection_stm(struct state_machine *sm);
+
 static fd_handler clientHandler;
+static fd_handler originHandler;
+
+static unsigned handle_origin_connection(struct selector_key *key);
+
+static int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol);
+
+static int checkOriginConnection(int socketfd);
+
+static void proxy_origin_write(struct selector_key *key);
 
 void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
@@ -45,10 +55,10 @@ void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     request_parser_init(&requestLine->request_parser);
 }
 
-void parsing_host_on_departure(const unsigned state, struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
-    //ARREGLARIA EL BUFFER
-}
+// void parsing_host_on_departure(const unsigned state, struct selector_key *key) {
+//     proxyConnection *connection = ATTACHMENT(key);
+//     //ARREGLARIA EL BUFFER
+// }
 
 unsigned
 parsing_host_on_read_ready(struct selector_key *key) {
@@ -71,36 +81,64 @@ parsing_host_on_read_ready(struct selector_key *key) {
                 return handle_origin_connection(key);
             }
         }
-        return connection->stm.current->state;
     }
+    return connection->stm.current->state;
 }
 
-static connection_state handle_origin_connection(struct selector_key *key) {
+static unsigned handle_origin_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
-    struct request_target *request_target = &connection->requestline.request.request_target;
+
+    struct request_target *request_target = &connection->client.request_line.request.request_target;
 
     if (request_target->host_type == ipv4) {
-        connection->origin_fd = establish_origin_connection((struct sockaddr * addr) request_target->host.ipv4, sizeof(request_target->host.ipv4));
+        printf("connecting to ipv4\n");
+        connection->origin_fd = establish_origin_connection(
+            (struct sockaddr *)&request_target->host.ipv4,
+            sizeof(request_target->host.ipv4),
+            AF_INET);
     } else {
-        connection->origin_fd = establish_origin_connection((struct sockaddr * addr) request_target->host.ipv6, sizeof(request_target->host.ipv6))
+        connection->origin_fd = establish_origin_connection(
+            (struct sockaddr *)&request_target->host.ipv6,
+            sizeof(request_target->host.ipv6),
+            AF_INET6);
     }
 
-    if (connection->origin_fd==-1){
+    if (connection->origin_fd == -1) {
         return ERROR;
     }
 
-    selector_register(key->s, connection->origin_fd, NULL, OP_WRITE, connection);
-
+    originHandler.handle_read = NULL;
+    originHandler.handle_write = proxy_origin_write;
+    originHandler.handle_close = NULL;
+    originHandler.handle_block = NULL;
+    printf("registered origin!\n");
+    selector_register(key->s, connection->origin_fd, &originHandler, OP_WRITE, connection);
     return TRY_CONNECTION_IP;
 }
 
-static int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen) {
-    int originSocket = socket(domain, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
+static void proxy_origin_write(struct selector_key *key) {
+    proxyConnection *connection = ATTACHMENT(key);
+    buffer *buffer = &connection->origin_buffer;
+
+    unsigned state;
+
+    if (!buffer_can_read(buffer)) {
+        if (state = stm_handler_write(&connection->stm, key), state == DONE) {
+            printf("TERMINE!!\n");
+        }
+        printf("A VER SI ME CONECNTE??\n");
+    }
+}
+
+static int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol) {
+    int originSocket = socket(protocol, SOCK_STREAM, IPPROTO_TCP);
 
     if (originSocket < 0)
         return -1;
 
     int opt = 1;
+
+    selector_fd_set_nio(originSocket);
 
     if (setsockopt(originSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
         return -1;
@@ -123,15 +161,15 @@ void try_connection_ip_on_arrival(const unsigned state, struct selector_key *key
         printf("error set interest!");
         //VER QUE HACER
     }
-
 }
 
 static int checkOriginConnection(int socketfd) {
     int opt;
-    if (getsockopt(socketfd, SOL_SOCKET, SO_ERROR, &opt, sizeof(opt)) < 0)
+    socklen_t optlen = sizeof(opt);
+    if (getsockopt(socketfd, SOL_SOCKET, SO_ERROR, &opt, &optlen) < 0)
         return false;
     // printf("opt val: %d, fd: %ld\n\n", opt, i);
-    // MATAR EL SOCKET Y AVISARLE AL CLIENT SI ES QUE NO HAY MAS IPS.SI NO PROBAR CON LA LISTA DE IPS 
+    // MATAR EL SOCKET Y AVISARLE AL CLIENT SI ES QUE NO HAY MAS IPS.SI NO PROBAR CON LA LISTA DE IPS
     if (opt != 0) {
         printf("Connection could not be established, closing sockets.\n\n");
         return false;
@@ -144,9 +182,12 @@ unsigned
 try_connection_ip_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    if(checkOriginConnection(connection->origin_fd)_
+    if (checkOriginConnection(connection->origin_fd)){
+        printf("me conecte bien!!\n");
         return CONNECTED;
+    }
 
+    return ERROR;
 }
 
 static const struct state_definition connection_states[] = {
@@ -159,7 +200,7 @@ static const struct state_definition connection_states[] = {
     {
         .state = TRY_CONNECTION_IP,
         .on_arrival = try_connection_ip_on_arrival,
-        .on_write = try_connection_ip_on_write_ready,
+        .on_write_ready = try_connection_ip_on_write_ready,
     },
     {
         .state = DOH_REQUEST,
@@ -204,9 +245,9 @@ static const struct state_definition connection_states[] = {
 
 static void
 proxy_client_read(struct selector_key *key) {
-    proxyConnection *client = ATTACHMENT(key);
+    proxyConnection *connection = ATTACHMENT(key);
 
-    buffer *buffer = &client->client_buffer;
+    buffer *buffer = &connection->client_buffer;
 
     size_t maxBytes;
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
@@ -221,7 +262,7 @@ proxy_client_read(struct selector_key *key) {
     }
 
     buffer_write_adv(buffer, totalBytes);
-    stm_handler_read(&client->stm, key);
+    stm_handler_read(&connection->stm, key);
 }
 
 //FIXME: Listen IPV4 Listen IPV6
