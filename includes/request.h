@@ -72,7 +72,7 @@ struct request_line {
      */
     uint8_t method[MAX_METHOD_LENGTH + 1];
 
-    struct {
+    struct request_target {
         // request_target type.
         enum {
             absolute_form,
