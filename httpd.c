@@ -1,16 +1,17 @@
 #include <arpa/inet.h>
-#include <buffer.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <selector.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stm.h>
 #include <string.h>
 #include <unistd.h>
-#include <connections.h>
+
+#include "utils/buffer.h"
+#include "utils/selector.h"
+#include "state_machine/stm.h"
+#include "utils/connections.h"
 
 typedef struct connectionsManager_t {
     in_port_t port;
@@ -60,6 +61,8 @@ int main(int argc, char const *argv[]) {
         ERROR_MANAGER("Closing STDIN fd", -1, errno);
 
     fd_selector selector = init_selector();
+
+    init_selector_handlers();
 
     init_proxy_listener(selector);
     selector_status status;

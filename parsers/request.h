@@ -135,9 +135,11 @@ struct request_parser {
 
 
 /** init parser */
-void request_parser_init(struct request_parser *p);
+void 
+request_parser_init(struct request_parser *p);
 
 /** returns true if done */
-enum request_state request_parser_feed(struct request_parser *p, const uint8_t c);
+enum request_state 
+request_parser_feed(struct request_parser *p, const uint8_t c);
 
 #endif

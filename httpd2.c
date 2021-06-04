@@ -503,7 +503,7 @@
 // static void handleWriteSet(int socketfd, client_t *client, client_t *peer, connectionsManager_t *connectionsManager) {
 //     /*Si todavia se esta conectando hay que chequear la variable SO_ERROR para ver si se obtuvo un error en la función connect*/
 //     if (client->status == CONNECTING) {
-//         if (!checkOriginConnection(socketfd)) {
+//         if (!check_origin_connection(socketfd)) {
 //             endConnection(peer, client->peerfd, connectionsManager);
 //             endConnection(client, socketfd, connectionsManager);
 //         }
@@ -514,7 +514,7 @@
 //     }
 
 //     if (client->status == CONNECTING_TO_DOH_SERVER) {
-//         if (!checkOriginConnection(socketfd)) {
+//         if (!check_origin_connection(socketfd)) {
 //             endConnection(peer, client->peerfd, connectionsManager);  //FIXME: Estoy cerrando una conexion que no se establecio
 //             endConnection(client, socketfd, connectionsManager);
 //         }
@@ -574,7 +574,7 @@
 //     buffer_read_adv(&peer->buffer, totalBytes);
 // }
 
-// static int checkOriginConnection(int socketfd) {
+// static int check_origin_connection(int socketfd) {
 //     socklen_t optSize = sizeof(int);
 //     int opt;
 //     if (getsockopt(socketfd, SOL_SOCKET, SO_ERROR, &opt, &optSize) < 0)

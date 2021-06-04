@@ -1,4 +1,5 @@
-#include <request.h>
+#include "request.h"
+
 #include <string.h>
 #include <stdbool.h>
 #include <arpa/inet.h>
@@ -13,31 +14,46 @@
 #define IS_ALPHA(x) (((x) >= 'a' && (x) <= 'z' ) || ((x) >= 'A' && (x) <= 'Z' ))
 #define IS_TOKEN(x) ((x) == '!' || (x) == '#' || (x) == '$' || (x) == '%' || (x) == '&' || (x) == '\'' || (x) == '*' || (x) == '+' \
 || (x) == '-' || (x) == '.' || (x) == '^' || (x) == '_' || (x) == '`' || (x) == '|' || (x) == '~' || IS_DIGIT(x) || IS_ALPHA(x))
-static enum request_state r_method(uint8_t c, struct request_parser *p);
 
-static enum request_state r_target_scheme(const uint8_t c, struct request_parser *p);
 
-static enum request_state r_target_host(const uint8_t c, struct request_parser *p);
+static enum request_state 
+r_method(uint8_t c, struct request_parser *p);
 
-static enum request_state getMethodState(struct request_parser *p);
+static enum request_state 
+r_target_scheme(const uint8_t c, struct request_parser *p);
 
-static enum request_state r_target_port(const uint8_t c, struct request_parser *p);
+static enum request_state 
+r_target_host(const uint8_t c, struct request_parser *p);
 
-static enum request_state r_target_ogform(const uint8_t c, struct request_parser *p);
+static enum request_state 
+getMethodState(struct request_parser *p);
 
-static enum request_state r_version(const uint8_t c, struct request_parser *p);
+static enum request_state 
+r_target_port(const uint8_t c, struct request_parser *p);
 
-static enum request_state r_version_major(const uint8_t c, struct request_parser *p);
+static enum request_state 
+r_target_ogform(const uint8_t c, struct request_parser *p);
 
-static enum request_state r_version_minor(const uint8_t c, struct request_parser *p);
+static enum request_state 
+r_version(const uint8_t c, struct request_parser *p);
 
-static enum request_state r_end(const uint8_t c, struct request_parser *p);
+static enum request_state 
+r_version_major(const uint8_t c, struct request_parser *p);
 
-static bool parseIpv6(struct request_parser *p);
+static enum request_state 
+r_version_minor(const uint8_t c, struct request_parser *p);
 
-static bool parseIpv4(struct request_parser *p);
+static enum request_state 
+r_end(const uint8_t c, struct request_parser *p);
 
-void request_parser_init(struct request_parser *p) {
+static bool 
+parseIpv6(struct request_parser *p);
+
+static bool 
+parseIpv4(struct request_parser *p);
+
+void 
+request_parser_init(struct request_parser *p) {
     p->state = request_method;
     p->i = 0;
     p->n = MAX_METHOD_LENGTH;
@@ -89,7 +105,8 @@ enum request_state request_parser_feed(struct request_parser *p, const uint8_t c
     return p->state = next;
 }
 
-static enum request_state r_method(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_method(const uint8_t c, struct request_parser *p) {
     if (p->i < p->n) {
         if (IS_TOKEN(c)) {
             p->request->method[p->i++] = c;
@@ -103,7 +120,8 @@ static enum request_state r_method(const uint8_t c, struct request_parser *p) {
     return request_error;
 }
 
-static enum request_state getMethodState(struct request_parser *p) {
+static enum request_state 
+getMethodState(struct request_parser *p) {
     char *method = (char *) p->request->method;
 
     if (strcmp(method, CONNECT) != 0 && strcmp(method, OPTIONS) != 0) {
@@ -117,7 +135,8 @@ static enum request_state getMethodState(struct request_parser *p) {
     return request_target_host;
 }
 
-static enum request_state r_target_scheme(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_target_scheme(const uint8_t c, struct request_parser *p) {
     char *scheme = (char *) SCHEME;
 
     if (p->i >= p->n || scheme[p->i] != c)
@@ -142,7 +161,8 @@ static enum request_state r_target_scheme(const uint8_t c, struct request_parser
     terminated by the next slash ("/"), question mark ("?"), or number
     sign ("#") character, or by the end of the URI.
 */
-static enum request_state r_target_host(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_target_host(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -259,7 +279,8 @@ static bool parseIpv4(struct request_parser *p) {
     return true;
 }
 
-static enum request_state r_target_port(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_target_port(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -296,7 +317,8 @@ static enum request_state r_target_port(const uint8_t c, struct request_parser *
     return request_target_port;
 }
 
-static enum request_state r_target_ogform(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_target_ogform(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -312,7 +334,8 @@ static enum request_state r_target_ogform(const uint8_t c, struct request_parser
 
 }
 
-static enum request_state r_version(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_version(const uint8_t c, struct request_parser *p) {
     char *version = HTTP;
 
     if (p->i >= p->n || version[p->i] != c)
@@ -329,7 +352,8 @@ static enum request_state r_version(const uint8_t c, struct request_parser *p) {
     return request_version;;
 }
 
-static enum request_state r_version_major(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_version_major(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -357,7 +381,8 @@ static enum request_state r_version_major(const uint8_t c, struct request_parser
     return request_version_major;
 }
 
-static enum request_state r_version_minor(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_version_minor(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -384,7 +409,8 @@ static enum request_state r_version_minor(const uint8_t c, struct request_parser
     return request_version_minor;
 }
 
-static enum request_state r_end(const uint8_t c, struct request_parser *p) {
+static enum request_state 
+r_end(const uint8_t c, struct request_parser *p) {
     if (c != '\n')
         return request_error;
 

@@ -1,15 +1,30 @@
 #ifndef CONNECTIONS_DEF_H
 #define CONNECTIONS_DEF_H
 
-#include <doh_parser.h>
+#include "../parsers/doh_parser.h"
+#include "../parsers/request.h"
+#include "../state_machine/stm.h"
+#include "buffer.h"
+
 #include <netdb.h>
-#include <request.h>
 #include <sys/types.h>
-#include <stm.h>
 
 #define ATTACHMENT(key) ((proxyConnection *)(key)->data)
 
-#include <buffer.h>
+
+enum connection_state {
+    PARSING_HOST = 0,
+    TRY_CONNECTION_IP,
+    DOH_REQUEST,
+    DOH_RESPONSE,
+    TRY_CONNECTION_DOH_SERVER,
+    DOH_RESOLVE_REQUEST_IPV4,
+    DOH_RESOLVE_REQUEST_IPV6,
+
+    CONNECTED,
+    DONE,
+    ERROR
+};
 
 typedef struct request_line_st {
     buffer *buffer;
@@ -59,3 +74,4 @@ typedef struct proxyConnection {
 } proxyConnection;
 
 #endif
+

@@ -2,10 +2,10 @@
  * buffer.c - buffer con acceso directo (útil para I/O) que mantiene
  *            mantiene puntero de lectura y de escritura.
  */
+#include "buffer.h"
+
 #include <string.h>
-#include <stdint.h>
 #include <assert.h>
-#include <buffer.h>
 
 inline void
 buffer_reset(buffer *b) {
