@@ -134,7 +134,6 @@ struct request_parser {
 };
 
 
-
 /** init parser */
 void request_parser_init(struct request_parser *p);
 

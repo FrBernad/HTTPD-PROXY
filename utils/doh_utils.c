@@ -22,8 +22,8 @@ int build_doh_request(uint8_t *dst, const uint8_t *domain, uint8_t queryType) {
     uint8_t query[MAX_QUERY_LENGTH];
     uint8_t *label = query;
     uint8_t count = 0;
-    int j = 1;
-    for (int i = 0; domain[i] != 0; i++) {
+    int j = 1, i;
+    for (i = 0; domain[i] != 0; i++) {
         if (domain[i] != '.') {
             count++;
             query[j++] = domain[i];
@@ -32,6 +32,9 @@ int build_doh_request(uint8_t *dst, const uint8_t *domain, uint8_t queryType) {
             count = 0;
             label = &query[j++];
         }
+    }
+    if (domain[i - 1] != '.') {
+        query[j++] = 0;
     }
     label[0] = count;
     query[j] = 0;

@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
-
 #include <buffer.h>
 
 inline void

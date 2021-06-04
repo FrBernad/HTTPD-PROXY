@@ -13,7 +13,7 @@
    .www.example.com.
 */
 
-enum {
+enum values{
    /** max length for HTTP method */
    //HEADER
    HEADER_ID_LENGTH = 2,
