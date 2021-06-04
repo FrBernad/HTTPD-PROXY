@@ -8,7 +8,11 @@
 #define N(x) (sizeof(x)/sizeof((x)[0]))
 
 void
-stm_init(struct state_machine *stm) {
+stm_init(struct state_machine *stm, unsigned initial_state, unsigned last_state, const struct state_definition *states){
+    stm->initial = initial_state;
+    stm->max_state = last_state;
+    stm->states = states;
+
     // verificamos que los estados son correlativos, y que están bien asignados.
     for(unsigned i = 0 ; i <= stm->max_state; i++) {
         if(i != stm->states[i].state) {

@@ -60,8 +60,7 @@ struct state_definition {
 
 
 /** inicializa el la máquina */
-void
-stm_init(struct state_machine *stm);
+void stm_init(struct state_machine *stm, unsigned initial_state, unsigned last_state, const struct state_definition *states);
 
 /** obtiene el identificador del estado actual */
 unsigned
