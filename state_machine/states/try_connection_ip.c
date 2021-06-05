@@ -1,8 +1,10 @@
-#include <stdio.h>
 #include "try_connection_ip.h"
 #include "../../utils/connections_def.h"
 
-static int check_origin_connection(int socketfd);
+#include <stdio.h>
+
+static int 
+check_origin_connection(int socketfd);
 
 void 
 try_connection_ip_on_arrival(const unsigned state, struct selector_key *key) {
@@ -10,11 +12,11 @@ try_connection_ip_on_arrival(const unsigned state, struct selector_key *key) {
 
     if (selector_set_interest(key->s, connection->client_fd, OP_NOOP) != SELECTOR_SUCCESS) {
         printf("error set interest!");
-        //VER QUE HACER
+        //FIXME: VER QUE HACER
     }
     if (selector_set_interest(key->s, connection->origin_fd, OP_WRITE) != SELECTOR_SUCCESS) {
         printf("error set interest!");
-        //VER QUE HACER
+        //FIXME: VER QUE HACER
     }
 }
 

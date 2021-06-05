@@ -10,10 +10,10 @@
 #include <sys/types.h>
 
 #define ATTACHMENT(key) ((proxyConnection *)(key)->data)
-
+#define REQUEST_LINE_MAX 1200
 
 enum connection_state {
-    PARSING_HOST = 0,
+    PARSING_REQUEST_LINE = 0,
     TRY_CONNECTION_IP,
     DOH_REQUEST,
     DOH_RESPONSE,
@@ -21,6 +21,7 @@ enum connection_state {
     DOH_RESOLVE_REQUEST_IPV4,
     DOH_RESOLVE_REQUEST_IPV6,
 
+    SEND_REQUEST_LINE,
     CONNECTED,
     DONE,
     ERROR
@@ -68,6 +69,8 @@ typedef struct proxyConnection {
     // union{
     // estados
     // }
+
+    uint8_t requestLine[REQUEST_LINE_MAX];
 
     buffer origin_buffer, client_buffer;
 

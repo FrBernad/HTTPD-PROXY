@@ -366,6 +366,7 @@ r_version_major(const uint8_t c, struct request_parser *p) {
     if (!IS_DIGIT(c))
         return request_error;
 
+    //FIXME:REVISAR ESTO 
     uint8_t num = c - '0';
 
     uint16_t major = p->request->version_major;

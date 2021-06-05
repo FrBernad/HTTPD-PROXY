@@ -43,6 +43,7 @@ init_selector();
 static connectionsManager_t connectionsManager;
 
 int main(int argc, char const *argv[]) {
+    
     if (argc != 2) {
         fprintf(stderr, "Usage : %s <port>", argv[0]);
         exit(EXIT_FAILURE);
@@ -80,6 +81,7 @@ int main(int argc, char const *argv[]) {
 
 static fd_selector
 init_selector() {
+
     const struct selector_init initConfig = {
         .signal = SIGALRM,
         .select_timeout = {
@@ -102,6 +104,7 @@ init_selector() {
 
 static void
 init_proxy_listener(fd_selector selector) {
+
     // Zero out structure
     memset(&connectionsManager.proxyHandler, 0, sizeof(connectionsManager.proxyHandler));
 
@@ -116,6 +119,7 @@ init_proxy_listener(fd_selector selector) {
     int proxyFd = create_listening_socket((struct sockaddr *)&sockaddr, sizeof(sockaddr));
 
     selector_register(selector, proxyFd, &connectionsManager.proxyHandler, OP_READ, NULL);
+
 }
 
 static int

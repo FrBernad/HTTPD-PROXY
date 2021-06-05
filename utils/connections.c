@@ -30,19 +30,24 @@ static fd_handler originHandler;
 void 
 init_selector_handlers() {
     clientHandler.handle_read = proxy_client_read;
-    clientHandler.handle_write = NULL;
-    clientHandler.handle_close = NULL;
+    clientHandler.handle_write = NULL; //DEFINE
+    clientHandler.handle_close = NULL; //DEFINE
     clientHandler.handle_block = NULL;
 
-    originHandler.handle_read = NULL;
+    originHandler.handle_read = NULL; //DEFINE
     originHandler.handle_write = proxy_origin_write;
-    originHandler.handle_close = NULL;
+    originHandler.handle_close = NULL; //DEFINE
     originHandler.handle_block = NULL;
 }
+
+/*                        
+**     PROXY LISTENER SOCKET HANDLER FUNCTIONS
+*/
 
 //FIXME: Listen IPV4 Listen IPV6
 void 
 accept_new_connection(struct selector_key *key) {
+
     printf("new connection!\n");
 
     struct sockaddr_in6 address;
@@ -63,13 +68,6 @@ accept_new_connection(struct selector_key *key) {
     if (status != SELECTOR_SUCCESS) {
         //FIXME: END CONNECTION
     }
-}
-
-
-int 
-register_origin_socket(struct selector_key *key){
-    proxyConnection * connection = ATTACHMENT(key);
-    return selector_register(key->s, connection->origin_fd, &originHandler, OP_WRITE, connection);
 }
 
 static proxyConnection *
@@ -104,6 +102,11 @@ create_new_connection() {
     return newConnection;
 }
 
+
+/*                        
+**     PROXY CLIENT HANDLER FUNCTIONS  
+*/
+
 static void
 proxy_client_read(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
@@ -126,17 +129,63 @@ proxy_client_read(struct selector_key *key) {
     stm_handler_read(&connection->stm, key);
 }
 
-static void 
+// static void
+// proxy_client_write(struct selector_key *key) {
+//     // proxyConnection *connection = ATTACHMENT(key);
+
+// }
+
+/*                        
+**     PROXY ORIGIN HANDLER FUNCTIONS  
+*/
+
+// static void
+// proxy_origin_read(struct selector_key *key) {
+
+// }
+
+static void
 proxy_origin_write(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
-    buffer *buffer = &connection->origin_buffer;
 
-    unsigned state;
+    buffer *originBuffer = &connection->origin_buffer;
+    buffer *clientBuffer = &connection->client_buffer;
 
-    if (!buffer_can_read(buffer)) {
-        if (state = stm_handler_write(&connection->stm, key), state == DONE) {
+    unsigned state = stm_state(&connection->stm);
+
+
+//FIXME: REVISAR ESTO SI NO CONVIENE HACER LAS COSAS EN CADA ESTADO
+    if (state == TRY_CONNECTION_IP) {
+        // ME FIJO SI LA CONEXION FUE EXITOSA
+        if ((state = stm_handler_write(&connection->stm, key)) == DONE) {
             printf("TERMINE!!\n");
+            return;
         }
-        printf("A VER SI ME CONECNTE??\n");
     }
+
+    size_t maxBytes;
+    uint8_t *data;
+    int totalBytes;
+
+    if (state == SEND_REQUEST_LINE) {
+        // LEO DEL BUFFER DEL SERVER PORQUE ES DONDE CARGAMOS LA REQUEST
+        data = buffer_read_ptr(originBuffer, &maxBytes);
+        totalBytes = send(key->fd, data, maxBytes, 0);
+        buffer_read_adv(originBuffer, totalBytes);
+        return;
+    }
+
+    data = buffer_read_ptr(clientBuffer, &maxBytes);
+    totalBytes = send(key->fd, data, maxBytes, 0);
+    buffer_read_adv(clientBuffer, totalBytes);
+    stm_handler_write(&connection->stm, key);
+}
+
+
+int 
+register_origin_socket(struct selector_key *key) {
+
+    proxyConnection *connection = ATTACHMENT(key);
+
+    return selector_register(key->s, connection->origin_fd, &originHandler, OP_WRITE, connection);
 }
