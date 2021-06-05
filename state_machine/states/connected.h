@@ -9,5 +9,7 @@ connected_on_arrival(const unsigned state, struct selector_key *key);
 unsigned
 connected_on_read_ready(struct selector_key *key);
 
+unsigned
+connected_on_write_ready(struct selector_key *key);
 
 #endif

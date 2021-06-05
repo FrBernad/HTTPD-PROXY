@@ -12,8 +12,7 @@
 
 // STATIC FUNCTIONS
 static proxyConnection *
-create_new_connection();
-
+create_new_connection(int clientFd);
 
 static void
 proxy_client_write(struct selector_key *key);
@@ -67,7 +66,7 @@ accept_new_connection(struct selector_key *key) {
 
     selector_fd_set_nio(clientSocket);
 
-    proxyConnection *newConnection = create_new_connection();
+    proxyConnection *newConnection = create_new_connection(clientSocket);
 
     int status = selector_register(key->s, clientSocket, &clientHandler, OP_READ, newConnection);
 
@@ -77,7 +76,7 @@ accept_new_connection(struct selector_key *key) {
 }
 
 static proxyConnection *
-create_new_connection() {
+create_new_connection(int clientFd) {
 
     proxyConnection *newConnection = calloc(1, sizeof(proxyConnection));
 
@@ -105,6 +104,8 @@ create_new_connection() {
 
     init_connection_stm(&newConnection->stm);
 
+    newConnection->client_fd = clientFd;
+
     return newConnection;
 }
 
@@ -127,7 +128,7 @@ proxy_client_read(struct selector_key *key) {
     if (totalBytes == 0) {
         //     //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
 
-        printf("Connection closed.\n\n");
+//        printf("Connection closed.\n\n");
     }
 
     buffer_write_adv(buffer, totalBytes);
@@ -172,7 +173,7 @@ proxy_origin_read(struct selector_key *key) {
         printf("ERROR!!!.\n\n");
     if (totalBytes == 0) {
         //     //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
-        printf("Connection closed.\n\n");
+//        printf("Connection closed.\n\n");
     }
 
     buffer_write_adv(buffer, totalBytes);

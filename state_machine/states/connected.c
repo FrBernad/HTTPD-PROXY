@@ -2,18 +2,20 @@
 
 #include "../../utils/connections_def.h"
 
+#include <stdio.h>
+
 static void
 set_connection_interests(struct selector_key *key);
 
 /*
     ENTRO AL ESTADO CON EL BUFFER DEL CLIENTE CON INFO Y EL DEL ORIGIN VACIO
 */
-void 
+void
 connected_on_arrival(const unsigned state, struct selector_key *key) {
     set_connection_interests(key);
 }
 
-unsigned 
+unsigned
 connected_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     set_connection_interests(key);
@@ -29,7 +31,7 @@ connected_on_write_ready(struct selector_key *key) {
 
 static void
 set_connection_interests(struct selector_key *key) {
-    
+
     proxyConnection *connection = ATTACHMENT(key);
 
     buffer *originBuffer = &connection->origin_buffer;
@@ -49,7 +51,7 @@ set_connection_interests(struct selector_key *key) {
     if (buffer_can_write(clientBuffer)) {
         clientInterest |= OP_READ;
     }
-    
+
     /*Si hay algo escrito en el buffer del cliente, significa que al originSocket
         le interesa poder saber cuando puede enviarle bytes al origin*/
     if (buffer_can_read(clientBuffer)) {
@@ -62,6 +64,9 @@ set_connection_interests(struct selector_key *key) {
         originInterest |= OP_READ;
     }
 
-    selector_set_interest(key->s, connection->client_fd, clientInterest);
-    selector_set_interest(key->s, connection->origin_fd, originInterest);
+    if (selector_set_interest(key->s, connection->client_fd, clientInterest) != SELECTOR_SUCCESS)
+        printf("error!!\n");
+    if (selector_set_interest(key->s, connection->origin_fd, originInterest) != SELECTOR_SUCCESS)
+        printf("error!!\n");
+
 }
