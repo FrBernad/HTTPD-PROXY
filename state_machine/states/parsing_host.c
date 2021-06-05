@@ -7,10 +7,15 @@
 #include "../../utils/connections.h"
 #include "../../utils/connections_def.h"
 
-static unsigned handle_origin_connection(struct selector_key *key);
-static int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol);
+static unsigned 
+handle_origin_connection(struct selector_key *key);
+static int 
+establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol);
+static void 
+build_request_line(struct selector_key *key);
 
-void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
+void 
+parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     struct request_line_st *requestLine = &connection->client.request_line;
 
@@ -20,8 +25,6 @@ void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     request_parser_init(&requestLine->request_parser);
 }
 
-
-
 unsigned
 parsing_host_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
@@ -30,24 +33,23 @@ parsing_host_on_read_ready(struct selector_key *key) {
     /*Tengo que parsear la request del cliente para determinar a que host me conecto*/
     while (buffer_can_read(requestLine->buffer)) {
         uint8_t c = buffer_read(requestLine->buffer);
-        // putchar(c);  //FIXME: borrarlo
+        //        putchar(c);  //FIXME: borrarlo
         request_state state = request_parser_feed(&requestLine->request_parser, c);
         if (state == request_error) {
             printf("BAD REQUEST\n");  //FIXME: DEVOLVER EN EL SOCKET AL CLIENTE BAD REQUEST
             break;
         } else if (state == request_done) {
             unsigned nextState;
-            printf("REQUEST LINE PARSED!\nLine: %s\n", requestLine->request.method);
+
             if (requestLine->request.request_target.host_type == domain) {
                 printf("DOH!!");
                 nextState = DOH_REQUEST;
             } else {
                 nextState = handle_origin_connection(key);
             }
-            uint8_t *buffer = connection->requestLine;
-            struct request_line requestLine = connection->client.request_line.request;
-            sprintf((char*)buffer, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
-            printf("FIRST LINE: %s",buffer);
+
+            build_request_line(key);
+
             return nextState;
         }
     }
@@ -55,7 +57,17 @@ parsing_host_on_read_ready(struct selector_key *key) {
     return connection->stm.current->state;
 }
 
-static unsigned
+static void 
+build_request_line(struct selector_key *key) {
+    proxyConnection *connection = ATTACHMENT(key);
+
+    uint8_t *buffer = connection->requestLine;
+    struct request_line requestLine = connection->client.request_line.request;
+    sprintf((char *)buffer, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
+    printf("FIRST LINE: %s", buffer);
+}
+
+static unsigned 
 handle_origin_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 

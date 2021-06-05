@@ -65,18 +65,19 @@ static const struct state_definition connection_states[] = {
         .on_write_ready = NULL
     },
     {
+        .state = SEND_REQUEST_LINE,
+        .on_arrival = send_request_line_on_arrival,
+        .on_departure = NULL,
+        .on_read_ready = NULL,
+        .on_write_ready = NULL
+                },
+    {
         .state = CONNECTED,
         .on_arrival = connected_on_arrival,
         .on_departure = NULL,
         .on_read_ready = connected_on_read_ready,
         .on_write_ready = NULL
      },
-    {
-        .state = SEND_REQUEST_LINE,
-        .on_arrival = send_request_line_on_arrival,
-        .on_departure = NULL,
-        .on_read_ready = NULL,
-        .on_write_ready = NULL},
     {
         .state = DONE,
         .on_arrival = NULL,

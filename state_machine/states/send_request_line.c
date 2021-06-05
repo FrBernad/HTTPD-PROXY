@@ -10,7 +10,6 @@ writeRequestLine(struct selector_key *key);
 void send_request_line_on_arrival(const unsigned state, struct selector_key *key){
     proxyConnection *connection = ATTACHMENT(key);
 
-
     writeRequestLine(key);
 
     if (selector_set_interest(key->s, connection->client_fd, OP_NOOP) != SELECTOR_SUCCESS) {

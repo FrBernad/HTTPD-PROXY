@@ -153,8 +153,7 @@ proxy_origin_write(struct selector_key *key) {
 
     unsigned state = stm_state(&connection->stm);
 
-
-//FIXME: REVISAR ESTO SI NO CONVIENE HACER LAS COSAS EN CADA ESTADO
+    //FIXME: REVISAR ESTO SI NO CONVIENE HACER LAS COSAS EN CADA ESTADO
     if (state == TRY_CONNECTION_IP) {
         // ME FIJO SI LA CONEXION FUE EXITOSA
         if ((state = stm_handler_write(&connection->stm, key)) == DONE) {
@@ -172,6 +171,7 @@ proxy_origin_write(struct selector_key *key) {
         data = buffer_read_ptr(originBuffer, &maxBytes);
         totalBytes = send(key->fd, data, maxBytes, 0);
         buffer_read_adv(originBuffer, totalBytes);
+
         return;
     }
 

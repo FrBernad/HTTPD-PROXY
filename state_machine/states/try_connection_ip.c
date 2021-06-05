@@ -25,8 +25,8 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     if (check_origin_connection(connection->origin_fd)){
-        printf("me conecte bien!!\n");
-        return CONNECTED;
+        printf("Conexion al origen success!!\n");
+        return SEND_REQUEST_LINE;
     }
 
     return ERROR;
