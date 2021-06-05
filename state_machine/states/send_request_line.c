@@ -5,12 +5,12 @@
 #include <string.h>
 
 static void 
-writeRequestLine(struct selector_key *key);
+write_request_line(struct selector_key *key);
 
 void send_request_line_on_arrival(const unsigned state, struct selector_key *key){
     proxyConnection *connection = ATTACHMENT(key);
 
-    writeRequestLine(key);
+    write_request_line(key);
 
     if (selector_set_interest(key->s, connection->client_fd, OP_NOOP) != SELECTOR_SUCCESS) {
         printf("error set interest!");
@@ -20,9 +20,21 @@ void send_request_line_on_arrival(const unsigned state, struct selector_key *key
         printf("error set interest!");
     }
 }
+unsigned
+send_request_line_on_write_ready(struct selector_key *key) {
+    proxyConnection *connection = ATTACHMENT(key);
+
+    buffer *buffer = &connection->origin_buffer;
+
+    if (!buffer_can_read(buffer)) {
+        return CONNECTED;
+    }
+
+    return connection->stm.current->state;
+}
 
 static void 
-writeRequestLine(struct selector_key *key) {
+write_request_line(struct selector_key *key) {
 
     proxyConnection *connection = ATTACHMENT(key);
 
