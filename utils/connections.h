@@ -3,7 +3,7 @@
 
 #include "selector.h"
 
-void
+int
 accept_new_connection(struct selector_key *key);
 
 void 

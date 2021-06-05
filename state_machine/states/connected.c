@@ -65,8 +65,8 @@ set_connection_interests(struct selector_key *key) {
     }
 
     if (selector_set_interest(key->s, connection->client_fd, clientInterest) != SELECTOR_SUCCESS)
-        printf("error!!\n");
+        printf("error!!\n");//FIXME: MANEJAR ESTO
     if (selector_set_interest(key->s, connection->origin_fd, originInterest) != SELECTOR_SUCCESS)
-        printf("error!!\n");
+        printf("error!!\n");//FIXME: MANEJAR ESTO
 
 }

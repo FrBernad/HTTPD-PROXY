@@ -50,7 +50,7 @@ void init_selector_handlers() {
 */
 
 //FIXME: Listen IPV4 Listen IPV6
-void 
+int
 accept_new_connection(struct selector_key *key) {
 
     printf("new connection!\n");
@@ -61,12 +61,15 @@ accept_new_connection(struct selector_key *key) {
     int clientSocket;
 
     if ((clientSocket = accept(key->fd, (struct sockaddr *)&address, &addrlen)) < 0)
-        printf("error accept\n");
+        printf("error accept\n");//
     // ERROR_MANAGER("accept", clientSocket, errno);
 
     selector_fd_set_nio(clientSocket);
 
     proxyConnection *newConnection = create_new_connection(clientSocket);
+    
+    if(newConnection == NULL)
+        return -1;
 
     int status = selector_register(key->s, clientSocket, &clientHandler, OP_READ, newConnection);
 
@@ -81,8 +84,7 @@ create_new_connection(int clientFd) {
     proxyConnection *newConnection = calloc(1, sizeof(proxyConnection));
 
     if (newConnection == NULL) {
-        printf("error calloc\n");
-        // ERROR_MANAGER("calloc", -1, errno);
+        return NULL;
     }
     uint8_t *readBuffer = malloc(BUFFER_SIZE * sizeof(uint8_t));
 
