@@ -80,7 +80,7 @@ struct request_line {
         } type;
 
         /** host type */
-        enum request_line_addr_type {
+        enum host_type {
             domain,
             ipv4,
             ipv6,

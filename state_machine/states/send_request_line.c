@@ -7,7 +7,8 @@
 static void 
 write_request_line(struct selector_key *key);
 
-void send_request_line_on_arrival(const unsigned state, struct selector_key *key){
+void 
+send_request_line_on_arrival(const unsigned state, struct selector_key *key){
     proxyConnection *connection = ATTACHMENT(key);
 
     write_request_line(key);
@@ -20,6 +21,7 @@ void send_request_line_on_arrival(const unsigned state, struct selector_key *key
         printf("error set interest!");
     }
 }
+
 unsigned
 send_request_line_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
@@ -42,8 +44,8 @@ write_request_line(struct selector_key *key) {
     
     size_t maxBytes;
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
-    size_t requestLineSize = strlen((char*)connection->requestLine);
-    memcpy(data, connection->requestLine, requestLineSize);
+    size_t requestLineSize = strlen((char*)connection->connectionRequest.requestLine);
+    memcpy(data, connection->connectionRequest.requestLine, requestLineSize);
     buffer_write_adv(buffer, requestLineSize);
 
 }

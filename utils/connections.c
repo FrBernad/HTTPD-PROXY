@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../parsers/request.h"
+#include "../parsers/request_parser.h"
 #include "../state_machine/stm_initializer.h"
 #include "connections_def.h"
 #include "selector.h"
@@ -228,7 +228,7 @@ proxy_origin_write(struct selector_key *key) {
     uint8_t *data;
     int totalBytes;
 
-    if (state == SEND_REQUEST_LINE) {
+    if (state == SEND_REQUEST_LINE || state == SEND_DOH_REQUEST) {
         // LEO DEL BUFFER DEL SERVER PORQUE ES DONDE CARGAMOS LA REQUEST
         data = buffer_read_ptr(originBuffer, &maxBytes);
         totalBytes = send(key->fd, data, maxBytes, 0);

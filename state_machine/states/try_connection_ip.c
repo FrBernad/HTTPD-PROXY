@@ -1,13 +1,13 @@
 #include "try_connection_ip.h"
-#include "../../utils/connections_def.h"
 
 #include <stdio.h>
 
-static int 
+#include "../../utils/connections_def.h"
+
+static int
 check_origin_connection(int socketfd);
 
-void 
-try_connection_ip_on_arrival(const unsigned state, struct selector_key *key) {
+void try_connection_ip_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     if (selector_set_interest(key->s, connection->client_fd, OP_NOOP) != SELECTOR_SUCCESS) {
@@ -24,15 +24,19 @@ unsigned
 try_connection_ip_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    if (check_origin_connection(connection->origin_fd)){
-        printf("Conexion al origen success!!\n");
-        return SEND_REQUEST_LINE;
+    if (check_origin_connection(connection->origin_fd)) {
+        if (connection->connectionRequest.host_type == domain) {
+            return SEND_DOH_REQUEST;
+        } 
+        else {
+            return SEND_REQUEST_LINE;
+        }
     }
 
     return ERROR;
 }
 
-static int 
+static int
 check_origin_connection(int socketfd) {
     int opt;
     socklen_t optlen = sizeof(opt);

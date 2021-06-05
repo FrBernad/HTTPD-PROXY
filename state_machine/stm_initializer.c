@@ -1,14 +1,17 @@
 #include "stm_initializer.h"
-
-#include "states/closing.h"
-#include "states/connected.h"
-#include "states/done.h"
-#include "states/empty_buffers.h"
-#include "states/parsing_host.h"
-#include "../utils/connections_def.h"
-#include "states/send_request_line.h"
-#include "states/try_connection_ip.h"
 #include "stm.h"
+#include "../utils/connections_def.h"
+
+#include "states/parsing_request_line.h"
+#include "states/try_connection_ip.h"
+#include "states/send_doh_request.h"
+
+#include "states/send_request_line.h"
+#include "states/connected.h"
+#include "states/closing.h"
+#include "states/empty_buffers.h"
+#include "states/done.h"
+
 
 //   unsigned (*on_read_ready) (struct selector_key *key);
 //     /** ejecutado cuando hay datos disponibles para ser escritos */
@@ -29,19 +32,13 @@ static const struct state_definition connection_states[] = {
      .on_read_ready = NULL,
      .on_write_ready = try_connection_ip_on_write_ready,
      .on_block_ready = NULL},
-    {.state = DOH_REQUEST,
-     .on_arrival = NULL,
+    {.state = SEND_DOH_REQUEST,
+     .on_arrival = send_doh_request_on_arrival,
      .on_departure = NULL,
      .on_read_ready = NULL,
-     .on_write_ready = NULL,
+     .on_write_ready = send_doh_request_on_write_ready,
      .on_block_ready = NULL},
     {.state = DOH_RESPONSE,
-     .on_arrival = NULL,
-     .on_departure = NULL,
-     .on_read_ready = NULL,
-     .on_write_ready = NULL,
-     .on_block_ready = NULL},
-    {.state = TRY_CONNECTION_DOH_SERVER,
      .on_arrival = NULL,
      .on_departure = NULL,
      .on_read_ready = NULL,
@@ -70,13 +67,13 @@ static const struct state_definition connection_states[] = {
      .on_read_ready = connected_on_read_ready,
      .on_write_ready = connected_on_write_ready,
      .on_block_ready = NULL},
-     {.state = CLOSING,
+    {.state = CLOSING,
      .on_arrival = closing_on_arrival,
      .on_departure = NULL,
      .on_read_ready = closing_on_read_ready,
      .on_write_ready = closing_on_write_ready,
      .on_block_ready = NULL},
-     {.state = EMPTY_BUFFERS,
+    {.state = EMPTY_BUFFERS,
      .on_arrival = empty_buffers_on_arrival,
      .on_departure = NULL,
      .on_read_ready = NULL,

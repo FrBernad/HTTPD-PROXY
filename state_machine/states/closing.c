@@ -30,7 +30,10 @@ closing_on_read_ready(struct selector_key *key) {
 
 unsigned
 closing_on_write_ready(struct selector_key *key) {
+    proxyConnection *connection = ATTACHMENT(key);
+
     set_closing_connection_interests(key);
+    return connection->stm.current->state;
 }
 
 static void

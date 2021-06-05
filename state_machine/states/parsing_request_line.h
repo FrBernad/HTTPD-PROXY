@@ -1,5 +1,5 @@
-#ifndef PARSING_HOST_H
-#define PARSING_HOST_H
+#ifndef PARSING_REQUEST_LINE_H
+#define PARSING_REQUEST_LINE_H
 
 #include "../../utils/selector.h"
 

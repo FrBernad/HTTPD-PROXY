@@ -14,7 +14,7 @@ struct dns_request_header {
 };
 
 int 
-build_doh_request(uint8_t *dst, const uint8_t *domain, uint8_t queryType) {
+build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     struct dns_request_header dnsHeader;
     size_t dnsHeaderLength = sizeof(dnsHeader);
     memset(&dnsHeader, 0, dnsHeaderLength);
