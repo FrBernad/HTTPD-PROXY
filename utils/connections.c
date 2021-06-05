@@ -196,6 +196,7 @@ proxy_origin_read(struct selector_key *key) {
     /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y 
     que envie los bytes que quedan en su buffer */
     if (totalBytes == 0) {
+
         connection->origin_status = CLOSING_STATUS;
         //     //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
         //        printf("Connection closed.\n\n");
@@ -251,8 +252,6 @@ proxy_origin_close(struct selector_key *key) {
 
 int register_origin_socket(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
-
     connection->origin_status = ACTIVE_STATUS;
-
     return selector_register(key->s, connection->origin_fd, &originHandler, OP_WRITE, connection);
 }

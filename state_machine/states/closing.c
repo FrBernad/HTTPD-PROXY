@@ -1,4 +1,5 @@
 #include "closing.h"
+
 #include <stdio.h>
 
 #include "../../utils/connections_def.h"
@@ -16,22 +17,21 @@ closing_on_read_ready(struct selector_key *key) {
 
     buffer *originBuffer = &connection->origin_buffer;
     buffer *clientBuffer = &connection->client_buffer;
-    
-    set_closing_connection_interests(key);
 
-    if(connection->origin_status == CLOSING_STATUS && connection->client_status == CLOSING_STATUS){
+    if (connection->origin_status == CLOSING_STATUS && connection->client_status == CLOSING_STATUS) {
         if (!buffer_can_read(clientBuffer) && !buffer_can_read(originBuffer))
             return DONE;
         return EMPTY_BUFFERS;
     }
+    set_closing_connection_interests(key);
 
     return connection->stm.current->state;
 }
 
-// unsigned
-// closing_on_write_ready(struct selector_key *key) {
-//     proxyConnection *connection = ATTACHMENT(key);
-// }
+unsigned
+closing_on_write_ready(struct selector_key *key) {
+    set_closing_connection_interests(key);
+}
 
 static void
 set_closing_connection_interests(struct selector_key *key) {
@@ -54,12 +54,19 @@ set_closing_connection_interests(struct selector_key *key) {
         if (buffer_can_write(clientBuffer)) {
             clientInterest |= OP_READ;
         }
+
+        if (buffer_can_read(originBuffer)) {
+            clientInterest |= OP_WRITE;
+        } /*  else {
+             shutdown(connection->client_fd, SHUT_WR); //AL SOCKET DEL CLIENTE LE AVISO QUE NO LE VAN A ESCRIBIR MAS
+         }*/
     }
 
     if (connection->client_status == CLOSING_STATUS) {
         /*Si el cliente esta cerrando la conexión significa que ya no va a leer nada mas de su socket 
         porque no le va a llegar mas nada
         Sin embargo hay que tener en cuenta que si el origin quiere seguir mandando cosas, tengo que enviarlo a cliente*/
+
         if (buffer_can_read(originBuffer)) {
             clientInterest |= OP_WRITE;
         }
@@ -67,6 +74,12 @@ set_closing_connection_interests(struct selector_key *key) {
         if (buffer_can_write(originBuffer)) {
             originInterest |= OP_READ;
         }
+
+        if (buffer_can_read(clientBuffer)) {
+            originInterest |= OP_WRITE;
+        } /*  else {
+             shutdown(connection->origin_fd, SHUT_WR); //AL SOCKET DEL CLIENTE LE AVISO QUE NO LE VAN A ESCRIBIR MAS
+         }*/
     }
 
     if (selector_set_interest(key->s, connection->client_fd, clientInterest) != SELECTOR_SUCCESS)

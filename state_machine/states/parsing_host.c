@@ -6,16 +6,21 @@
 
 #include "../../utils/connections.h"
 #include "../../utils/connections_def.h"
+#include "../../utils/doh_utils.h"
 
-static unsigned 
-handle_origin_connection(struct selector_key *key);
-static int 
+static unsigned
+handle_origin_doh_connection(struct selector_key *key);
+
+static unsigned
+handle_origin_ip_connection(struct selector_key *key);
+
+static int
 establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol);
-static void 
+
+static void
 build_request_line(struct selector_key *key);
 
-void 
-parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
+void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     struct request_line_st *requestLine = &connection->client.request_line;
 
@@ -35,21 +40,20 @@ parsing_host_on_read_ready(struct selector_key *key) {
         uint8_t c = buffer_read(requestLine->buffer);
         request_state state = request_parser_feed(&requestLine->request_parser, c);
         if (state == request_error) {
-            
             printf("BAD REQUEST\n");  //FIXME: DEVOLVER EN EL SOCKET AL CLIENTE BAD REQUEST
-            
             break;
         } else if (state == request_done) {
             unsigned nextState;
-
             if (requestLine->request.request_target.host_type == domain) {
-                printf("DOH!!");
-                nextState = DOH_REQUEST;
+                nextState = handle_origin_doh_connection(key);
             } else {
-                nextState = handle_origin_connection(key);
+                nextState = handle_origin_ip_connection(key);
             }
 
-            build_request_line(key);
+            if (nextState != ERROR) {
+                handle_origin_connection(key);
+                build_request_line(key);
+            }
 
             return nextState;
         }
@@ -58,18 +62,49 @@ parsing_host_on_read_ready(struct selector_key *key) {
     return connection->stm.current->state;
 }
 
-static void 
+static void
 build_request_line(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
-
     uint8_t *buffer = connection->requestLine;
     struct request_line requestLine = connection->client.request_line.request;
     sprintf((char *)buffer, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
     printf("FIRST LINE: %s", buffer);
 }
 
-static unsigned 
-handle_origin_connection(struct selector_key *key) {
+static unsigned
+handle_origin_doh_connection(struct selector_key *key) {
+    proxyConnection *connection = ATTACHMENT(key);
+
+    if (doh.type == ipv4) {
+        printf("connecting to ipv4\n");
+        connection->origin_fd = establish_origin_connection(
+            (struct sockaddr *)&request_target->host.ipv4,
+            sizeof(request_target->host.ipv4),
+            AF_INET);
+    } else {
+        connection->origin_fd = establish_origin_connection(
+            (struct sockaddr *)&request_target->host.ipv6,
+            sizeof(request_target->host.ipv6),
+            AF_INET6);
+    }
+
+    if (connection->origin_fd == -1) {
+        return ERROR;
+    }
+
+    printf("registered origin!\n");
+
+    selector_status status = register_origin_socket(key);
+
+    if (status != SELECTOR_SUCCESS) {
+        //FIXME: ver que onda;
+    }
+
+    return DOH_REQUEST;
+}
+
+static unsigned
+handle_origin_ip_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     struct request_target *request_target = &connection->client.request_line.request.request_target;
