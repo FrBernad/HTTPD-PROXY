@@ -18,6 +18,11 @@ connected_on_arrival(const unsigned state, struct selector_key *key) {
 unsigned
 connected_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
+
+    if (connection->client_status == CLOSING_STATUS || connection->origin_status == CLOSING_STATUS){
+        return CLOSING;
+    }
+
     set_connection_interests(key);
     return connection->stm.current->state;
 }

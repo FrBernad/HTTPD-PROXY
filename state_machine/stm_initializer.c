@@ -1,8 +1,11 @@
 #include "stm_initializer.h"
 
-#include "../utils/connections_def.h"
+#include "states/closing.h"
 #include "states/connected.h"
+#include "states/done.h"
+#include "states/empty_buffers.h"
 #include "states/parsing_host.h"
+#include "../utils/connections_def.h"
 #include "states/send_request_line.h"
 #include "states/try_connection_ip.h"
 #include "stm.h"
@@ -67,8 +70,20 @@ static const struct state_definition connection_states[] = {
      .on_read_ready = connected_on_read_ready,
      .on_write_ready = connected_on_write_ready,
      .on_block_ready = NULL},
+     {.state = CLOSING,
+     .on_arrival = closing_on_arrival,
+     .on_departure = NULL,
+     .on_read_ready = closing_on_read_ready,
+     .on_write_ready = NULL,
+     .on_block_ready = NULL},
+     {.state = EMPTY_BUFFERS,
+     .on_arrival = empty_buffers_on_arrival,
+     .on_departure = NULL,
+     .on_read_ready = NULL,
+     .on_write_ready = empty_buffers_on_write_ready,
+     .on_block_ready = NULL},
     {.state = DONE,
-     .on_arrival = NULL,
+     .on_arrival = done_on_arrival,
      .on_departure = NULL,
      .on_read_ready = NULL,
      .on_write_ready = NULL,
