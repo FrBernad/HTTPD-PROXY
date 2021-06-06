@@ -10,7 +10,7 @@
 #define IS_TOKEN(x) ((x) == '!' || (x) == '#' || (x) == '$' || (x) == '%' || (x) == '&' || (x) == '\'' || (x) == '*' || (x) == '+' \
 || (x) == '-' || (x) == '.' || (x) == '^' || (x) == '_' || (x) == '`' || (x) == '|' || (x) == '~' || IS_DIGIT(x) || IS_ALPHA(x))
 #define END_OF_AUTHORITY(x) ((x) == '/' || (x) == '#' || (x) == '?')
-#define IS_REASON_PHRASE(x) ((x) == ' ' | (x) == '\t' | IS_ALPHA(x) | IS_DIGIT(x))
+#define IS_REASON_PHRASE(x) ((x) == ' ' || (x) == '\t' || IS_ALPHA(x) || IS_DIGIT(x))
 #define IS_SPACE(x) ((x == ' ' || x == '\t'))
 
 #endif

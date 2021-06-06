@@ -1,9 +1,8 @@
 #include "response_parser.h"
-#include "../utils/parser.h"
 #include <arpa/inet.h>
 #include <stdbool.h>
 #include <string.h>
-
+#include "../utils/parser_utils.h"
 
 
 static enum response_state
@@ -25,7 +24,7 @@ static enum response_state
 r_end(const uint8_t c, struct response_parser *p);
 
 void response_parser_init(struct response_parser *p) {
-    p->state == response_version,
+    p->state = response_version;
     p->i = 0;
     p->n = VERSION_LENGTH;
     memset(p->response, 0, sizeof(*(p->response)));

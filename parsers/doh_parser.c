@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../utils/parser.h"
+#include "../utils/parser_utils.h"
 
 static enum doh_response_state
 r_header_id(struct doh_response_parser *p, const uint8_t c);

@@ -1,14 +1,18 @@
 #include "headers_parser.h"
-#include "../utils/parser.h"
+
+#include "../utils/parser_utils.h"
 
 static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p);
 static enum headers_state h_field_value(const uint8_t c, struct headers_parser *p);
 static enum headers_state h_end(const uint8_t c, struct headers_parser *p);
-static enum headers_state h_field_value_ows(const uint8_t c, struct headers_parser *p);
+static enum headers_state h_may_be_end(const uint8_t c, struct headers_parser *p);
+static enum headers_state h_field_value_start_ows(const uint8_t c, struct headers_parser *p);
+static enum headers_state h_field_value_end_ows(const uint8_t c, struct headers_parser *p);
 static enum headers_state h_field_value_end(const uint8_t c, struct headers_parser *p);
 
 void headers_parser_init(struct headers_parser *p) {
     p->state = headers_field_name;
+    p->headersCount = 0;
     p->i = 0;
     p->n = MAX_HEADER_FIELD_NAME_LENGTH;
 }
@@ -19,27 +23,27 @@ headers_parser_feed(struct headers_parser *p, const uint8_t c) {
 
     switch (p->state) {
         case headers_field_name:
-            next = h_field_name(p, c);
+            next = h_field_name(c,p);
             break;
         case headers_field_value_start_ows:
-            next = h_field_value_start_ows(p, c);
+            next = h_field_value_start_ows(c,p);
             break;
         case headers_field_value:
-            next = h_field_value(p, c);
+            next = h_field_value(c,p);
             break;
         case headers_field_value_end_ows:
-            next = h_field_value_end_ows(p, c);
+            next = h_field_value_end_ows(c,p);
             break;
         case headers_field_value_end:
-            next = h_field_value_end(p, c);
+            next = h_field_value_end(c,p);
+            break;
+        case headers_may_be_end:
+            next = h_may_be_end(c,p);
             break;
         case headers_end:
-            next = h_end(p, c);
+            next = h_end(c,p);
             break;
 
-        case headers_may_be_end:
-            next = h_may_be_end(p, c);
-            break;
         //Done
         case headers_done:
         case headers_error:
@@ -54,13 +58,15 @@ headers_parser_feed(struct headers_parser *p, const uint8_t c) {
 }
 
 static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p) {
-    if (p->i >= p->n)
+    if (p->i >= p->n){
         return headers_error;
+    }
 
     if (c == ':') {
+        p->headersCount++;
         p->i = 0;
         p->n = MAX_HEADER_FIELD_VALUE_LENGTH;
-        return h_field_value_start_ows;
+        return headers_field_value_start_ows;
     }
 
     if (!IS_TOKEN(c)) {
@@ -73,16 +79,16 @@ static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p
 }
 
 static enum headers_state h_field_value_start_ows(const uint8_t c, struct headers_parser *p) {
-    if (p->i >= p->n){
+    if (p->i >= p->n) {
         return headers_error;
     }
 
-    if (IS_SPACE(c)){
+    if (IS_SPACE(c)) {
         p->i++;
         return headers_field_value_start_ows;
     }
 
-    if (c == '\r'){
+    if (c == '\r') {
         return headers_field_value_end;
     }
 
@@ -104,7 +110,7 @@ static enum headers_state h_field_value(const uint8_t c, struct headers_parser *
 
     if (IS_SPACE(c)) {
         p->i++;
-        return h_field_value_end_ows;
+        return headers_field_value_end_ows;
     }
 
     if (IS_TOKEN(c)) {
@@ -122,7 +128,7 @@ static enum headers_state h_field_value_end_ows(const uint8_t c, struct headers_
 
     if (IS_SPACE(c)) {
         p->i++;
-        return headers_field_value_start_ows;
+        return headers_field_value_end_ows;
     }
 
     if (c == '\r') {
@@ -133,10 +139,10 @@ static enum headers_state h_field_value_end_ows(const uint8_t c, struct headers_
 }
 
 static enum headers_state h_field_value_end(const uint8_t c, struct headers_parser *p) {
-    if (c != '\n'){
+    if (c != '\n') {
         return headers_error;
     }
-
+    p->headersCount++;
     return headers_may_be_end;
 }
 
@@ -144,13 +150,13 @@ static enum headers_state h_may_be_end(const uint8_t c, struct headers_parser *p
     if (c == '\r') {
         return headers_end;
     }
- 
+
     if (!IS_TOKEN(c)) {
         return headers_error;
     }
 
     p->i = 0;
-    p->n = MAX_HEADER_FIELD_NAME_LENGTH;    
+    p->n = MAX_HEADER_FIELD_NAME_LENGTH;
     //FIXME: si vamos a guardar algun header habria que agregar esta letra
     return headers_field_name;
 }
@@ -160,6 +166,5 @@ static enum headers_state h_end(const uint8_t c, struct headers_parser *p) {
         return headers_error;
     }
 
-    return headers_may_be_end;
+    return headers_done;
 }
-

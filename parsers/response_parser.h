@@ -49,8 +49,7 @@ struct response_line {
 
     int status_code;
 
-    uint8_t reason_phrase[MAX_REASON_PHRASE]
-
+    uint8_t reason_phrase[MAX_REASON_PHRASE];
 
 };
 

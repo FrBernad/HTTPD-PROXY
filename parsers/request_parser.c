@@ -1,8 +1,10 @@
 #include "request_parser.h"
-#include "../utils/parser.h"
-#include <string.h>
-#include <stdbool.h>
+
 #include <arpa/inet.h>
+#include <stdbool.h>
+#include <string.h>
+
+#include "../utils/parser_utils.h"
 
 static enum request_state 
 r_method(uint8_t c, struct request_parser *p);

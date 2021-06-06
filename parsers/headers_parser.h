@@ -130,8 +130,8 @@ typedef enum headers_state {
     headers_field_value,
     headers_field_value_end_ows,
     headers_field_value_end,
-    headers_end,
     headers_may_be_end,
+    headers_end,
 
     //Done
     headers_done,
@@ -142,6 +142,7 @@ typedef enum headers_state {
 
 struct headers_parser {
     headers_state state;
+    unsigned headersCount;
 
     int i;
     int n;
