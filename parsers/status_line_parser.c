@@ -166,7 +166,7 @@ sl_status_code(const uint8_t c, struct status_line_parser *p) {
         statusCode = statusCode * 10 + num;
 
     p->i++;
-    p->status_line->version_minor = statusCode;
+    p->status_line->status_code = statusCode;
 
     return status_line_status_code;
 }
