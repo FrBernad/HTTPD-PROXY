@@ -4,11 +4,11 @@
 #include <netdb.h>
 #include <sys/types.h>
 
-#include "../parsers/doh_parser.h"
-#include "../parsers/request_line_parser.h"
-#include "../parsers/status_line_parser.h"
-#include "../parsers/headers_parser.h"
-#include "../state_machine/stm.h"
+#include "parsers/doh_parser.h"
+#include "parsers/headers_parser.h"
+#include "parsers/request_line_parser.h"
+#include "parsers/status_line_parser.h"
+#include "state_machine/stm.h"
 #include "buffer.h"
 
 #define ATTACHMENT(key) ((proxyConnection *)(key)->data)
@@ -43,13 +43,12 @@ typedef struct request_line_st {
 } request_line_st;
 
 typedef struct doh_connection {
-    doh_state_t state;
     buffer *buffer;
     uint8_t currentTry;
     enum {
         ipv4_try,
         ipv6_try
-    }currentType;
+    } currentType;
     struct status_line statusLine;
     struct status_line_parser statusLineParser;
     struct headers_parser headersParser;
@@ -68,7 +67,20 @@ typedef struct connection_request {
     in_port_t port;
 } connection_request_t;
 
-typedef struct proxyConnection {
+typedef enum {
+    BAD_REQUEST = 400,
+    UNAUTHORIZED = 401,
+    FORBIDDEN = 403,
+    NOT_FOUND = 404,
+    METHOD_NOT_ALLOWED = 405,
+    PROXY_AUTHENTICATION_REQUIRED = 407,
+    URI_TOO_LONG = 414,
+    INTERNAL_SERVER_ERROR = 500,
+    NOT_IMPLEMENTED = 501,
+    HTTP_VERSION_NOT_SUPPORTED=505
+} errors_t;
+
+    typedef struct proxyConnection {
     /*Informacion del cliente*/
     struct sockaddr_storage client_addr;
     socklen_t client_addr_en;
@@ -93,12 +105,13 @@ typedef struct proxyConnection {
     // estados para el cliente
     union client_state {
         struct request_line_st request_line;
-        
     } client;
 
-    doh_connection_t * dohConnection;
+    doh_connection_t *dohConnection;
 
     connection_request_t connectionRequest;
+    
+    errors_t error;
 
     buffer origin_buffer, client_buffer;
 

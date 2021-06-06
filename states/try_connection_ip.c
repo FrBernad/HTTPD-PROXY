@@ -1,13 +1,12 @@
 #include "try_connection_ip.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "../../utils/connections_def.h"
-#include "../../utils/net_utils.h"
-#include "../../utils/connections.h"
-
+#include "utils/connections.h"
+#include "utils/connections_def.h"
+#include "utils/net_utils.h"
 
 static int
 check_origin_connection(int socketfd);
@@ -43,10 +42,8 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
 
     if (check_origin_connection(connection->origin_fd)) {
         /*Si dohConnection == NULL es que nunca mande el doh_request */
-        if (connection->connectionRequest.host_type == domain) {
-            if (connection->dohConnection == NULL) {
-                return SEND_DOH_REQUEST;
-            }
+        if (connection->connectionRequest.host_type == domain && connection->dohConnection == NULL) {
+            return SEND_DOH_REQUEST;
             /*Tener en cuenta de cambiar alguna variable para indicar si preguntar por ipv4 o ipv6*/
         }
         /*En este caso ya estoy conectado al origin*/
@@ -65,6 +62,7 @@ check_origin_connection(int socketfd) {
     int opt;
     socklen_t optlen = sizeof(opt);
     if (getsockopt(socketfd, SOL_SOCKET, SO_ERROR, &opt, &optlen) < 0) {
+        printf("Error getsockopt.\n\n");
         return false;
     }
 
@@ -110,7 +108,8 @@ try_next_ipv4_connection(struct selector_key *key) {
         ipv4.sin_family = AF_INET;
         ipv4.sin_port = htons(80);
 
-        connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv4, sizeof(ipv4.sin_addr), ipv4.sin_family);
+        connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv4, sizeof(ipv4),
+                                                            ipv4.sin_family);
         if (connection->origin_fd == -1) {
             printf("error creating socket dns\n");
         }
@@ -146,7 +145,8 @@ try_next_ipv6_connection(struct selector_key *key) {
         ipv6.sin6_family = AF_INET6;
         ipv6.sin6_port = htons(80);
 
-        connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv6, sizeof(ipv6.sin6_addr), ipv6.sin6_family);
+        connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv6, sizeof(ipv6),
+                                                            ipv6.sin6_family);
         if (connection->origin_fd == -1) {
             printf("error creating socket dns\n");
         }

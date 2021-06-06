@@ -4,8 +4,7 @@
 
 #include "selector.h"
 
-int
-establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol) {
+int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol) {
     int originSocket = socket(protocol, SOCK_STREAM, IPPROTO_TCP);
 
     if (originSocket < 0)

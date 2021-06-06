@@ -1,6 +1,6 @@
 #include "headers_parser.h"
 
-#include "../utils/parser_utils.h"
+#include "utils/parser_utils.h"
 
 static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p);
 

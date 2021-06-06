@@ -5,10 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../parsers/request_line_parser.h"
-#include "../state_machine/stm_initializer.h"
 #include "connections_def.h"
+#include "parsers/request_line_parser.h"
 #include "selector.h"
+#include "state_machine/stm_initializer.h"
 
 // STATIC FUNCTIONS
 static proxyConnection *
@@ -31,7 +31,6 @@ proxy_origin_read(struct selector_key *key);
 
 static void
 proxy_origin_close(struct selector_key *key);
-
 
 enum conections_defaults {
     BUFFER_SIZE = 2048,
@@ -146,7 +145,6 @@ proxy_client_read(struct selector_key *key) {
 
 static void
 proxy_client_write(struct selector_key *key) {
-
     proxyConnection *connection = ATTACHMENT(key);
 
     buffer *originBuffer = &connection->origin_buffer;

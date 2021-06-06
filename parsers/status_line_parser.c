@@ -1,8 +1,10 @@
 #include "status_line_parser.h"
+
 #include <arpa/inet.h>
 #include <stdbool.h>
 #include <string.h>
-#include "../utils/parser_utils.h"
+
+#include "utils/parser_utils.h"
 
 static enum status_line_state
 sl_version(const uint8_t c, struct status_line_parser *p);
@@ -143,7 +145,7 @@ sl_version_minor(const uint8_t c, struct status_line_parser *p) {
 /*HTTP/1.1 200 OK */
 static enum status_line_state
 sl_status_code(const uint8_t c, struct status_line_parser *p) {
-    if (p->i > p->n){
+    if (p->i > p->n) {
         return status_line_error;
     }
 
@@ -173,25 +175,22 @@ sl_status_code(const uint8_t c, struct status_line_parser *p) {
 
 static enum status_line_state
 sl_reason_phrase(const uint8_t c, struct status_line_parser *p) {
-
-    if (p->i >= p->n){
+    if (p->i >= p->n) {
         return status_line_error;
     }
 
-    if(c == '\r'){
+    if (c == '\r') {
         p->i = 0;
         return status_line_end;
     }
 
-    if(!IS_REASON_PHRASE(c)){
+    if (!IS_REASON_PHRASE(c)) {
         return status_line_error;
     }
-
 
     p->status_line->reason_phrase[p->i++] = c;
 
     return status_line_reason_phrase;
-   
 }
 static enum status_line_state
 sl_end(const uint8_t c, struct status_line_parser *p) {

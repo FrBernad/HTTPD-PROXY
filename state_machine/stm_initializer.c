@@ -1,18 +1,16 @@
 #include "stm_initializer.h"
-#include "stm.h"
-#include "../utils/connections_def.h"
 
-#include "states/parsing_request_line.h"
-#include "states/try_connection_ip.h"
-#include "states/send_doh_request.h"
 #include "states/await_doh_response.h"
-
-#include "states/send_request_line.h"
-#include "states/connected.h"
 #include "states/closing.h"
-#include "states/empty_buffers.h"
+#include "states/connected.h"
 #include "states/done.h"
-
+#include "states/empty_buffers.h"
+#include "states/parsing_request_line.h"
+#include "states/send_doh_request.h"
+#include "states/send_request_line.h"
+#include "states/try_connection_ip.h"
+#include "stm.h"
+#include "utils/connections_def.h"
 
 //   unsigned (*on_read_ready) (struct selector_key *key);
 //     /** ejecutado cuando hay datos disponibles para ser escritos */

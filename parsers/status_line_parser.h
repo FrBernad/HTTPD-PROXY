@@ -1,5 +1,5 @@
-#ifndef _status_line_PARSER_H_
-#define _status_line_PARSER_H_
+#ifndef STATUS_LINE_PARSER_H_
+#define STATUS_LINE_PARSER_H_
 
 #include <netinet/in.h>
 

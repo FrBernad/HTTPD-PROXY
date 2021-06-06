@@ -1,7 +1,7 @@
 #ifndef CLOSING_H
 #define CLOSING_H
 
-#include "../../utils/selector.h"
+#include "utils/selector.h"
 
 void 
 closing_on_arrival(const unsigned state, struct selector_key *key);

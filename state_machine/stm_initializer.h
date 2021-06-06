@@ -3,7 +3,6 @@
 
 #include "stm.h"
 
-void 
-init_connection_stm(struct state_machine *stm);
+void init_connection_stm(struct state_machine *stm);
 
 #endif

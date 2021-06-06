@@ -1,15 +1,14 @@
+#include "../status_line_parser.h"
+
 #include <stdio.h>
 #include <string.h>
 
-#include "response_parser.h"
-
-int main(int argc, char const *argv[])
-{
+int main(int argc, char const *argv[]) {
     char *response = "HTTP/1.1 301 Moved Permanently\r\n";
 
     struct response_parser parser;
     struct response_line responseLine;
-    
+
     parser.response = &responseLine;
 
     response_parser_init(&parser);

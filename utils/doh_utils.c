@@ -1,4 +1,5 @@
 #include "doh_utils.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -13,8 +14,7 @@ struct dns_request_header {
     uint8_t arcount[2];
 };
 
-int 
-build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
+int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     struct dns_request_header dnsHeader;
     size_t dnsHeaderLength = sizeof(dnsHeader);
     memset(&dnsHeader, 0, dnsHeaderLength);
@@ -44,7 +44,7 @@ build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     uint8_t content_length = dnsHeaderLength + j + sizeof(uint16_t) * 2;
 
     int len = sprintf((char *)dst,
-                      "POST https://dns.google/dns-query HTTP/1.1\r\n"
+                      "POST https://dns.google/dns-query HTTP/1.0\r\n"
                       "Host: dns.google\r\n"
                       "accept: application/dns-message\r\n"
                       "content-type: application/dns-message\r\n"

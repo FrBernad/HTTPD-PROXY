@@ -1,14 +1,14 @@
 #include "parsing_request_line.h"
-#include "../../utils/net_utils.h"
+#include "utils/net_utils.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <arpa/inet.h>
 
-#include "../../utils/connections.h"
-#include "../../utils/connections_def.h"
-#include "../../utils/doh_utils.h"
+#include "utils/connections.h"
+#include "utils/connections_def.h"
+#include "utils/doh_utils.h"
 
 static unsigned
 handle_origin_doh_connection(struct selector_key *key);

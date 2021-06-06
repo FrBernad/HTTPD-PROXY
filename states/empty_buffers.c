@@ -1,7 +1,7 @@
 #include "empty_buffers.h"
 #include <stdio.h>
 
-#include "../../utils/connections_def.h"
+#include "utils/connections_def.h"
 
 static void
 set_empty_buffers_interests(struct selector_key *key);

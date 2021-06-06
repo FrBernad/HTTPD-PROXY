@@ -1,6 +1,6 @@
 #include "connected.h"
 
-#include "../../utils/connections_def.h"
+#include "utils/connections_def.h"
 
 #include <stdio.h>
 
