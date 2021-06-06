@@ -588,15 +588,15 @@ r_answer_rdlength(struct doh_response_parser *p, const uint8_t c) {
             p->response->answers[p->response->answerIndex].ardlength += (uint16_t)c;
             p->i = 0;
             switch (p->response->answers[p->response->answerIndex].atype) {
-                case IPV4:
+                case IPV4_CLASS:
                     p->n = MAX_IPV4;
                     next = response_answer_ipv4_rdata;
                     break;
-                case IPV6:
+                case IPV6_CLASS:
                     p->n = MAX_IPV6;
                     next = response_answer_ipv6_rdata;
                     break;
-                case CNAME:
+                case CNAME_CLASS:
                     p->n = MAX_CNAME_LENGTH;
                     next = response_answer_cname_label_length_rdata;
                     break;

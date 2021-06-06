@@ -19,8 +19,6 @@ enum connection_state {
     TRY_CONNECTION_IP,
     SEND_DOH_REQUEST,
     AWAIT_DOH_RESPONSE,
-    DOH_RESOLVE_REQUEST_IPV4,
-    DOH_RESOLVE_REQUEST_IPV6,
 
     SEND_REQUEST_LINE,
     CONNECTED,
@@ -33,11 +31,6 @@ enum connection_state {
     ERROR
 };
 
-typedef enum doh_state {
-    DOH_CONNECTING,
-    DOH_CONNECTED,
-} doh_state_t;
-
 typedef enum connection_status {
     ACTIVE_STATUS,
     CLOSING_STATUS,
@@ -49,15 +42,20 @@ typedef struct request_line_st {
     struct request_parser request_parser;
 } request_line_st;
 
-typedef struct doh_st {
+typedef struct doh_connection {
     doh_state_t state;
     buffer *buffer;
+    uint8_t currentTry;
+    enum {
+        ipv4_try,
+        ipv6_try
+    }currentType;
     struct status_line statusLine;
     struct status_line_parser statusLineParser;
     struct headers_parser headersParser;
-    struct doh_response response;
+    struct doh_response dohResponse;
     struct doh_response_parser dohParser;
-} doh_st;
+} doh_connection_t;
 
 typedef struct connection_request {
     uint8_t requestLine[REQUEST_LINE_MAX];
@@ -95,8 +93,10 @@ typedef struct proxyConnection {
     // estados para el cliente
     union client_state {
         struct request_line_st request_line;
-        struct doh_st doh;
+        
     } client;
+
+    doh_connection_t * dohConnection;
 
     connection_request_t connectionRequest;
 

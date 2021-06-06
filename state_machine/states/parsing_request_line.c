@@ -1,4 +1,5 @@
 #include "parsing_request_line.h"
+#include "../../utils/net_utils.h"
 
 #include <errno.h>
 #include <stdio.h>
@@ -14,9 +15,6 @@ handle_origin_doh_connection(struct selector_key *key);
 
 static unsigned
 handle_origin_ip_connection(struct selector_key *key);
-
-static int
-establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol);
 
 static void
 build_connection_request(struct selector_key *key);
@@ -43,7 +41,7 @@ parsing_host_on_read_ready(struct selector_key *key) {
         if (state == request_error) {
             printf("BAD REQUEST\n");  //FIXME: DEVOLVER EN EL SOCKET AL CLIENTE BAD REQUEST
             break;
-        } else if (state == request_done) {
+} else if (state == request_done) {
             unsigned nextState;
             if (requestLine->request.request_target.host_type == domain) {
                 nextState = handle_origin_doh_connection(key);
@@ -101,8 +99,6 @@ handle_origin_doh_connection(struct selector_key *key) {
 
     selector_status status = register_origin_socket(key);
 
-    connection->client.doh.state = DOH_CONNECTING;
-
     if (status != SELECTOR_SUCCESS) {
         //FIXME: ver que onda;
     }
@@ -144,23 +140,4 @@ handle_origin_ip_connection(struct selector_key *key) {
     return TRY_CONNECTION_IP;
 }
 
-static int
-establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol) {
-    int originSocket = socket(protocol, SOCK_STREAM, IPPROTO_TCP);
 
-    if (originSocket < 0)
-        return -1;
-
-    int opt = 1;
-
-    selector_fd_set_nio(originSocket);
-
-    if (setsockopt(originSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
-        return -1;
-
-    if (connect(originSocket, addr, addrlen) < 0) {
-        if (errno != EINPROGRESS)
-            return -1;  //FIXME: aca habria que ver que hacer
-    }
-    return originSocket;
-}
