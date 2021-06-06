@@ -165,12 +165,12 @@ doh_response_parser_feed(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         case response_mem_alloc_error:
-        case response_done:
-        case response_error:
+        case doh_response_done:
+        case doh_response_error:
             next = p->state;
             break;
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
 
@@ -210,7 +210,7 @@ r_header_id(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -240,7 +240,7 @@ r_header_flags(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -265,7 +265,7 @@ r_header_qdcount(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -294,7 +294,7 @@ r_header_ancount(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -319,7 +319,7 @@ r_header_nscount(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -342,7 +342,7 @@ r_header_arcount(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -366,7 +366,7 @@ r_question_qname_label_length(struct doh_response_parser *p, const uint8_t c) {
 static enum doh_response_state 
 r_question_qname_label(struct doh_response_parser *p, const uint8_t c) {
     if (p->i >= p->n)
-        return response_error;
+        return doh_response_error;
 
     p->i++;
     p->response->question.qname[p->response->question.qnameSize++] = c;
@@ -398,7 +398,7 @@ r_question_qtype(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -422,7 +422,7 @@ r_question_qclass(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -453,7 +453,7 @@ r_answer_name_label_length(struct doh_response_parser *p, const uint8_t c) {
 static enum doh_response_state 
 r_answer_name_label(struct doh_response_parser *p, const uint8_t c) {
     if (p->i >= p->n)
-        return response_error;
+        return doh_response_error;
 
     p->i++;
     p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = c;
@@ -480,7 +480,7 @@ r_answer_name_pointer(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -505,7 +505,7 @@ r_answer_type(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -530,7 +530,7 @@ r_answer_class(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -567,7 +567,7 @@ r_answer_ttl(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -601,12 +601,12 @@ r_answer_rdlength(struct doh_response_parser *p, const uint8_t c) {
                     next = response_answer_cname_label_length_rdata;
                     break;
                 default:
-                    next = response_error;
+                    next = doh_response_error;
             }
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;
@@ -615,7 +615,7 @@ r_answer_rdlength(struct doh_response_parser *p, const uint8_t c) {
 static enum doh_response_state 
 r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
     if (p->i >= p->n)
-        return response_error;
+        return doh_response_error;
 
     int total = sprintf((char *)p->response->answers[p->response->answerIndex].ardata +
                             p->response->answers[p->response->answerIndex].ardatalength,
@@ -630,7 +630,7 @@ r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
 
         /*No hay otra respuesta para analizar*/
         if (++p->response->answerIndex == p->response->header.ancount)
-            return response_done;
+            return doh_response_done;
 
         return response_answer_name_label_length;
     }
@@ -641,7 +641,7 @@ r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
 static enum doh_response_state 
 r_answer_ipv6_rdata(struct doh_response_parser *p, const uint8_t c) {
     if (p->i >= p->n)
-        return response_error;
+        return doh_response_error;
 
     p->response->answers[p->response->answerIndex].aip.ipv6.__in6_u.__u6_addr8[p->i++] = c;
     if (p->i == p->n) {
@@ -652,7 +652,7 @@ r_answer_ipv6_rdata(struct doh_response_parser *p, const uint8_t c) {
 
         /*No hay otra respuesta para analizar*/
         if (++p->response->answerIndex == p->response->header.ancount)
-            return response_done;
+            return doh_response_done;
 
         return response_answer_name_label_length;
     }
@@ -665,7 +665,7 @@ static enum doh_response_state
 r_answer_cname_label_length_rdata(struct doh_response_parser *p, const uint8_t c) {
     if (c == 0x00) {
         if (++p->response->answerIndex == p->response->header.ancount)
-            return response_done;
+            return doh_response_done;
 
         //Hay que leer otra respuesta
         return response_answer_name_label_length;
@@ -690,7 +690,7 @@ r_answer_cname_label_length_rdata(struct doh_response_parser *p, const uint8_t c
 static enum doh_response_state 
 r_answer_cname_label_rdata(struct doh_response_parser *p, const uint8_t c) {
     if (p->i >= p->n)
-        return response_error;
+        return doh_response_error;
 
     p->i++;
     // p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = c;
@@ -711,13 +711,13 @@ r_answer_cname_pointer_rdata(struct doh_response_parser *p, const uint8_t c) {
         case 1:
             p->i = 0;
             if (++p->response->answerIndex == p->response->header.ancount)
-                next = response_done;
+                next = doh_response_done;
 
             next = response_answer_name_label_length;
             break;
 
         default:
-            next = response_error;
+            next = doh_response_error;
             break;
     }
     return next;

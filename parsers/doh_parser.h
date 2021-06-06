@@ -130,11 +130,11 @@ typedef enum doh_response_state {
     response_answer_cname_pointer_rdata,
 
     //Done
-    response_done,
+    doh_response_done,
 
     //Error
     response_mem_alloc_error,
-    response_error,
+    doh_response_error,
 } doh_response_state;
 
 struct doh_response_parser {

@@ -5,6 +5,7 @@
 #include "states/parsing_request_line.h"
 #include "states/try_connection_ip.h"
 #include "states/send_doh_request.h"
+#include "states/await_doh_response.h"
 
 #include "states/send_request_line.h"
 #include "states/connected.h"
@@ -38,10 +39,10 @@ static const struct state_definition connection_states[] = {
      .on_read_ready = NULL,
      .on_write_ready = send_doh_request_on_write_ready,
      .on_block_ready = NULL},
-    {.state = DOH_RESPONSE,
-     .on_arrival = NULL,
+    {.state = AWAIT_DOH_RESPONSE,
+     .on_arrival = await_doh_response_on_arrival,
      .on_departure = NULL,
-     .on_read_ready = NULL,
+     .on_read_ready = await_doh_response_on_read_ready,
      .on_write_ready = NULL,
      .on_block_ready = NULL},
     {.state = DOH_RESOLVE_REQUEST_IPV4,

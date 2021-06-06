@@ -28,8 +28,9 @@ unsigned
 send_doh_request_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    if (!buffer_can_read(&connection->origin_buffer))
-        return DOH_RESPONSE;
+    if (!buffer_can_read(&connection->origin_buffer)){
+        return AWAIT_DOH_RESPONSE;
+    }
 
     return connection->stm.current->state;
 }

@@ -1,11 +1,11 @@
-#ifndef _RESPONSE_PARSER_H_
-#define _RESPONSE_PARSER_H_
+#ifndef _status_line_PARSER_H_
+#define _status_line_PARSER_H_
 
 #include <netinet/in.h>
 
 /*   The HTTP status line is formed as follows:
  *
- *   The first line of a response message is the status-line, consisting
+ *   The first line of a status_line message is the status-line, consisting
  *   of the protocol version, a space (SP), the status code, another
  *   space, a possibly empty textual phrase describing the status code,
  *   and ending with CRLF.
@@ -28,15 +28,15 @@
 
  */
 
-enum {
+enum data_size{
 
     STATUS_CODE_LENGTH = 3,
     MAX_REASON_PHRASE = 50,
     /** max port length (65535)*/
-    VERSION_LENGTH = 8,
+    STATUS_VERSION_LENGTH = 8,
 };
 
-struct response_line {
+struct status_line {
     /**
      * HTTP major version.
      */
@@ -53,36 +53,36 @@ struct response_line {
 
 };
 
-typedef enum response_state {
-    response_version,
-    response_version_major,
-    response_version_minor,
-    response_status_code,
-    response_reason_phrase,
+typedef enum status_line_state {
+    status_line_version,
+    status_line_version_major,
+    status_line_version_minor,
+    status_line_status_code,
+    status_line_reason_phrase,
 
-    response_end,
+    status_line_end,
 
     //Done
-    response_done,
+    status_line_done,
 
     //Error
-    response_error,
-    response_error_unsupported_version,
-} response_state;
+    status_line_error,
+    status_line_error_unsupported_version,
+} status_line_state;
 
-struct response_parser {
-    struct response_line *response;
-    response_state state;
+struct status_line_parser {
+    struct status_line *status_line;
+    status_line_state state;
 
     int i;
     int n;
 };
 
 /** init parser */
-void response_parser_init(struct response_parser *p);
+void status_line_parser_init(struct status_line_parser *p);
 
 /** returns true if done */
-enum response_state
-response_parser_feed(struct response_parser *p, const uint8_t c);
+enum status_line_state
+status_line_parser_feed(struct status_line_parser *p, const uint8_t c);
 
 #endif

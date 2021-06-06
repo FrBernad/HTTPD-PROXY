@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../parsers/request_parser.h"
+#include "../parsers/request_line_parser.h"
 #include "../state_machine/stm_initializer.h"
 #include "connections_def.h"
 #include "selector.h"
@@ -146,6 +146,7 @@ proxy_client_read(struct selector_key *key) {
 
 static void
 proxy_client_write(struct selector_key *key) {
+
     proxyConnection *connection = ATTACHMENT(key);
 
     buffer *originBuffer = &connection->origin_buffer;
@@ -196,7 +197,6 @@ proxy_origin_read(struct selector_key *key) {
     /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y 
     que envie los bytes que quedan en su buffer */
     if (totalBytes == 0) {
-
         connection->origin_status = CLOSING_STATUS;
         //     //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
         //        printf("Connection closed.\n\n");

@@ -5,7 +5,9 @@
 #include <sys/types.h>
 
 #include "../parsers/doh_parser.h"
-#include "../parsers/request_parser.h"
+#include "../parsers/request_line_parser.h"
+#include "../parsers/status_line_parser.h"
+#include "../parsers/headers_parser.h"
 #include "../state_machine/stm.h"
 #include "buffer.h"
 
@@ -16,7 +18,7 @@ enum connection_state {
     PARSING_REQUEST_LINE = 0,
     TRY_CONNECTION_IP,
     SEND_DOH_REQUEST,
-    DOH_RESPONSE,
+    AWAIT_DOH_RESPONSE,
     DOH_RESOLVE_REQUEST_IPV4,
     DOH_RESOLVE_REQUEST_IPV6,
 
@@ -50,6 +52,9 @@ typedef struct request_line_st {
 typedef struct doh_st {
     doh_state_t state;
     buffer *buffer;
+    struct status_line statusLine;
+    struct status_line_parser statusLineParser;
+    struct headers_parser headersParser;
     struct doh_response response;
     struct doh_response_parser dohParser;
 } doh_st;
