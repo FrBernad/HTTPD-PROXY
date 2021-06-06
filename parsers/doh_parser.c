@@ -5,8 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define DOT '.'
+#include "../utils/parser.h"
 
 static enum doh_response_state
 r_header_id(struct doh_response_parser *p, const uint8_t c);
@@ -373,7 +372,7 @@ r_question_qname_label(struct doh_response_parser *p, const uint8_t c) {
     p->response->question.qname[p->response->question.qnameSize++] = c;
 
     if (p->i == p->n) {
-        p->response->question.qname[p->response->question.qnameSize++] = DOT;
+        p->response->question.qname[p->response->question.qnameSize++] = '.';
         return response_question_qname_label_length;
     }
 
@@ -460,7 +459,7 @@ r_answer_name_label(struct doh_response_parser *p, const uint8_t c) {
     p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = c;
 
     if (p->i == p->n) {
-        p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = DOT;
+        p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = '.';
         return response_answer_name_label_length;
     }
 
@@ -697,7 +696,7 @@ r_answer_cname_label_rdata(struct doh_response_parser *p, const uint8_t c) {
     // p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = c;
 
     if (p->i == p->n) {
-        // p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = DOT;
+        // p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = '.';
         return response_answer_cname_label_length_rdata;
     }
 

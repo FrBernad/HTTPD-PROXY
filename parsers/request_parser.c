@@ -1,20 +1,8 @@
 #include "request_parser.h"
-
+#include "../utils/parser.h"
 #include <string.h>
 #include <stdbool.h>
 #include <arpa/inet.h>
-
-#define CONNECT "CONNECT"
-#define OPTIONS "OPTIONS"
-#define SCHEME "http://"
-#define HTTP "HTTP/"
-#define END_OF_AUTHORITY(x) ((x) == '/' || (x) == '#' || (x) == '?')
-
-#define IS_DIGIT(x) ((x) >= '0' && (x)<= '9' )
-#define IS_ALPHA(x) (((x) >= 'a' && (x) <= 'z' ) || ((x) >= 'A' && (x) <= 'Z' ))
-#define IS_TOKEN(x) ((x) == '!' || (x) == '#' || (x) == '$' || (x) == '%' || (x) == '&' || (x) == '\'' || (x) == '*' || (x) == '+' \
-|| (x) == '-' || (x) == '.' || (x) == '^' || (x) == '_' || (x) == '`' || (x) == '|' || (x) == '~' || IS_DIGIT(x) || IS_ALPHA(x))
-
 
 static enum request_state 
 r_method(uint8_t c, struct request_parser *p);

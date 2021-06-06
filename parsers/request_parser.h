@@ -1,5 +1,5 @@
-#ifndef _REQUEST_H_
-#define _REQUEST_H_
+#ifndef _REQUEST_PARSER_H_
+#define _REQUEST_PARSER_H_
 
 #include <netinet/in.h>
 
