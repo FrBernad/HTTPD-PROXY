@@ -1,5 +1,5 @@
-#ifndef _REQUEST_H_
-#define _REQUEST_H_
+#ifndef _REQUEST_LINE_PARSER_H_
+#define _REQUEST_LINE_PARSER_H_
 
 #include <netinet/in.h>
 
@@ -72,7 +72,7 @@ struct request_line {
      */
     uint8_t method[MAX_METHOD_LENGTH + 1];
 
-    struct {
+    struct request_target {
         // request_target type.
         enum {
             absolute_form,
@@ -80,7 +80,7 @@ struct request_line {
         } type;
 
         /** host type */
-        enum request_line_addr_type {
+        enum host_type {
             domain,
             ipv4,
             ipv6,
@@ -134,11 +134,12 @@ struct request_parser {
 };
 
 
-
 /** init parser */
-void request_parser_init(struct request_parser *p);
+void 
+request_parser_init(struct request_parser *p);
 
 /** returns true if done */
-enum request_state request_parser_feed(struct request_parser *p, const uint8_t c);
+enum request_state 
+request_parser_feed(struct request_parser *p, const uint8_t c);
 
 #endif

@@ -1,26 +1,21 @@
-CCFLAGS=-std=c11 -Wall -g -pedantic -Wno-newline-eof -pedantic-errors -O3 -Wextra -Werror -Wno-unused-parameter -Wno-implicit-fallthrough -fsanitize=address -D_POSIX_C_SOURCE=200112L
+include makefile.inc
+include sourceDirs.inc
+
+CFLAGS+=-I$(CURDIR)
 
 SOURCES_SERVER=httpd.c
+EXECUTABLE_SERVER=httpd
 
-SOURCES_UTILS=$(wildcard utils/*.c)
-
-OBJECTS_UTILS=$(SOURCES_UTILS:.c=.o)
-
-
-EXECUTABLE_SERVER= httpd
-
-SOURCES_C=$(wildcard *.c)
+SOURCES_FILES=$(foreach dir,$(SOURCE_DIRS),$(wildcard $(dir)/*.c))
+OBJECTS_FILES=$(SOURCES_FILES:.c=.o)
 
 SOURCES_CPP=$(SOURCES_C:.c=.cpp)
 
 all: $(EXECUTABLE_SERVER)
 
-$(EXECUTABLE_SERVER):  $(OBJECTS_UTILS)
-	$(CC) $(CCFLAGS) $(CFLAGS) $(SOURCES_SERVER) -I./includes -o $@ $^
+$(EXECUTABLE_SERVER): $(OBJECTS_FILES)
+	$(CC) $(CFLAGS) $(SOURCES_SERVER) $^ -o $@
 
-%.o: %.c
-	$(CC) $(CCFLAGS) -I./includes -c $^ -o $@
-	
 test: cpp scanbuild #complexity 
 
 cpp: $(SOURCES_CPP)
@@ -35,7 +30,7 @@ scanbuild:
 #	complexity --histogram --score $(SOURCES_C) >results.cpxt 2> /dev/null
 
 clean:
-	rm -rf httpd *.o utils/*.o
+	rm -rf httpd *.o utils/*.o parsers/*.o state_machine/*.o states/*.o
 
 cleanTest:
 	rm -rf results.cppOut results.sb scanBuildResults 

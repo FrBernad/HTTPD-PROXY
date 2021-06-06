@@ -1,0 +1,2 @@
+ all:
+ gcc -std=c11 -Wall -g -pedantic -pthread -Wno-newline-eof -pedantic-errors -O3 -Wextra -Werror -Wno-unused-parameter -Wno-implicit-fallthrough -fsanitize=address -D_POSIX_C_SOURCE=200112L status_line_parser_test.c.c ../status_line_parser_.c -o status_line_test

@@ -1,0 +1,6 @@
+PARSERS=parsers
+UTILS=utils
+STATE_MACHINE=state_machine
+STATES=states
+
+SOURCE_DIRS= $(PARSERS) $(UTILS) $(STATE_MACHINE) $(STATES)
