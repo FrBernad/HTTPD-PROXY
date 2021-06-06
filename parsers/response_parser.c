@@ -4,7 +4,6 @@
 #include <string.h>
 #include "../utils/parser_utils.h"
 
-
 static enum response_state
 r_version(const uint8_t c, struct response_parser *p);
 
@@ -145,8 +144,9 @@ r_version_minor(const uint8_t c, struct response_parser *p) {
 /*HTTP/1.1 200 OK */
 static enum response_state
 r_status_code(const uint8_t c, struct response_parser *p) {
-    if (p->i >= p->n)
+    if (p->i > p->n){
         return response_error;
+    }
 
     if (p->i == STATUS_CODE_LENGTH && c == ' ') {
         p->i = 0;
@@ -175,10 +175,7 @@ r_status_code(const uint8_t c, struct response_parser *p) {
 static enum response_state
 r_reason_phrase(const uint8_t c, struct response_parser *p) {
 
-    if (p->i >= p->n)
-        return response_error;
-    
-    if(!IS_REASON_PHRASE(c)){
+    if (p->i >= p->n){
         return response_error;
     }
 
@@ -186,6 +183,11 @@ r_reason_phrase(const uint8_t c, struct response_parser *p) {
         p->i = 0;
         return response_end;
     }
+
+    if(!IS_REASON_PHRASE(c)){
+        return response_error;
+    }
+
 
     p->response->reason_phrase[p->i++] = c;
 

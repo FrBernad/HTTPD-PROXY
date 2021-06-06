@@ -126,9 +126,7 @@ enum {
 typedef enum headers_state {
 
     headers_field_name,
-    headers_field_value_start_ows,
     headers_field_value,
-    headers_field_value_end_ows,
     headers_field_value_end,
     headers_may_be_end,
     headers_end,
