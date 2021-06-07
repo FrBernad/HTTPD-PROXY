@@ -42,6 +42,8 @@ parseIpv6(struct request_parser *p);
 static bool
 parseIpv4(struct request_parser *p);
 
+static void assign_port(struct request_parser *p);
+
 void request_parser_init(struct request_parser *p) {
     p->state = request_method;
     p->i = 0;
@@ -111,7 +113,7 @@ r_method(const uint8_t c, struct request_parser *p) {
 
 static enum request_state
 getMethodState(struct request_parser *p) {
-    char *method = (char *)p->request->method;
+    char *method = (char *) p->request->method;
 
     if (strcmp(method, CONNECT) != 0 && strcmp(method, OPTIONS) != 0) {
         p->request->request_target.type = absolute_form;
@@ -126,7 +128,7 @@ getMethodState(struct request_parser *p) {
 
 static enum request_state
 r_target_scheme(const uint8_t c, struct request_parser *p) {
-    char *scheme = (char *)SCHEME;
+    char *scheme = (char *) SCHEME;
 
     if (p->i >= p->n || scheme[p->i] != c)
         return request_error;
@@ -268,6 +270,19 @@ static bool parseIpv4(struct request_parser *p) {
     return true;
 }
 
+static void assign_port(struct request_parser *p) {
+    switch (p->request->request_target.host_type) {
+        case ipv4:
+            p->request->request_target.host.ipv4.sin_port = p->request->request_target.port;
+            break;
+        case ipv6:
+            p->request->request_target.host.ipv6.sin6_port = p->request->request_target.port;
+            break;
+        default:
+            break;
+    }
+}
+
 static enum request_state
 r_target_port(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
@@ -275,6 +290,7 @@ r_target_port(const uint8_t c, struct request_parser *p) {
 
     if (END_OF_AUTHORITY(c)) {
         p->request->request_target.port = htons(p->request->request_target.port);
+        assign_port(p);
         p->i = 0;
         p->n = MAX_ORIGIN_FORM;
         p->request->request_target.origin_form[p->i] = c;
@@ -283,6 +299,7 @@ r_target_port(const uint8_t c, struct request_parser *p) {
 
     if (c == ' ') {
         p->request->request_target.port = htons(p->request->request_target.port);
+        assign_port(p);
         p->i = 0;
         p->n = VERSION_LENGTH;
         return request_version;
@@ -337,8 +354,7 @@ r_version(const uint8_t c, struct request_parser *p) {
         return request_version_major;
     }
 
-    return request_version;
-    ;
+    return request_version;;
 }
 
 static enum request_state

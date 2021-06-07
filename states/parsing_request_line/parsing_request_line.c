@@ -99,6 +99,7 @@ build_connection_request(struct selector_key *key) {
     memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
     connectionRequest->port = requestLine.request_target.port;
     connectionRequest->host_type = requestLine.request_target.host_type;
+    connectionRequest->connect = strcmp((char*)connection->client.request_line.request.method, "CONNECT") == 0;
 }
 
 static unsigned
