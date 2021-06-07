@@ -80,7 +80,9 @@ set_closing_connection_interests(struct selector_key *key) {
 
         if (buffer_can_read(clientBuffer)) {
             originInterest |= OP_WRITE;
-        } 
+        } else {
+            shutdown(connection->origin_fd, SHUT_WR);  //AL SOCKET DEL CLIENTE LE AVISO QUE NO LE VAN A ESCRIBIR MAS
+        }
     }
 
     selector_set_interest(key->s, connection->client_fd, clientInterest);

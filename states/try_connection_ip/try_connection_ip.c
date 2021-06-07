@@ -6,8 +6,8 @@
 
 #include "connections/connections.h"
 #include "connections/connections_def.h"
-#include "utils/net/net_utils.h"
 #include "utils/doh/doh_utils.h"
+#include "utils/net/net_utils.h"
 
 static int
 check_origin_connection(int socketfd);
@@ -24,12 +24,20 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     if (check_origin_connection(connection->origin_fd)) {
-        /*Si dohConnection == NULL es que nunca mande el doh_request */
+        /*Si dohConnection == NULL es que nunca mande el doh_request, si no esta active estoy probando ipv+ */
         if (connection->connectionRequest.host_type == domain &&
             (connection->dohConnection == NULL || !connection->dohConnection->isActive)) {
+            if (connection->connectionRequest.connect) {
+                buffer_reset(&connection->client_buffer);
+            }
             return SEND_DOH_REQUEST;
         }
         /*En este caso ya estoy conectado al origin*/
+        if (connection->connectionRequest.connect) {
+            buffer_reset(&connection->client_buffer);
+            return CONNECTED;
+        }
+
         return SEND_REQUEST_LINE;
     }
 

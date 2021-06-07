@@ -59,6 +59,7 @@ typedef struct doh_connection {
 
 typedef struct connection_request {
     uint8_t requestLine[REQUEST_LINE_MAX];
+    bool connect;
     enum host_type host_type;
     union {
         char domain[MAX_FQDN_LENGTH + 1];
