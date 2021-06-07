@@ -1,0 +1,134 @@
+A published RFC will largely contain the elements in the following
+   list.  Some of these sections are required, as noted.  Those sections
+   marked with "*" will be supplied by the RFC Editor during the
+   editorial process when necessary.  Sections are allowed to contain
+   nothing but subsections.  The rules for each of these elements are
+   described in more detail below.
+
+      First-page header                      * [Required]
+      Title                                    [Required]
+      Abstract                                 [Required]
+      RFC Editor or Stream Note              * [Upon request]
+      Status of This Memo                    * [Required]
+      Copyright Notice                       * [Required]
+      Table of Contents                      * [Required]
+      Body of the Memo                         [Required]
+        1.  Introduction                       [Required]
+        2.  Requirements Language (RFC 2119)
+        3.  ...
+            MAIN BODY OF THE TEXT
+        6.  ...
+        7.  IANA Considerations                [Required in I-D]
+        8.  Internationalization Considerations
+        9.  Security Considerations            [Required]
+        10.  References
+        10.1.  Normative References
+        10.2.  Informative References
+        Appendix A.
+        Appendix B.
+      Acknowledgements
+      Contributors
+      Author's Address                         [Required]
+
+------------------------------------------------------------------------
+From:  ITBA                                          
+                                                  I. Manfredi
+
+                                                  F. Bernad
+
+                                                  J. Legammare
+
+                                                  N. Rampoldi
+                                                  
+Request for Comments: undefined               
+Category: Standards Track
+                                                  June 2021
+------------------------------------------------------------------------
+
+
+                        Percy Protocol -- PP/1.0
+
+
+Abstract
+
+    This protocol aims to provide interaction between the client and a
+    http daemon server.
+
+Status of This Memo
+
+   This document specifies an Internet standards track protocol for the
+   Internet community, and requests discussion and suggestions for
+   improvements.  Distribution of this document is unlimited.
+
+Copyright Notice 
+
+  Copyright (C) Instituto Tecnológico de Buenos Aires (2021).  All Rights Reserved.
+
+Table of Contents
+
+  //TODO
+
+1. Introduction
+
+    This protocol aims to provide interaction between the client and a
+    http daemon server.  Furthermore, the client might change configuration
+    while the server is runnning.  To assure the privacy and security of the
+    client, an authentication with the server is mandatory after connection
+    is established.  Then, the client proceeds making the request, the server 
+    analyses it and responds accordingly.
+
+2. Requirements
+
+ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", 
+ "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be 
+ interpreted as described in RFC 2119 [34].
+   
+ An implementation is not compliant if it fails to satisfy one or more
+ of the MUST or REQUIRED level requirements for the protocols it
+ implements. An implementation that satisfies all the MUST or REQUIRED
+ level and all the SHOULD level requirements for its protocols is said
+ to be "unconditionally compliant"; one that satisfies all the MUST
+ level requirements but not all the SHOULD level requirements for its
+ protocols is said to be "conditionally compliant."
+
+3. Connections
+
+3.1 Establishing connection
+
+  In order for an UDP client to establish a connection with the http daemon
+  server, it is required to open an UDP connection to the default port (9090).
+
+3.2 Authentication
+
+
+   /*
+        Protocolo:
+        Implementar mecanismos que permitan manejar usuarios cambiar la
+        configuración del servidor en tiempo de ejecución sin reiniciar
+        el servidor.  Las diferentes implementaciones PUEDEN decidir
+        disponibilizar otros cambios en tiempo de ejecución
+        de otras configuraciones (memoria utilizada en I/O, timeouts,
+        etc).
+
+        Monitorear el tráfico y generar un registro de credenciales de
+        acceso (usuarios y passwords) de forma similar a ettercap por lo
+        menos para protocolos HTTP, y POP3.
+
+        El protocolo que diseñe para monitoreo y configuración funcionará
+        sobre UDP o SCTP.  Deberá documentar detalladamente el protocolo
+        e implementar una aplicación cliente.
+
+        Tanto la aplicación servidor, como la aplicación cliente de
+        configuración/monitoreo DEBERÁN manejar los argumentos de línea
+        de comandos de cierta forma uniforme (por ejemplo -c <puerto>
+        podría especificar el puerto utilizado para el protocolo de
+        configuración/monitoreo).  Los detalles de qué parámetros se
+        deben manejar será publicado en otro documento.
+
+        Un informe en formato PDF [RFC3778] o text/plain (con
+        codificación UTF-8) que contenga las siguientes secciones
+        (respetando el orden):
+
+        Descripción detallada de los protocolos y aplicaciones
+        desarrolladas.
+  */

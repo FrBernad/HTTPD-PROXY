@@ -30,7 +30,7 @@ scanbuild:
 #	complexity --histogram --score $(SOURCES_C) >results.cpxt 2> /dev/null
 
 clean:
-	rm -rf httpd *.o utils/*.o parsers/*.o state_machine/*.o states/*.o
+	rm -rf $(OBJECTS_FILES) $(EXECUTABLE_SERVER)
 
 cleanTest:
 	rm -rf results.cppOut results.sb scanBuildResults 
