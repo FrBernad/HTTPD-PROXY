@@ -115,7 +115,7 @@ static enum request_state
 getMethodState(struct request_parser *p) {
     char *method = (char *) p->request->method;
 
-    if (strcmp(method, CONNECT) != 0 && strcmp(method, OPTIONS) != 0) {
+    if (strcmp(method, CONNECT) != 0) { //FIXME: 
         p->request->request_target.type = absolute_form;
         p->n = SCHEME_LENGTH;
         return request_target_scheme;

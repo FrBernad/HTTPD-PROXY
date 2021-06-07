@@ -3,6 +3,7 @@
 
 #include <netinet/in.h>
 
+
 /*  Each header field consists of a case-insensitive field name followed
     by a colon (":"), optional leading whitespace, the field value, and
     optional trailing whitespace.
@@ -148,8 +149,9 @@ typedef struct  {
 }current_header_t;
 
 typedef struct{
-    char a_type[MAX_TYPE_AUTHORIZATION_LENGTH];
-    char a_value[MAX_HEADER_FIELD_VALUE_LENGTH];
+    char * a_type;
+    char * user;
+    char * password;
 }authorization_t;
 
 struct headers_parser {
