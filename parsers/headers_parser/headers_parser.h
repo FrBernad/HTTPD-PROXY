@@ -114,12 +114,16 @@
  *       
  */
 
+#define AUTHORIZATION_HEADER "Authorization"
+
 enum {
     /**  max length for HTTP field */
     MAX_HEADER_FIELD_NAME_LENGTH = 128,
 
     /**  max length for HTTP field */
     MAX_HEADER_FIELD_VALUE_LENGTH = 1 << 10,
+
+    MAX_TYPE_AUTHORIZATION_LENGTH = 20, //FIXME: REVISAR EL LENGTH DEL TYPE
 
 };
 
@@ -138,10 +142,21 @@ typedef enum headers_state {
     headers_error,
 } headers_state;
 
+typedef struct  {
+    char c_field_name[MAX_HEADER_FIELD_NAME_LENGTH];
+    char c_field_value[MAX_HEADER_FIELD_VALUE_LENGTH];
+}current_header_t;
+
+typedef struct{
+    char a_type[MAX_TYPE_AUTHORIZATION_LENGTH];
+    char a_value[MAX_HEADER_FIELD_VALUE_LENGTH];
+}authorization_t;
+
 struct headers_parser {
     headers_state state;
     unsigned headersCount;
-
+    current_header_t current_header;
+    authorization_t authorization;
     int i;
     int n;
 };

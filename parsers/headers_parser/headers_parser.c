@@ -1,5 +1,9 @@
 #include "headers_parser.h"
 
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
+
 #include "utils/parser/parser_utils.h"
 
 static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p);
@@ -11,6 +15,8 @@ static enum headers_state h_end(const uint8_t c, struct headers_parser *p);
 static enum headers_state h_may_be_end(const uint8_t c, struct headers_parser *p);
 
 static enum headers_state h_field_value_end(const uint8_t c, struct headers_parser *p);
+
+static void parseHeaderAuthorization(struct headers_parser *p);
 
 void headers_parser_init(struct headers_parser *p) {
     p->state = headers_field_name;
@@ -60,6 +66,7 @@ static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p
 
     if (c == ':') {
         p->headersCount++;
+        p->current_header.c_field_name[p->i] = 0;
         p->i = 0;
         p->n = MAX_HEADER_FIELD_VALUE_LENGTH;
         return headers_field_value;
@@ -69,7 +76,7 @@ static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p
         return headers_error;
     }
 
-    p->i++;
+    p->current_header.c_field_name[p->i++] = c;
 
     return headers_field_name;
 }
@@ -79,11 +86,12 @@ static enum headers_state h_field_value(const uint8_t c, struct headers_parser *
         return headers_error;
 
     if (c == '\r') {
+        p->current_header.c_field_value[p->i] = 0;
         return headers_field_value_end;
     }
 
     if (IS_VCHAR(c) || IS_SPACE(c)) {
-        p->i++;
+        p->current_header.c_field_value[p->i++] = c;
         return headers_field_value;
     }
 
@@ -93,6 +101,10 @@ static enum headers_state h_field_value(const uint8_t c, struct headers_parser *
 static enum headers_state h_field_value_end(const uint8_t c, struct headers_parser *p) {
     if (c != '\n') {
         return headers_error;
+    }
+
+    if (strcasecmp(p->current_header.c_field_name, AUTHORIZATION_HEADER) == 0) {
+        parseHeaderAuthorization(p);
     }
     return headers_may_be_end;
 }
@@ -105,10 +117,10 @@ static enum headers_state h_may_be_end(const uint8_t c, struct headers_parser *p
     if (!IS_TOKEN(c)) {
         return headers_error;
     }
-
     p->i = 0;
     p->n = MAX_HEADER_FIELD_NAME_LENGTH;
-    //FIXME: si vamos a guardar algun header habria que agregar esta letra
+
+    p->current_header.c_field_name[p->i++] = c;
     return headers_field_name;
 }
 
@@ -118,4 +130,30 @@ static enum headers_state h_end(const uint8_t c, struct headers_parser *p) {
     }
 
     return headers_done;
+}
+
+static void parseHeaderAuthorization(struct headers_parser *p) {
+    char *fieldValue = p->current_header.c_field_value;
+
+    /*Salteo espacios del principio si es que hay*/
+    int i = 0;
+    while (fieldValue[i] != 0 && fieldValue[i] == ' ') {
+        i++;
+    }
+
+    int j = 0;
+    while (fieldValue[i] != 0 && fieldValue[i] != ' ') {
+        p->authorization.a_type[j++] = fieldValue[i++];
+    }
+    p->authorization.a_type[j] = 0;
+
+    while (fieldValue[i] != 0 && fieldValue[i] == ' ') {
+        i++;
+    }
+
+    int k = 0;
+    while (fieldValue[i] != 0) {
+        p->authorization.a_value[k++] = fieldValue[i++];
+    }
+    p->authorization.a_value[k] = 0;
 }

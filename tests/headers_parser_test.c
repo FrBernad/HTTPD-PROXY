@@ -1,10 +1,10 @@
-#include "../headers_parser.h"
+#include "headers_parser.h"
 
 #include <stdio.h>
 #include <string.h>
 
 int main(int argc, char const *argv[]) {
-    char *headers = "Location: http://www.google.com/\r\nContent-Type: text/html; charset=UTF-8\r\nDate: Sun, 06 Jun 2021 01:27:22 GMT\r\nExpires: Tue, 06 Jul 2021 01:27:22 GMT\r\nCache-Control: public, max-age=2592000\r\nServer: gws\r\nContent-Length: 219\r\nX-XSS-Protection: 0\r\nX-Frame-Options: SAMEORIGIN\r\n\r\n";
+    char *headers = "Location: http://www.google.com/\r\nAuthorization: Basic YWxhZGRpbjpvcGVuc2VzYW1l\r\nContent-Type: text/html; charset=UTF-8\r\nDate: Sun, 06 Jun 2021 01:27:22 GMT\r\nExpires: Tue, 06 Jul 2021 01:27:22 GMT\r\nCache-Control: public, max-age=2592000\r\nServer: gws\r\nContent-Length: 219\r\nX-XSS-Protection: 0\r\nX-Frame-Options: SAMEORIGIN\r\n\r\n";
 
     struct headers_parser parser;
 
@@ -22,6 +22,10 @@ int main(int argc, char const *argv[]) {
             printf("ERROR!\n");
         }
     }
+
+    printf("%s\n",parser.authorization.a_type);
+    printf("%s\n",parser.authorization.a_value);
+
 
     return 0;
 }
