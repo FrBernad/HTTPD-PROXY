@@ -46,8 +46,10 @@ void error_on_arrival(const unsigned state, struct selector_key *key) {
         printf("error set interest!");
     }
 
-    if (selector_set_interest(key->s, connection->origin_fd, OP_NOOP) != SELECTOR_SUCCESS) {
-        printf("error set interest!");
+    if (connection->origin_status != INACTIVE_STATUS) {
+        if (selector_set_interest(key->s, connection->origin_fd, OP_NOOP) != SELECTOR_SUCCESS) {
+            printf("error set interest!");
+        }
     }
 }
 
@@ -58,7 +60,7 @@ error_on_write_ready(struct selector_key *key) {
     buffer *buffer = &connection->origin_buffer;
 
     if (!buffer_can_read(buffer)) {
-        //return CONNECTED; habria que ver que estado devolver aca
+        return DONE;  //FIXME: habria que ver que estado devolver aca
     }
 
     return connection->stm.current->state;

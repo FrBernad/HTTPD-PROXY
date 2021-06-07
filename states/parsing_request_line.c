@@ -1,14 +1,14 @@
 #include "parsing_request_line.h"
-#include "utils/net_utils.h"
 
+#include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <arpa/inet.h>
 
 #include "utils/connections.h"
 #include "utils/connections_def.h"
 #include "utils/doh_utils.h"
+#include "utils/net_utils.h"
 
 static unsigned
 handle_origin_doh_connection(struct selector_key *key);
@@ -18,6 +18,9 @@ handle_origin_ip_connection(struct selector_key *key);
 
 static void
 build_connection_request(struct selector_key *key);
+
+static int
+check_request_line_error(proxyConnection *connection, request_state state);
 
 void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
@@ -34,15 +37,16 @@ parsing_host_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     struct request_line_st *requestLine = &connection->client.request_line;
+
     /*Tengo que parsear la request del cliente para determinar a que host me conecto*/
     while (buffer_can_read(requestLine->buffer)) {
-        uint8_t c = buffer_read(requestLine->buffer);
-        request_state state = request_parser_feed(&requestLine->request_parser, c);
-        if (state == request_error) {
-            printf("BAD REQUEST\n");  //FIXME: DEVOLVER EN EL SOCKET AL CLIENTE BAD REQUEST
-            break;
-} else if (state == request_done) {
+        request_state state = request_parser_feed(&requestLine->request_parser, buffer_read(requestLine->buffer));
+
+        if (check_request_line_error(connection, state)) {
+            return ERROR;
+        } else if (state == request_done) {
             unsigned nextState;
+
             if (requestLine->request.request_target.host_type == domain) {
                 nextState = handle_origin_doh_connection(key);
             } else {
@@ -58,6 +62,32 @@ parsing_host_on_read_ready(struct selector_key *key) {
     }
 
     return connection->stm.current->state;
+}
+
+static int
+check_request_line_error(proxyConnection *connection, request_state state) {
+    int error;
+    switch (state) {
+        case request_error_unsupported_method:
+            connection->error = NOT_IMPLEMENTED;
+            error = 1;
+            break;
+
+        case request_error_unsupported_version:
+            connection->error = HTTP_VERSION_NOT_SUPPORTED;
+            error = 1;
+            break;
+
+        case request_error:
+            connection->error = BAD_REQUEST;
+            error = 1;
+            break;
+        default:
+            error = 0;
+            break;
+    }
+
+    return error;
 }
 
 static void
@@ -83,7 +113,8 @@ handle_origin_doh_connection(struct selector_key *key) {
     ipv4.sin_family = AF_INET;
     ipv4.sin_port = htons(8053);                                 //FIXME: Cambiar
     if (inet_pton(AF_INET, "127.0.0.1", &ipv4.sin_addr) <= 0) {  //FIXME: poner el doh servidor
-        return ERROR;                                            //FIXME: DOH SERVER ERROR
+        connection->error = INTERNAL_SERVER_ERROR;
+        return ERROR;  //FIXME: DOH SERVER ERROR
     }
 
     connection->origin_fd = establish_origin_connection(
@@ -91,16 +122,16 @@ handle_origin_doh_connection(struct selector_key *key) {
         sizeof(ipv4),
         AF_INET);
 
-    if (connection->origin_fd == -1) {
+    if (connection->origin_fd < 0) {
+        connection->error = INTERNAL_SERVER_ERROR;
         return ERROR;
     }
 
     printf("registered doh origin!\n");
 
-    selector_status status = register_origin_socket(key);
-
-    if (status != SELECTOR_SUCCESS) {
-        //FIXME: ver que onda;
+    if (register_origin_socket(key) != SELECTOR_SUCCESS) {
+        connection->error = INTERNAL_SERVER_ERROR;
+        return ERROR;
     }
 
     return TRY_CONNECTION_IP;
@@ -113,7 +144,7 @@ handle_origin_ip_connection(struct selector_key *key) {
     struct request_target *request_target = &connection->client.request_line.request.request_target;
 
     if (request_target->host_type == ipv4) {
-        printf("connecting to ipv4\n");
+        printf("Connecting to ipv4\n");
         connection->origin_fd = establish_origin_connection(
             (struct sockaddr *)&request_target->host.ipv4,
             sizeof(request_target->host.ipv4),
@@ -126,18 +157,16 @@ handle_origin_ip_connection(struct selector_key *key) {
     }
 
     if (connection->origin_fd == -1) {
+        connection->error = INTERNAL_SERVER_ERROR;
         return ERROR;
     }
 
-    printf("registered origin!\n");
+    printf("Registered origin!\n");
 
-    selector_status status = register_origin_socket(key);
-
-    if (status != SELECTOR_SUCCESS) {
-        //FIXME: ver que onda;
+    if (register_origin_socket(key) != SELECTOR_SUCCESS) {
+        connection->error = INTERNAL_SERVER_ERROR;
+        return ERROR;
     }
 
     return TRY_CONNECTION_IP;
 }
-
-

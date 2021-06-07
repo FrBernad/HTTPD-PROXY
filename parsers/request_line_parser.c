@@ -106,7 +106,7 @@ r_method(const uint8_t c, struct request_parser *p) {
             return getMethodState(p);
         }
     }
-    return request_error;
+    return request_error_unsupported_method;
 }
 
 static enum request_state
@@ -344,7 +344,7 @@ r_version(const uint8_t c, struct request_parser *p) {
 static enum request_state
 r_version_major(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
-        return request_error;
+        return request_error_unsupported_version;
 
     if (c == '.') {
         p->i = 0;
@@ -374,7 +374,7 @@ r_version_major(const uint8_t c, struct request_parser *p) {
 static enum request_state
 r_version_minor(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
-        return request_error;
+        return request_error_unsupported_version;
 
     if (c == '\r') {
         p->i = 0;

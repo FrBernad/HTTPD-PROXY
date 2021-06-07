@@ -32,6 +32,15 @@ proxy_origin_read(struct selector_key *key);
 static void
 proxy_origin_close(struct selector_key *key);
 
+static void
+free_doh_connection(doh_connection_t *dohConnection);
+
+static void
+free_connection_data(proxyConnection *connection);
+
+static void
+close_proxy_connection(struct selector_key *key);
+
 enum conections_defaults {
     BUFFER_SIZE = 2048,
 };
@@ -64,24 +73,33 @@ void accept_new_connection(struct selector_key *key) {
 
     int clientSocket;
 
-    if ((clientSocket = accept(key->fd, (struct sockaddr *)&address, &addrlen)) < 0)
-        printf("error accept\n");  //
-    // ERROR_MANAGER("accept", clientSocket, errno);
+    if ((clientSocket = accept(key->fd, (struct sockaddr *)&address, &addrlen)) < 0) {
+        perror("Error accept\n");  //
+        return;
+    }
 
-    selector_fd_set_nio(clientSocket);
+    if (selector_fd_set_nio(clientSocket) < 0) {
+        perror("error setting new connection as NON-BLOCKIN\n");
+        close(clientSocket);
+        return;
+    }
 
     proxyConnection *newConnection = create_new_connection(clientSocket);
 
-    // if (newConnection == NULL)
-    // return -1;
+    if (newConnection == NULL) {
+        perror("error creating new connection\n");
+        close(clientSocket);
+        return;
+    }
 
     int status = selector_register(key->s, clientSocket, &clientHandler, OP_READ, newConnection);
 
     if (status != SELECTOR_SUCCESS) {
-        //FIXME: END CONNECTION
+        perror("error registering new fd\n");
+        close(clientSocket);
+        free_connection_data(newConnection);
+        return;
     }
-
-    // return 0;
 }
 
 static proxyConnection *
@@ -113,6 +131,7 @@ create_new_connection(int clientFd) {
 
     newConnection->client_fd = clientFd;
     newConnection->client_status = ACTIVE_STATUS;
+    newConnection->origin_status = INACTIVE_STATUS;
 
     return newConnection;
 }
@@ -130,17 +149,20 @@ proxy_client_read(struct selector_key *key) {
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
 
     int totalBytes = read(key->fd, data, maxBytes);
-    if (totalBytes < 0)
-        printf("ERROR!!!.\n\n");
+
+    if (totalBytes < 0) {
+        close_proxy_connection(key);
+    }
     /* Si el client no quiere mandar nada más, marco al client como que está cerrando y 
     que envie los bytes que quedan en su buffer */
-    if (totalBytes == 0) {
-        connection->client_status = CLOSING_STATUS;
-        //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
-        //printf("Connection closed.\n\n");
+    else {
+        if (totalBytes == 0) {
+            connection->client_status = CLOSING_STATUS;
+            //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
+        }
+        buffer_write_adv(buffer, totalBytes);
+        stm_handler_read(&connection->stm, key);
     }
-    buffer_write_adv(buffer, totalBytes);
-    stm_handler_read(&connection->stm, key);
 }
 
 static void
@@ -155,21 +177,24 @@ proxy_client_write(struct selector_key *key) {
 
     size_t maxBytes;
     uint8_t *data;
-    int totalBytes;
 
     data = buffer_read_ptr(originBuffer, &maxBytes);
-    totalBytes = send(key->fd, data, maxBytes, 0);
-    buffer_read_adv(originBuffer, totalBytes);
-    stm_handler_write(&connection->stm, key);
+
+    int totalBytes = send(key->fd, data, maxBytes, 0);
+
+    if (totalBytes > 0) {
+        buffer_read_adv(originBuffer, totalBytes);
+        stm_handler_write(&connection->stm, key);
+    } else {
+        close_proxy_connection(key);
+    }
 }
 
 static void
 proxy_client_close(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    free(connection->client_buffer.data);
-    free(connection->origin_buffer.data);
-
+    free_connection_data(connection);
     close(connection->client_fd);
 
     free(connection);
@@ -189,19 +214,19 @@ proxy_origin_read(struct selector_key *key) {
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
 
     int totalBytes = read(key->fd, data, maxBytes);
-    if (totalBytes < 0)
-        printf("ERROR!!!.\n\n");
 
+    if (totalBytes < 0) {
+        close_proxy_connection(key);
+    }
     /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y 
     que envie los bytes que quedan en su buffer */
-    if (totalBytes == 0) {
-        connection->origin_status = CLOSING_STATUS;
-        //     //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
-        //        printf("Connection closed.\n\n");
+    else {
+        if (totalBytes == 0) {
+            connection->origin_status = CLOSING_STATUS;
+        }
+        buffer_write_adv(buffer, totalBytes);
+        stm_handler_read(&connection->stm, key);
     }
-
-    buffer_write_adv(buffer, totalBytes);
-    stm_handler_read(&connection->stm, key);
 }
 
 static void
@@ -213,13 +238,10 @@ proxy_origin_write(struct selector_key *key) {
 
     unsigned state = stm_state(&connection->stm);
 
-    //FIXME: QUIZAS INTERCAMBIAR PUNTEROS CON BUFFERS Y USAR !CANREAD
     if (state == TRY_CONNECTION_IP) {
         // ME FIJO SI LA CONEXION FUE EXITOSA
-        if ((state = stm_handler_write(&connection->stm, key)) == DONE) {
-            printf("TERMINE!!\n");
-            return;
-        }
+        stm_handler_write(&connection->stm, key);
+        return;
     }
 
     size_t maxBytes;
@@ -229,17 +251,25 @@ proxy_origin_write(struct selector_key *key) {
     if (state == SEND_REQUEST_LINE || state == SEND_DOH_REQUEST) {
         // LEO DEL BUFFER DEL SERVER PORQUE ES DONDE CARGAMOS LA REQUEST
         data = buffer_read_ptr(originBuffer, &maxBytes);
-        totalBytes = send(key->fd, data, maxBytes, 0);
-        buffer_read_adv(originBuffer, totalBytes);
 
-        stm_handler_write(&connection->stm, key);
+        if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
+            buffer_read_adv(originBuffer, totalBytes);
+            stm_handler_write(&connection->stm, key);
+        } else {
+            close_proxy_connection(key);
+        }
+
         return;
     }
 
     data = buffer_read_ptr(clientBuffer, &maxBytes);
-    totalBytes = send(key->fd, data, maxBytes, 0);
-    buffer_read_adv(clientBuffer, totalBytes);
-    stm_handler_write(&connection->stm, key);
+
+    if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
+        buffer_read_adv(clientBuffer, totalBytes);
+        stm_handler_write(&connection->stm, key);
+    } else {
+        close_proxy_connection(key);
+    }
 }
 
 static void
@@ -252,4 +282,33 @@ int register_origin_socket(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     connection->origin_status = ACTIVE_STATUS;
     return selector_register(key->s, connection->origin_fd, &originHandler, OP_WRITE, connection);
+}
+
+/*                        
+**     PROXY FREE RESOURCES FUNCTIONS
+*/
+
+static void
+close_proxy_connection(struct selector_key *key) {
+    proxyConnection *connection = ATTACHMENT(key);
+    proxy_client_close(key);
+    if (connection->origin_status != INACTIVE_STATUS) {
+        proxy_origin_close(key);
+    }
+}
+
+static void
+free_doh_connection(doh_connection_t *dohConnection) {
+    doh_response_parser_destroy(&dohConnection->dohParser);
+    free(dohConnection);
+}
+
+static void
+free_connection_data(proxyConnection *connection) {
+    free(connection->origin_buffer.data);
+    free(connection->client_buffer.data);
+    if (connection->dohConnection != NULL) {
+        free_doh_connection(connection->dohConnection);
+    }
+    free(connection);
 }

@@ -6,7 +6,7 @@
 .RE
 ..
 
-.TH HTTPP 0.0.0 "21 de Mayo 2021"
+.TH HTTPP 0.0.0 "29 de Mayo 2021"
 .LO 8
 .SH NAME
 httpd \- proxy HTTP\"que permite transformar el cuerpo de las respuestas
@@ -33,9 +33,30 @@ httpd \- proxy HTTP\"que permite transformar el cuerpo de las respuestas
 .\".IP "\fB-e\fR \fIarchivo-de-error\fR"
 .\"#Especifica el archivo donde se redirecciona \fBstderr\fR de las ejecuciones
 .\"de los filtros. Por defecto el archivo es \fI/dev/null\fR.
+.IP "\fB\--doh-ip\fB \fIdirección-doh\fR"
+Establece la dirección del servidor DoH.
+Por defecto \fI127.0.0.1\fR.
+.IP "\fB\--doh-port\fB \fIport\fR"
+Establece el puerto del servidor DoH.
+Por defecto \fI8053\fR.
+.IP "\fB\--doh-host\fB \fIhostname\fR"
+Establece el valor del header Host.
+Por defecto \fIlocalhost\fR.
+.IP "\fB\--doh-path\fB \fIpath\fR"
+establece el path del request doh.
+por defecto \fI/getnsrecord\fR.
+.IP "\fB\--doh-query\fB \fIquery\fR"
+establece el query string si el request DoH utiliza el método Doh
+por defecto \fI?dns=\fR.
+
+
 
 .IP "\fB-h\fR"
 Imprime la ayuda y termina.
+
+.IP "\fB\-N\fB"
+Deshabilita los passwords disectors.
+
 
 .IP "\fB\-l\fB \fIdirección-http\fR"
 Establece la dirección donde servirá el proxy HTTP.
@@ -73,6 +94,151 @@ Por defecto el valor es \fI8080\fR.
 
 .IP "\fB\-v\fB"
 Imprime información sobre la versión versión y termina.
+
+.SH REGISTRO DE ACCESO
+
+Registra el uso del proxy en salida estandar. Una conexión por línea. Los campos de una
+línea separado por tabs:
+
+.IP "\fBfecha\fR" 
+que se procesó la conexión en formato ISO-8601.
+Ejemplo 2020-06-15T19:56:34Z.
+
+.IP "\fBtipo de registro\fR" 
+Siempre el caracter A.
+
+.IP "\fBdireccion IP origen\fR" 
+desde donde se conectó el usuario.
+Ejemplo ::1.
+
+.IP "\fBpuerto origen\fR" 
+desde donde se conectó el usuario.
+Ejemplo 54786.
+
+.IP "\fBmétodo\fR"
+Metodo del request:
+Ejemplo GET
+
+.IP "\fBtarget\fR" a donde nos conectamos (absolute-form / authority-form)
+Ejemplo localhost:9090 
+Ejemplo http:/foo/bar
+
+.IP "\fBstatus\fR" status SOCKS (0 exito, ...)
+Status code. Ejemplo 200.
+
+
+.SH REGISTRO DE PASSWORDS
+
+Registra las credenciales descubiertas en salida estandar. Una credencial por línea.
+Los campos de una línea separados por tabs:
+
+.IP "\fBfecha\fR" 
+que se procesó la conexión en formato ISO-8601.
+Ejemplo 2020-06-15T19:56:34Z.
+
+.IP "\fBtipo de registro\fR" 
+Siempre el caracter P.
+
+
+.IP "\fBprotocolo\fR"
+Protocolo del que se trata. HTTP o POP3.
+
+.IP "\fBdestino\fR"
+a donde nos conectamos. nombre o dirección IP (según venga declarado en el request).
+Ejemplo www.itba.edu.ar.
+Ejemplo ::1.
+
+.IP "\fBpuerto destino\fR" a donde nos conectamos.
+Ejemplo 443.
+
+.IP "\fBusuario\fR"
+Usuario descubierto.
+
+.IP "\fBpassword\fR"
+Password descubierta.
+
+.\".SH FILTROS
+.\".PP
+.\"Por cada respuesta del origin server de status code 200 que contenga un body
+.\"(no HEAD) y que tenga un Content-Type compatible con los del predicado,
+.\"se lanza un nuevo proceso que ejecuta el comando externo.
+.\"Si el intento de ejecutar el comando externo falla se debe reportar el error
+.\"al administrador por los logs, y copiar la entrada en la salida (es decir no 
+.\"realizar ninguna transformación).
+.\"
+.\"El nuevo proceso recibe por entrada estándar el contenido del body de la 
+.\"respuesta  (libre de cualquier transfer-encoding), y 
+.\"retorna por la salida estándar el cuerpo procesado.
+.\"
+.\".Los programas que realizan las transformaciones externas
+.\".tienen a su disposición las siguientes variables de entornos:
+
+.\".TP
+.\".BR HTTPD_VERSION
+.\"Versión de \fBhttpd\fR. Por ejemplo: \fI0.0.0\fR.
+
+.\".SH EJEMPLOS
+.\"
+.\".IP \(bu 4
+.\"Se desea proxear sin ninguna transformación:
+.\".EXAMPLE "httpd"
+.\"
+.\".IP \(bu
+.\"En Linux es posible redirigir el tráfico al proxy de forma transparente
+.\"con una regla que implemente destination NAT:
+.\".EXAMPLE "iptables \-t nat \-A PREROUTING -i eth0 \-p tcp --dport 80 \
+.\"-j REDIRECT --to 8080 
+
+
+.IP "\fBdireccion IP origen\fR" 
+desde donde se conectó el usuario.
+Ejemplo ::1.
+
+.IP "\fBpuerto origen\fR" 
+desde donde se conectó el usuario.
+Ejemplo 54786.
+
+.IP "\fBmétodo\fR"
+Metodo del request:
+Ejemplo GET
+
+.IP "\fBtarget\fR" a donde nos conectamos (absolute-form / authority-form)
+Ejemplo localhost:9090 
+Ejemplo http:/foo/bar
+
+.IP "\fBstatus\fR" status SOCKS (0 exito, ...)
+Status code. Ejemplo 200.
+
+
+.SH REGISTRO DE PASSWORDS
+
+Registra las credenciales descubiertas en salida estandar. Una credencial por línea.
+Los campos de una línea separados por tabs:
+
+.IP "\fBfecha\fR" 
+que se procesó la conexión en formato ISO-8601.
+Ejemplo 2020-06-15T19:56:34Z.
+
+.IP "\fBtipo de registro\fR" 
+Siempre el caracter P.
+
+
+.IP "\fBprotocolo\fR"
+Protocolo del que se trata. HTTP o POP3.
+
+.IP "\fBdestino\fR"
+a donde nos conectamos. nombre o dirección IP (según venga declarado en el request).
+Ejemplo www.itba.edu.ar.
+Ejemplo ::1.
+
+.IP "\fBpuerto destino\fR" a donde nos conectamos.
+Ejemplo 443.
+
+.IP "\fBusuario\fR"
+Usuario descubierto.
+
+.IP "\fBpassword\fR"
+Password descubierta.
 
 .\".SH FILTROS
 .\".PP

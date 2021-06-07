@@ -1,6 +1,7 @@
 #include "net_utils.h"
 
 #include <errno.h>
+#include <unistd.h>
 
 #include "selector.h"
 
@@ -12,14 +13,22 @@ int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int pr
 
     int opt = 1;
 
-    selector_fd_set_nio(originSocket);
-
-    if (setsockopt(originSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0)
+    if (selector_fd_set_nio(originSocket) < 0) {
+        close(originSocket);
         return -1;
+    }
+
+    if (setsockopt(originSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        close(originSocket);
+        return -1;
+    }
 
     if (connect(originSocket, addr, addrlen) < 0) {
-        if (errno != EINPROGRESS)
-            return -1;  //FIXME: aca habria que ver que hacer
+        if (errno != EINPROGRESS) {
+            close(originSocket);
+            return -1; 
+        }
     }
+
     return originSocket;
 }

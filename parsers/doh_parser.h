@@ -333,13 +333,14 @@ enum values {
 
     MAX_CNAME_LENGTH = 255,
 
-    IPV4_CLASS = 1,
-    IPV6_CLASS = 28,
-    CNAME_CLASS = 5,
+    IPV4_TYPE = 1,
+    IPV6_TYPE = 28,
+    CNAME_TYPE = 5,
     MAX_IPV4 = 4,
     MAX_IPV6 = 16
-
 };
+
+
 
 struct answer{
 

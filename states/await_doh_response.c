@@ -16,13 +16,11 @@ try_next_dns_connection(struct selector_key *key);
 static unsigned
 try_next_ipv4_connection(struct selector_key *key);
 
-static void
-free_doh_connection(doh_connection_t *dohConnection);
-
 static unsigned
 try_next_ipv6_connection(struct selector_key *key);
 
-void await_doh_response_on_arrival(const unsigned state, struct selector_key *key) {
+void 
+await_doh_response_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     initDohState(key);
@@ -73,27 +71,22 @@ await_doh_response_on_read_ready(struct selector_key *key) {
         return try_next_dns_connection(key);
     }
 
-    // if (connection->dohConnection->dohParser.state == doh_response_done) {
-    // shutdown(connection->origin_fd, SHUT_WR);
-    // }
-
     return connection->stm.current->state;
 }
 
 static void initDohState(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
-    connection->dohConnection = calloc(sizeof(doh_connection_t), 1);
-
-    if (connection->dohConnection == NULL) {
-        printf("error");  //FIXME:
-    }
-
     doh_connection_t *doh = connection->dohConnection;
 
-    doh->dohParser.response = &doh->dohResponse;
-    doh->statusLineParser.status_line = &doh->statusLine;
+    if (doh == NULL) {
+        connection->dohConnection = calloc(sizeof(doh_connection_t), 1);
+        doh = connection->dohConnection;
+        doh->dohParser.response = &doh->dohResponse;
+        doh->statusLineParser.status_line = &doh->statusLine;
+        doh->currentType = ipv4_try;
+    }
+    
     doh->currentTry = 0;
-    doh->currentType = ipv4_try;
     headers_parser_init(&doh->headersParser);
     status_line_parser_init(&doh->statusLineParser);
     doh_response_parser_init(&doh->dohParser);
@@ -103,13 +96,26 @@ static unsigned
 try_next_dns_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
+    // Unregister doh connection socket 
     selector_unregister_fd(key->s, connection->origin_fd);
 
     doh_connection_t *doh = connection->dohConnection;
 
+    bool responseError = doh->dohResponse.header.flags.rcode !=0;
+
     if (doh->currentType == ipv4_try) {
-        return try_next_ipv4_connection(key);
+        if (responseError != 0){
+            return try_next_ipv4_connection(key);
+        }
+        doh_response_parser_destroy(&connection->dohConnection->dohParser);
+        connection->dohConnection->currentType = ipv6_try;
+        return SEND_DOH_REQUEST;
     }
+
+    if(responseError!=0){
+        connection->error = INTERNAL_SERVER_ERROR;//CHEQUEAR
+        return ERROR;
+    }     
 
     return try_next_ipv6_connection(key);
 }
@@ -124,7 +130,7 @@ try_next_ipv4_connection(struct selector_key *key) {
 
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
-        if (currentAnswer.atype != IPV4_CLASS) {
+        if (currentAnswer.atype != IPV4_TYPE) {
             continue;
         }
 
@@ -146,8 +152,6 @@ try_next_ipv4_connection(struct selector_key *key) {
         return TRY_CONNECTION_IP;
     }
 
-    free_doh_connection(connection->dohConnection);
-
     return SEND_DOH_REQUEST;
 }
 
@@ -161,7 +165,7 @@ try_next_ipv6_connection(struct selector_key *key) {
 
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
-        if (currentAnswer.atype != IPV6_CLASS) {
+        if (currentAnswer.atype != IPV6_TYPE) {
             continue;
         }
 
@@ -182,13 +186,5 @@ try_next_ipv6_connection(struct selector_key *key) {
         return TRY_CONNECTION_IP;
     }
 
-    //free_doh_connection(connection->dohConnection); MOVERLO AL ESTADO DE ERROR
-
     return ERROR;
-}
-
-static void
-free_doh_connection(doh_connection_t *dohConnection) {
-    doh_response_parser_destroy(&dohConnection->dohParser);
-    free(dohConnection);
 }

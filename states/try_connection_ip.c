@@ -20,20 +20,11 @@ try_next_ipv4_connection(struct selector_key *key);
 static unsigned
 try_next_ipv6_connection(struct selector_key *key);
 
-static void
-free_doh_connection(doh_connection_t *dohConnection);
-
 void try_connection_ip_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    if (selector_set_interest(key->s, connection->client_fd, OP_NOOP) != SELECTOR_SUCCESS) {
-        printf("error set interest!");
-        //FIXME: VER QUE HACER
-    }
-    if (selector_set_interest(key->s, connection->origin_fd, OP_WRITE) != SELECTOR_SUCCESS) {
-        printf("error set interest!");
-        //FIXME: VER QUE HACER
-    }
+    selector_set_interest(key->s, connection->client_fd, OP_NOOP);
+    selector_set_interest(key->s, connection->origin_fd, OP_WRITE);
 }
 
 unsigned
@@ -44,7 +35,6 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         /*Si dohConnection == NULL es que nunca mande el doh_request */
         if (connection->connectionRequest.host_type == domain && connection->dohConnection == NULL) {
             return SEND_DOH_REQUEST;
-            /*Tener en cuenta de cambiar alguna variable para indicar si preguntar por ipv4 o ipv6*/
         }
         /*En este caso ya estoy conectado al origin*/
         return SEND_REQUEST_LINE;
@@ -53,6 +43,7 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
     if (connection->connectionRequest.host_type == domain && connection->dohConnection != NULL) {
         return try_next_dns_connection(key);
     }
+
     printf("ERROR AL CONECTARSE A LA IP O AL DOH SERVER");
     return ERROR;
 }
@@ -78,7 +69,10 @@ static unsigned
 try_next_dns_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    selector_unregister_fd(key->s, connection->origin_fd);
+    if (selector_unregister_fd(key->s, connection->origin_fd) != SELECTOR_SUCCESS) {
+        connection->error = INTERNAL_SERVER_ERROR;
+        return ERROR;
+    }
 
     doh_connection_t *doh = connection->dohConnection;
 
@@ -99,7 +93,7 @@ try_next_ipv4_connection(struct selector_key *key) {
 
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
-        if (currentAnswer.atype != IPV4_CLASS) {
+        if (currentAnswer.atype != IPV4_TYPE) {
             continue;
         }
 
@@ -112,16 +106,22 @@ try_next_ipv4_connection(struct selector_key *key) {
                                                             ipv4.sin_family);
         if (connection->origin_fd == -1) {
             printf("error creating socket dns\n");
+            connection->error = INTERNAL_SERVER_ERROR;
+            return ERROR;
         }
 
         printf("registered origin!\n");
 
-        register_origin_socket(key);
+        if (register_origin_socket(key) != SELECTOR_SUCCESS) {
+            connection->error = INTERNAL_SERVER_ERROR;
+            return ERROR;
+        }
 
         return TRY_CONNECTION_IP;
     }
 
-    free_doh_connection(connection->dohConnection);
+    doh_response_parser_destroy(&connection->dohConnection->dohParser);
+    connection->dohConnection->currentType = ipv6_try;
 
     return SEND_DOH_REQUEST;
 }
@@ -136,7 +136,7 @@ try_next_ipv6_connection(struct selector_key *key) {
 
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
-        if (currentAnswer.atype != IPV6_CLASS) {
+        if (currentAnswer.atype != IPV6_TYPE) {
             continue;
         }
 
@@ -148,23 +148,21 @@ try_next_ipv6_connection(struct selector_key *key) {
         connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv6, sizeof(ipv6),
                                                             ipv6.sin6_family);
         if (connection->origin_fd == -1) {
+            connection->error = INTERNAL_SERVER_ERROR;
+            return ERROR;
             printf("error creating socket dns\n");
         }
 
         printf("registered origin!\n");
 
-        register_origin_socket(key);
+        if (register_origin_socket(key) != SELECTOR_SUCCESS) {
+            connection->error = INTERNAL_SERVER_ERROR;
+            return ERROR;
+        }
 
         return TRY_CONNECTION_IP;
     }
 
     //free_doh_connection(connection->dohConnection); MOVERLO AL ESTADO DE ERROR
-
     return ERROR;
-}
-
-static void
-free_doh_connection(doh_connection_t *dohConnection) {
-    doh_response_parser_destroy(&dohConnection->dohParser);
-    free(dohConnection);
 }

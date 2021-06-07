@@ -32,6 +32,7 @@ enum connection_state {
 };
 
 typedef enum connection_status {
+    INACTIVE_STATUS,
     ACTIVE_STATUS,
     CLOSING_STATUS,
 } connection_status_t;
