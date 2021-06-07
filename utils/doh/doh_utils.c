@@ -57,8 +57,8 @@ build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     uint8_t content_length = dnsHeaderLength + j + sizeof(uint16_t) * 2;
 
     int len = sprintf((char *)dst,
-                      "POST https://cloudflare-dns.com/dns-query HTTP/1.0\r\n"
-                      "Host: cloudflare-dns.com\r\n"
+                      "POST https://dns.google/dns-query HTTP/1.0\r\n"
+                      "Host: dns.google\r\n"
                       "accept: application/dns-message\r\n"
                       "content-type: application/dns-message\r\n"
                       "content-length: %d\r\n\r\n",
@@ -86,7 +86,7 @@ handle_origin_doh_connection(struct selector_key *key) {
     struct sockaddr_in ipv4;
 
     ipv4.sin_family = AF_INET;
-    ipv4.sin_port = htons(8053);                                 //FIXME: Cambiar
+    ipv4.sin_port = htons(8053);                            //FIXME: Cambiar
     if (inet_pton(AF_INET, "127.0.0.1", &ipv4.sin_addr) <= 0) {  //FIXME: poner el doh servidor
         connection->error = INTERNAL_SERVER_ERROR;
         return ERROR;  //FIXME: DOH SERVER ERROR
@@ -131,6 +131,7 @@ try_next_dns_connection(struct selector_key *key) {
             return try_next_ipv4_connection(key);
         }
         doh_response_parser_destroy(&connection->dohConnection->dohParser);
+        connection->dohConnection->isActive = false;
         connection->dohConnection->currentType = ipv6_try;
         return handle_origin_doh_connection(key);
     }

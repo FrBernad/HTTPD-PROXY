@@ -25,13 +25,15 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
 
     if (check_origin_connection(connection->origin_fd)) {
         /*Si dohConnection == NULL es que nunca mande el doh_request */
-        if (connection->connectionRequest.host_type == domain && connection->dohConnection == NULL) {
+        if (connection->connectionRequest.host_type == domain &&
+            (connection->dohConnection == NULL || !connection->dohConnection->isActive)) {
             return SEND_DOH_REQUEST;
         }
         /*En este caso ya estoy conectado al origin*/
         return SEND_REQUEST_LINE;
     }
 
+    // try next ip from doh response
     if (connection->connectionRequest.host_type == domain && connection->dohConnection != NULL) {
         return try_next_dns_connection(key);
     }

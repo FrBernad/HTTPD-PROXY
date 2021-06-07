@@ -287,8 +287,7 @@ proxy_origin_write(struct selector_key *key) {
 
 static void
 proxy_origin_close(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
-    close(connection->origin_fd);
+    close(key->fd);
 }
 
 int register_origin_socket(struct selector_key *key) {

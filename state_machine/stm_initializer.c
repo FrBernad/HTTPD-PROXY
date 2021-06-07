@@ -9,6 +9,7 @@
 #include "states/send_doh_request/send_doh_request.h"
 #include "states/send_request_line/send_request_line.h"
 #include "states/try_connection_ip/try_connection_ip.h"
+#include "states/error/error.h"
 #include "stm.h"
 #include "connections/connections_def.h"
 
@@ -73,10 +74,10 @@ static const struct state_definition connection_states[] = {
      .on_write_ready = NULL,
      .on_block_ready = NULL},
     {.state = ERROR,
-     .on_arrival = NULL,
+     .on_arrival = error_on_arrival,
      .on_departure = NULL,
      .on_read_ready = NULL,
-     .on_write_ready = NULL,
+     .on_write_ready = error_on_write_ready,
      .on_block_ready = NULL}};
 
 void init_connection_stm(struct state_machine *stm) {

@@ -89,7 +89,7 @@ static void initDohState(struct selector_key *key) {
         doh->statusLineParser.status_line = &doh->statusLine;
         doh->currentType = ipv4_try;
     }
-
+    connection->dohConnection->isActive = true;
     doh->currentTry = 0;
     headers_parser_init(&doh->headersParser);
     status_line_parser_init(&doh->statusLineParser);

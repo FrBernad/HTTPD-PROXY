@@ -44,7 +44,7 @@ typedef struct request_line_st {
 } request_line_st;
 
 typedef struct doh_connection {
-    buffer *buffer;
+    bool isActive;
     uint8_t currentTry;
     enum {
         ipv4_try,
