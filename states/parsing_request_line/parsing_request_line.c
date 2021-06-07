@@ -11,9 +11,6 @@
 #include "utils/net/net_utils.h"
 
 static unsigned
-handle_origin_doh_connection(struct selector_key *key);
-
-static unsigned
 handle_origin_ip_connection(struct selector_key *key);
 
 static void
@@ -102,39 +99,6 @@ build_connection_request(struct selector_key *key) {
     memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
     connectionRequest->port = requestLine.request_target.port;
     connectionRequest->host_type = requestLine.request_target.host_type;
-}
-
-static unsigned
-handle_origin_doh_connection(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
-
-    struct sockaddr_in ipv4;
-
-    ipv4.sin_family = AF_INET;
-    ipv4.sin_port = htons(8053);                                 //FIXME: Cambiar
-    if (inet_pton(AF_INET, "127.0.0.1", &ipv4.sin_addr) <= 0) {  //FIXME: poner el doh servidor
-        connection->error = INTERNAL_SERVER_ERROR;
-        return ERROR;  //FIXME: DOH SERVER ERROR
-    }
-
-    connection->origin_fd = establish_origin_connection(
-        (struct sockaddr *)&ipv4,
-        sizeof(ipv4),
-        AF_INET);
-
-    if (connection->origin_fd < 0) {
-        connection->error = INTERNAL_SERVER_ERROR;
-        return ERROR;
-    }
-
-    printf("registered doh origin!\n");
-
-    if (register_origin_socket(key) != SELECTOR_SUCCESS) {
-        connection->error = INTERNAL_SERVER_ERROR;
-        return ERROR;
-    }
-
-    return TRY_CONNECTION_IP;
 }
 
 static unsigned
