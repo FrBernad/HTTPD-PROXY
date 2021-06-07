@@ -51,14 +51,14 @@ Category: Standards Track
 
 Abstract
 
-    This protocol aims to provide interaction between the client and a
-    http daemon server.
+  This protocol aims to provide interaction between the client and a
+  http proxy server.
 
 Status of This Memo
 
-   This document specifies an Internet standards track protocol for the
-   Internet community, and requests discussion and suggestions for
-   improvements.  Distribution of this document is unlimited.
+  This document specifies an Internet standards track protocol for the
+  Internet community, and requests discussion and suggestions for
+  improvements.  Distribution of this document is unlimited.
 
 Copyright Notice 
 
@@ -70,38 +70,211 @@ Table of Contents
 
 1. Introduction
 
-    This protocol aims to provide interaction between the client and a
-    http daemon server.  Furthermore, the client might change configuration
-    while the server is runnning.  To assure the privacy and security of the
-    client, an authentication with the server is mandatory after connection
-    is established.  Then, the client proceeds making the request, the server 
-    analyses it and responds accordingly.
+  This protocol aims to provide interaction between the client and a
+  http proxy server using UDP.  Furthermore, it allows the client to change the proxy
+  configuration while the server is runnning.  To assure the privacy and security 
+  of the client,  an authentication with the server is mandatory after connection    FIXME:NOSE SI HAY AUTH
+  is established.  Once this is done, the client proceeds to make a request, the 
+  server analyses it and responds accordingly.
 
 2. Requirements
 
- The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", 
- "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be 
- interpreted as described in RFC 2119 [34].
+  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", 
+  "SHOULD NOT", "RECOMMENDED", "MAY",  and "OPTIONAL" in this document are to be 
+  interpreted as described in RFC 2119 [34].
    
- An implementation is not compliant if it fails to satisfy one or more
- of the MUST or REQUIRED level requirements for the protocols it
- implements. An implementation that satisfies all the MUST or REQUIRED
- level and all the SHOULD level requirements for its protocols is said
- to be "unconditionally compliant"; one that satisfies all the MUST
- level requirements but not all the SHOULD level requirements for its
- protocols is said to be "conditionally compliant."
+  An implementation is not compliant if it fails to satisfy one or more  
+  of the MUST or REQUIRED level requirements for the protocols it
+  implements.  An implementation that satisfies all the MUST or REQUIRED
+  level and all the SHOULD level requirements for its protocols is said
+  to be "unconditionally compliant"; one that satisfies all the MUST
+  level requirements but not all the SHOULD level requirements for its
+  protocols is said to be "conditionally compliant."
 
 3. Connections
 
-3.1 Establishing connection
+3.1 PERCY Request/Response Message Format
 
-  In order for an UDP client to establish a connection with the http daemon
-  server, it is required to open an UDP connection to the default port (9090).
+  The request/response message contains field/bytes in the following diagram:
 
-3.2 Authentication
+    +----------+----------+----------+----------+
+    |    VER   |  METHOD  |   VALUE  |   VALUE  |
+    +----------+----------+----------+----------+
+    |     1    |    1     |    1     |    1     |
+    +----------+----------+----------+----------+
+    
+       The ID field identifies the query and is echoed in the response so
+   they can be matched.
 
+   The QR bit indicates whether the header is for a query or a response.
 
-   /*
+   The AA, TC, RD, RA, AD, and CD bits are each theoretically meaningful
+   only in queries or only in responses, depending on the bit.  However,
+   some DNS implementations copy the query header as the initial value
+   of the response header without clearing bits.  Thus, any attempt to
+   use a "query" bit with a different meaning in a response or to define
+   a query meaning for a "response" bit is dangerous, given existing
+   implementation.  Such meanings may only be assigned by an IETF
+   Standards Action.
+
+    VER             The VER field is set to X'01' for this version of the protocol.
+    
+    METHOD          The method request by the client.
+
+    VALUE           An optional value for the selected method.
+
+3.1 Establishing Connection
+
+  In order for a client to establish a connection with the http proxy
+  server, it is required to open an UDP connection to the port and address
+  where the proxy managment server is listening.
+
+3.2 Connection Established
+
+  After the connection is succesfully established, the client is allowed to send
+  requests to the server, which will be answered with a respective response. There
+  may be subsequent requests/responses after the first one, all following the 
+  procedure defined below.
+
+4. Request Methods 
+
+4.1.  Overview
+         
+  The request method byte is the primary source of request semantics;
+  it indicates the purpose for which the client has made this request
+  and what is expected by the client as a successful result.  These
+  methods are divided into two categories: retrieval and modification.
+  
+  The values currently defined for RETRIEVAL METHODS are:
+
+  +---------+-------------------------------------------------+-------+
+  | Method  | Description                                     | Sec.  |
+  +---------+-------------------------------------------------+-------+
+  | X'00'   | Request the number of historical connections.   | 4.2.1 |
+  +---------+-------------------------------------------------+-------+
+  | X'01'   | Request the number of concurrent connections.   | 4.2.2 |
+  +---------+-------------------------------------------------+-------+
+  | X'02'   | Request the number of bytes sent.               | 4.2.3 |
+  +---------+-------------------------------------------------+-------+
+  | X'03'   | Request the number of bytes recieved.           | 4.2.4 |
+  +---------+-------------------------------------------------+-------+
+  | X'04'   | Request I/O buffer sizes                        | 4.2.5 |
+  +---------+-------------------------------------------------+-------+
+  | X'05'   | Request selector timeout.                       | 4.2.6 |
+  +---------+-------------------------------------------------+-------+
+  | X'06'   | Request users list (sites, history and their    | 4.2.7 |
+  |         | respective dates).                              |       |
+  +---------+-------------------------------------------------+-------+
+  | X'07'   | Request the maximum amount of concurrent        | 4.2.8 |
+  |         | connections.                                    |       |
+  +---------+-------------------------------------------------+-------+
+
+  The values currently defined for MODIFICATION METHODS are:
+
+  +---------+-------------------------------------------------+-------+
+  | Config. | Description                                     | Sec.  |
+  +---------+-------------------------------------------------+-------+
+  | X'00'   | Set I/O buffer size.                            | 4.3.1 |
+  +---------+-------------------------------------------------+-------+
+  | X'01'   | Set selector timeout.                           | 4.3.2 |
+  +---------+-------------------------------------------------+-------+
+
+4.2. Request Methods Definitions
+
+  4.2.1 Request Historical Connections
+
+    The X'00' method returns the number of historical connections, meaning the amount of clients
+    that have connected to the server.
+
+  4.2.2 Request Concurrent Connections
+
+    The X'01' method returns the number of concurrent connections, meaning the amount of clients
+    that are connected to the server.
+       
+  4.2.3 Request Bytes Sent
+
+    The X'02' method returns the number of bytes sent by the server.
+
+  4.2.4 Request Bytes Recieved
+
+    The X'03' method returns the number of bytes recieved by the server.
+
+  4.2.5 Request I/O Buffer Size
+
+    The X'04' method returns the size of the I/O buffer used by the server.
+  
+  4.2.6 Request Selector Timeout
+
+    The X'05' method returns the amount of time (seconds) that a selector is blocked.
+
+  4.2.7 Request Users List
+
+    The X'06' method returns a list with all the users that have connected to the server, the sites
+    they visited and their respective dates.
+
+  4.2.8 Request Maximum Concurrent Connections
+       
+    The X'07' method returns the all time maximum amount of concurrent connections. 
+  
+4.3. Modification Methods Definitions
+
+  4.3.1 Set I/O Buffer Size
+
+    Sets the size of the buffers dedicated to I/O operations by the server.
+  
+  4.3.2 Set Selector Timeout
+
+    Sets the amount of time (seconds) that the selector will be blocked waiting for
+    activity.
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       
+       6.   implementar mecanismos que permitan recolectar métricas que
+        ayuden a monitorear la operación del sistema.
+
+        A.  cantidad de conexiones históricas
+
+        B.  cantidad de conexiones concurrentes
+
+        C.  cantidad de bytes transferidos
+
+        D.  cualquier otra métrica que considere oportuno para el 
+        entendimiento del funcionamiento dinámico del sistema
+
+         7.   implementar mecanismos que permitan manejar usuarios cambiar la
+        configuración del servidor en tiempo de ejecución sin reiniciar
+        el servidor.  Las diferentes implementaciones PUEDEN decidir
+        disponibilizar otros cambios de ejecución en tiempo de ejecución
+        de otras configuraciones (memoria utilizada en I/O, timeouts,
+        etc).
+
+   8.   implementar un registro de acceso que permitan a un
+        administrador entender los accesos de cada uno de los usuarios.
+        Pensar en el caso de que llega una queja externa y el
+        administrador debe saber quien fue el que se conectó a cierto
+        sitio web y cuando.
+
+   9.   monitorear el tráfico y generar un registro de credenciales de
+        acceso (usuarios y passwords) de forma similar a ettercap por lo
+        menos para protocolos HTTP, y POP3.
+
         Protocolo:
         Implementar mecanismos que permitan manejar usuarios cambiar la
         configuración del servidor en tiempo de ejecución sin reiniciar
@@ -132,3 +305,52 @@ Table of Contents
         Descripción detallada de los protocolos y aplicaciones
         desarrolladas.
   */
+
+      +----+------+------+----------+----------+----------+
+      |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
+      +----+------+------+----------+----------+----------+
+      | 2  |  1   |  1   | Variable |    2     | Variable |
+      +----+------+------+----------+----------+----------+
+          The fields in the UDP request header are:
+
+          o  RSV  Reserved X'0000'
+          o  FRAG    Current fragment number
+          o  ATYP    address type of following addresses:
+             o  IP V4 address: X'01'
+             o  DOMAINNAME: X'03'
+             o  IP V6 address: X'04'
+          o  DST.ADDR       desired destination address
+          o  DST.PORT       desired destination port
+          o  DATA     user data
+
+          4. 
+
+
+    +----------+----------+----------+
+    |    VER   |  METHOD  |   VALUE  |
+    +----------+----------+----------+
+    |     1    |    1     |    1     |
+    +----------+----------+----------+
+
+    VER             The VER field is set to X'01' for this version of the protocol.
+    
+    METHOD          The method request by the client.
+
+    VALUE           An optional value for the selected method.
+    
+
+     4. Methods ................................................21
+      4.1. Overview ..................................................21
+      4.2. Common Method Properties ..................................22
+           4.2.1. Safe Methods .......................................22
+           4.2.2. Idempotent Methods .................................23
+           4.2.3. Cacheable Methods ..................................24
+      4.3. Method Definitions ........................................24
+           4.3.1. GET ................................................24
+           4.3.2. HEAD ...............................................25
+           4.3.3. POST ...............................................25
+           4.3.4. PUT ................................................26
+           4.3.5. DELETE .............................................29
+           4.3.6. CONNECT ............................................30
+           4.3.7. OPTIONS ............................................31
+           4.3.8. TRACE ..............................................32
