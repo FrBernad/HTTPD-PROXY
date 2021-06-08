@@ -176,9 +176,10 @@ proxy_client_read(struct selector_key *key) {
         if (totalBytes == 0) {
             connection->client_status = CLOSING_STATUS;
             //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
+        } else {
+            connection->client_sniffer.bytesToSniff = totalBytes;
+            buffer_write_adv(buffer, totalBytes);
         }
-        connection->client_sniffer.bytesToSniff+=totalBytes;
-        buffer_write_adv(buffer, totalBytes);
         stm_handler_read(&connection->stm, key);
     }
 }

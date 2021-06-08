@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "connections/connections_def.h"
-#include "headers_parser.h"
+#include "sniffer_parser.h"
 
 static void
 set_connection_interests(struct selector_key *key);
@@ -14,21 +14,24 @@ set_connection_interests(struct selector_key *key);
 void connected_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     set_connection_interests(key);
-    headers_parser_init(&connection->client_sniffer.request_header_parser);
-    connection->client_sniffer.bytesToSniff = 0;
+    sniffer_parser_init(&connection->client_sniffer.sniffer_parser);
 }
 
 unsigned
 connected_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    int bytesToSniff = connection->client_sniffer.bytesToSniff;
-    if (bytesToSniff > 0) {
-        sniffClient(connection, bytesToSniff);
-    }
 
     if (connection->client_status == CLOSING_STATUS || connection->origin_status == CLOSING_STATUS) {
         return CLOSING;
+    }
+
+    int maxBytes;
+    uint8_t *data = buffer_read_ptr(buffer, &maxBytes);
+    uint8_t * newData = data + maxBytes - connection->client_sniffer.bytesToSniff;
+
+    for (int i = 0; i < bytesToSniff; i++) {
+        sniffer_parser_feed(&connection->client_sniffer.sniffer_parser, c);
     }
 
     set_connection_interests(key);
