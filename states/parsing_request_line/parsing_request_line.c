@@ -9,6 +9,7 @@
 #include "connections/connections_def.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/net/net_utils.h"
+#include "utils/sniffer/sniffer_utils.h"
 
 static unsigned
 handle_origin_ip_connection(struct selector_key *key);
@@ -27,15 +28,17 @@ void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     requestLine->buffer = &connection->client_buffer;
 
     request_parser_init(&requestLine->request_parser);
+    sniffer_parser_init(&connection->client_sniffer.sniffer_parser);
 }
 
 unsigned
 parsing_host_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
+    sniff_data(connection);
+    
     struct request_line_st *requestLine = &connection->client.request_line;
 
-    /*Tengo que parsear la request del cliente para determinar a que host me conecto*/
     while (buffer_can_read(requestLine->buffer)) {
         request_state state = request_parser_feed(&requestLine->request_parser, buffer_read(requestLine->buffer));
 
@@ -99,7 +102,7 @@ build_connection_request(struct selector_key *key) {
     memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
     connectionRequest->port = requestLine.request_target.port;
     connectionRequest->host_type = requestLine.request_target.host_type;
-    connectionRequest->connect = strcmp((char*)connection->client.request_line.request.method, "CONNECT") == 0;
+    connectionRequest->connect = strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0;
 }
 
 static unsigned

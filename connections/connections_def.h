@@ -7,6 +7,7 @@
 #include "parsers/doh_parser/doh_parser.h"
 #include "parsers/headers_parser/headers_parser.h"
 #include "parsers/request_line_parser/request_line_parser.h"
+#include "parsers/sniffer_parser/sniffer_parser.h"
 #include "parsers/status_line_parser/status_line_parser.h"
 #include "state_machine/stm.h"
 #include "utils/buffer/buffer.h"

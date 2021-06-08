@@ -18,7 +18,7 @@ handle_origin_doh_connection(struct selector_key *key);
 unsigned
 try_next_dns_connection(struct selector_key *key);
 
-int 
+void 
 init_doh(struct doh argsDoh);
 
 #endif

@@ -10,8 +10,9 @@
 #define BASE64_H
 
 #include <stddef.h>
+#include <stdint.h>
 
-unsigned char *base64_encode(const unsigned char *src, size_t len, size_t *out_len);
-unsigned char *base64_decode(const unsigned char *src, size_t len, size_t *out_len);
+uint8_t *base64_encode(uint8_t *src, size_t len, size_t *out_len);
+uint8_t *base64_decode(uint8_t *src, size_t len, size_t *out_len);
 
 #endif /* BASE64_H */

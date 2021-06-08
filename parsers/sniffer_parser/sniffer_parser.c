@@ -5,150 +5,164 @@
 
 #include "utils/base64/base64.h"
 
-static unsigned 
+static unsigned
+s_http_authorization(const uint8_t c, struct sniffer_parser *p);
+
+static unsigned
+s_http_authorization_basic(const uint8_t c, struct sniffer_parser *p);
+
+static unsigned
+s_http_authorization_value(const uint8_t c, struct sniffer_parser *p);
+
+static unsigned
 decode_and_parse_auth(struct sniffer_parser *p);
 
-static int 
-parse_user_and_password(char *authorization, int len, struct headers_parser *p);
+static void
+parse_user_and_password(uint8_t *authorization, int len, struct sniffer_parser *p);
+
+static void
+set_string_parser(struct sniffer_parser *p, char *string);
 
 void sniffer_parser_init(struct sniffer_parser *p) {
-    p->authorization.user = NULL;
-    p->authorization.password = NULL;
-    p->stringParser = parser_utils_strcmpi("AUTHORIZATION:");
-    memset(p->auth_value, 0, MAX_HEADER_FIELD_VALUE_LENGTH);
+    p->parserIsSet = false;
+    set_string_parser(p, "AUTHORIZATION:");
+    memset(p->auth_value, 0, MAX_AUTH_VALUE_LENGTH);
     p->i = 0;
 }
 
 enum sniffer_state
-sniffer_parser_feed(struct sniffer_parser *p, const uint8_t c) {
+sniffer_parser_feed(const uint8_t c, struct sniffer_parser *p) {
     enum sniffer_state next;
 
     switch (p->state) {
-        case http_authorization:
+        case sniff_http_authorization:
             next = s_http_authorization(c, p);
             break;
-        case http_authorization_basic:
+        case sniff_http_authorization_basic:
             next = s_http_authorization_basic(c, p);
             break;
-        case http_authorization_value:
+        case sniff_http_authorization_value:
             next = s_http_authorization_value(c, p);
             break;
 
-        case done:
-        case error:
+        case sniff_done:
+        case sniff_error:
             next = p->state;
             break;
         default:
-            next = error;
+            next = sniff_error;
             break;
     }
 
     return p->state = next;
 }
 
-unsigned
-s_http_authorization(struct sniffer_parser *p, const uint8_t c) {
-    struct parser_definition *stringParser = &p->stringParser;
+static unsigned
+s_http_authorization(const uint8_t c, struct sniffer_parser *p) {
+    struct parser *stringParser = p->stringParser;
 
-    unsigned state = parser_feed(stringParser, c);
+    unsigned state = parser_feed(stringParser, c)->type;
 
     if (state == STRING_CMP_EQ) {
-        parser_utils_strcmpi_destroy(stringParser);
-        p->stringParser = parser_utils_strcmpi("BASIC");
-        return http_authorization_basic;
+        set_string_parser(p, "BASIC");
+        return sniff_http_authorization_basic;
     }
 
     if (state == STRING_CMP_NEQ) {
         parser_reset(stringParser);
     }
 
-    return http_authorization;
+    return sniff_http_authorization;
 }
 
-unsigned
-s_http_authorization_basic(struct sniffer_parser *p, const uint8_t c) {
-    struct parser_definition *stringParser = &p->stringParser;
+static unsigned
+s_http_authorization_basic(const uint8_t c, struct sniffer_parser *p) {
+    struct parser *stringParser = p->stringParser;
 
-    unsigned state = parser_feed(stringParser, c);
+    unsigned state = parser_feed(stringParser, c)->type;
 
     if (state == STRING_CMP_EQ) {
-        parser_utils_strcmpi_destroy(stringParser);
-        return http_authorization_value;
+        p->i = 0;
+        return sniff_http_authorization_value;
+    }
+
+    if (c == '\r') {
+        set_string_parser(p, "AUTHORIZATION:");
+        return sniff_http_authorization;
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_utils_strcmpi_destroy(stringParser);
-        p->stringParser = parser_utils_strcmpi("AUTHORIZATION:");
-        p->i = 0;
-        p->i = MAX_HEADER_FIELD_VALUE_LENGTH;
-        return http_authorization;
+        parser_reset(stringParser);
     }
 
-    return http_authorization_basic;
+    return sniff_http_authorization_basic;
 }
 
-unsigned
-s_http_authorization_value(struct sniffer_parser *p, const uint8_t c) {
-    if (p->i >= p->n) {
-        return error;
+static unsigned
+s_http_authorization_value(const uint8_t c, struct sniffer_parser *p) {
+    if (p->i >= MAX_AUTH_VALUE_LENGTH) {
+        return sniff_error;
     }
 
     if (IS_SPACE(c)) {
-        return http_authorization_value;
+        return sniff_http_authorization_value;
     }
 
     if (c == '\r') {
         p->auth_value[p->i] = 0;
-        return decode_and_parse_auth(sniffer_parser);
+        return decode_and_parse_auth(p);
     }
 
-    if (IS_BASE_64(x)) {
+    if (IS_BASE_64(c)) {
         p->auth_value[p->i++] = c;
-        return http_authorization_value;
+        return sniff_http_authorization_value;
     }
 
-    return error;
+    return sniff_error;
 }
 
-static unsigned 
+static unsigned
 decode_and_parse_auth(struct sniffer_parser *p) {
-    int len;
-    char *authorization = base64_decode(p->auth_value, p->i, (size_t*)&len);
+    size_t len;
+    uint8_t *authorization = base64_decode(p->auth_value, (size_t) p->i, &len);
     if (authorization == NULL) {
-        return;
+        return sniff_error;
     }
 
-    int ret = parse_user_and_password(authorization, len, p);
+    parse_user_and_password(authorization, len, p);
     free(authorization);
-    if(ret < 0 ){
-        return error;
-    }
-    return done;
+
+    return sniff_done;
 }
 
-static int 
-parse_user_and_password(char *authorization, int len, struct sniffer_parser *p) {
+static void
+parse_user_and_password(uint8_t *authorization, int len, struct sniffer_parser *p) {
     int i = 0;
     while (i < len && authorization[i] != ':') {
         i++;
     }
-
+    int size = i > MAX_USER_LENGTH ? MAX_USER_LENGTH : i;
     if (i < len) {
-        p->authorization.user = malloc(i + 1);
-        if(p->authorization.user == NULL){
-            return -1;
-        }
-        memcpy(p->authorization.user, authorization, i);
-        p->authorization.user[i] = 0;
+        memcpy(p->user, authorization, size);
+        p->user[size] = 0;
     }
     i++;
 
-    p->authorization.password = malloc(len - i + 1);
-    if(p->authorization.password == NULL){
-        free(p->authorization.user);
-        p->authorization.user = NULL;
-        return -1;
+    size = len - i > MAX_PASSWORD_LENGTH ? MAX_PASSWORD_LENGTH : len - i;
+
+    memcpy(p->password, authorization + i, size);
+    p->password[size] = 0;
+}
+
+static void
+set_string_parser(struct sniffer_parser *p, char *string) {
+    struct parser_definition parserDef;
+    parser_utils_strcmpi(string, &parserDef);
+
+    if (p->parserIsSet) {
+        parser_destroy(p->stringParser);
     }
-    memcpy(p->authorization.password, authorization + i, len - i);
-    p->authorization.password[len - i] = 0;
+
+    p->parserIsSet = true;
+    p->stringParser = parser_init(parser_no_classes(), parserDef);
 }

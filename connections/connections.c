@@ -45,8 +45,6 @@ free_connection_data(proxyConnection *connection);
 static void
 close_proxy_connection(struct selector_key *key);
 
-static bool parsingClientHeader(proxyConnection * connection);
-
 enum conections_defaults {
     BUFFER_SIZE = 2048,
 };
@@ -75,7 +73,7 @@ void accept_new_ipv4_connection(struct selector_key *key) {
 
     struct sockaddr_in addr;
 
-    accept_and_init_new_connection(key, (struct sockaddr *)&addr, sizeof(addr));
+    accept_and_init_new_connection(key, (struct sockaddr *) &addr, sizeof(addr));
 }
 
 void accept_new_ipv6_connection(struct selector_key *key) {
@@ -83,7 +81,7 @@ void accept_new_ipv6_connection(struct selector_key *key) {
 
     struct sockaddr_in6 addr;
 
-    accept_and_init_new_connection(key, (struct sockaddr *)&addr, sizeof(addr));
+    accept_and_init_new_connection(key, (struct sockaddr *) &addr, sizeof(addr));
 }
 
 static void
@@ -170,8 +168,8 @@ proxy_client_read(struct selector_key *key) {
     if (totalBytes < 0) {
         close_proxy_connection(key);
     }
-    /* Si el client no quiere mandar nada más, marco al client como que está cerrando y 
-    que envie los bytes que quedan en su buffer */
+        /* Si el client no quiere mandar nada más, marco al client como que está cerrando y
+        que envie los bytes que quedan en su buffer */
     else {
         if (totalBytes == 0) {
             connection->client_status = CLOSING_STATUS;
@@ -235,8 +233,8 @@ proxy_origin_read(struct selector_key *key) {
     if (totalBytes < 0) {
         close_proxy_connection(key);
     }
-    /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y 
-    que envie los bytes que quedan en su buffer */
+        /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
+        que envie los bytes que quedan en su buffer */
     else {
         if (totalBytes == 0) {
             connection->origin_status = CLOSING_STATUS;
@@ -323,6 +321,9 @@ static void
 free_connection_data(proxyConnection *connection) {
     free(connection->origin_buffer.data);
     free(connection->client_buffer.data);
+    if (connection->client_sniffer.sniffer_parser.parserIsSet) {
+        free(connection->client_sniffer.sniffer_parser.stringParser);
+    }
     if (connection->dohConnection != NULL) {
         free_doh_connection(connection->dohConnection);
     }

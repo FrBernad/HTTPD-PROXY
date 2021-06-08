@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 #include "connections/connections_def.h"
-#include "sniffer_parser.h"
+#include "utils/sniffer/sniffer_utils.h"
 
 static void
 set_connection_interests(struct selector_key *key);
@@ -21,22 +21,16 @@ unsigned
 connected_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-
     if (connection->client_status == CLOSING_STATUS || connection->origin_status == CLOSING_STATUS) {
         return CLOSING;
-    }
+    }   
 
-    int maxBytes;
-    uint8_t *data = buffer_read_ptr(buffer, &maxBytes);
-    uint8_t * newData = data + maxBytes - connection->client_sniffer.bytesToSniff;
-
-    for (int i = 0; i < bytesToSniff; i++) {
-        sniffer_parser_feed(&connection->client_sniffer.sniffer_parser, c);
-    }
-
+    sniff_data(connection);
+   
     set_connection_interests(key);
     return connection->stm.current->state;
 }
+
 
 unsigned
 connected_on_write_ready(struct selector_key *key) {
@@ -81,14 +75,4 @@ set_connection_interests(struct selector_key *key) {
 
     selector_set_interest(key->s, connection->client_fd, clientInterest);
     selector_set_interest(key->s, connection->origin_fd, originInterest);
-}
-
-void snifferClient(proxyConnection *connection, int bytesToSniff) {
-    int i = 0;
-    int maxBytes;
-
-    char *data = buffer_read_ptr(&connection->client_buffer, &maxBytes);
-    while (i < bytesToSniff) {
-        headers_parser_feed(&connection->client_sniffer.request_header_parser, data[i]);
-    }
 }

@@ -40,18 +40,8 @@ void init_doh(struct doh argsDoh) {
     dohUtils.port = htons(argsDoh.port);
 
     if (inet_pton(AF_INET, argsDoh.ip, &dohUtils.ip.ipv4addr)) {
-        struct sockaddr_in sockaddr = {
-            .sin_addr = dohUtils.ip.ipv4addr,
-            .sin_family = AF_INET,
-            .sin_port = dohUtils.port,
-        };
         dohUtils.isipv4 = true;
     } else if (inet_pton(AF_INET6, argsDoh.ip, &dohUtils.ip.ipv6addr)) {
-        struct sockaddr_in6 sockaddr = {
-            .sin6_addr = dohUtils.ip.ipv6addr,
-            .sin6_family = AF_INET6,
-            .sin6_port = dohUtils.port,
-        };
         dohUtils.isipv4 = false;
     }
 }
@@ -86,12 +76,12 @@ int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     uint8_t content_length = dnsHeaderLength + j + sizeof(uint16_t) * 2;
 
     int len = sprintf((char *)dst,
-                      "POST %s%s HTTP/1.0\r\n"
+                      "POST %s HTTP/1.0\r\n"
                       "Host: %s\r\n"
                       "accept: application/dns-message\r\n"
                       "content-type: application/dns-message\r\n"
                       "content-length: %d\r\n\r\n",
-                      , dohUtils.doh.host, dohUtils.doh.path, dohUtils.doh.host, content_length);
+                       dohUtils.doh.path, dohUtils.doh.host, content_length);
 
     size_t size = len;
 
@@ -113,14 +103,24 @@ handle_origin_doh_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     if (dohUtils.isipv4) {
+        struct sockaddr_in sockaddr = {
+            .sin_addr = dohUtils.ip.ipv4addr,
+            .sin_family = AF_INET,
+            .sin_port = dohUtils.port,
+        };
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&dohUtils.ip.ipv4addr,
-            sizeof(dohUtils.ip.ipv4addr),
+            (struct sockaddr *)&sockaddr,
+            sizeof(sockaddr),
             AF_INET);
     } else {
+        struct sockaddr_in6 sockaddr = {
+            .sin6_addr = dohUtils.ip.ipv6addr,
+            .sin6_family = AF_INET6,
+            .sin6_port = dohUtils.port,
+        };
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&dohUtils.ip.ipv6addr,
-            sizeof(dohUtils.ip.ipv6addr),
+            (struct sockaddr *)&sockaddr,
+            sizeof(sockaddr),
             AF_INET6);
     }
 
