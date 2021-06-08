@@ -12,7 +12,7 @@
 #include "utils/args/args.h"
 #include "utils/selector/selector.h"
 #include "utils/doh/doh_utils.h"
-#include "metrics/metrics.h"
+#include "management/management.h"
 
 typedef struct connectionsManager_t {
     struct in6_addr ipv6addr;
@@ -77,8 +77,7 @@ int main(int argc, char *argv[]) {
     }
 
     init_doh(args.doh);
-
-    init_metric();
+    initManagement();
 
     if (init_proxy_listener(selector) < 0) {
         fprintf(stderr, "Passive socket creation\n");
@@ -102,6 +101,7 @@ finally:
     }
 
     selector_close();
+    destroyManagement();
 
     if (connectionsManager.proxyFd >= 0) {
         close(connectionsManager.proxyFd);

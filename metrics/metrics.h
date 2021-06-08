@@ -1,8 +1,8 @@
+#ifndef METRICS_H
+#define METRICS_H
 
 #include <stdint.h>
-#include <errno.h>
 #include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
 
 typedef struct global_proxy_metrics
@@ -14,13 +14,11 @@ typedef struct global_proxy_metrics
 
 }global_proxy_metrics;
 
+void connection_failed_metrics(global_proxy_metrics  *metrics);
+void new_connection_added_metrics(global_proxy_metrics  *metrics);
+void connection_closed_metrics(global_proxy_metrics  *metrics);
+void add_n_bytes_sent_metrics(global_proxy_metrics  *metrics, uint64_t n_bytes);
 
-void init_metric();
-void new_connection_added();
-void connection_failed();
-void add_n_bytes_sent(uint64_t n_bytes);
-void connection_closed();
-
-
+#endif
 
 

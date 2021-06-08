@@ -1,16 +1,13 @@
 #include "connections.h"
 
 #include <arpa/inet.h>
-#include <errno.h>
 #include <stdio.h>
-#include <stdbool.h>
 #include <stdlib.h>
 
 #include "connections_def.h"
-#include "parsers/request_line_parser/request_line_parser.h"
 #include "state_machine/stm_initializer.h"
 #include "utils/selector/selector.h"
-#include "metrics/metrics.h"
+#include "management/management.h"
 
 // STATIC FUNCTIONS
 static proxyConnection *
@@ -91,14 +88,14 @@ accept_and_init_new_connection(struct selector_key *key, struct sockaddr *addr, 
 
     if ((clientSocket = accept(key->fd, addr, &addrlen)) < 0) {
         fprintf(stderr, "Error accept\n");
-        connection_failed();
+        connectFailed();
         return;
     }
 
     if (selector_fd_set_nio(clientSocket) < 0) {
         fprintf(stderr, "error setting new connection as NON-BLOCKIN\n");
         close(clientSocket);
-        connection_failed();
+        connectFailed();
         return;
     }
 
@@ -107,7 +104,7 @@ accept_and_init_new_connection(struct selector_key *key, struct sockaddr *addr, 
     if (newConnection == NULL) {
         fprintf(stderr, "error creating new connection\n");
         close(clientSocket);
-        connection_failed();
+        connectFailed();
         return;
     }
 
@@ -117,10 +114,10 @@ accept_and_init_new_connection(struct selector_key *key, struct sockaddr *addr, 
         fprintf(stderr, "error registering new fd\n");
         close(clientSocket);
         free_connection_data(newConnection);
-        connection_failed();
+        connectFailed();
         return;
     }
-    new_connection_added();
+    newConnectionRegistered();
 }
 
 static proxyConnection *
@@ -207,7 +204,7 @@ proxy_client_write(struct selector_key *key) {
     int totalBytes = send(key->fd, data, maxBytes, 0);
 
     if (totalBytes > 0) {
-         add_n_bytes_sent(totalBytes);
+        addBytesTransfered(totalBytes);
         buffer_read_adv(originBuffer, totalBytes);
         stm_handler_write(&connection->stm, key);
     } else {
@@ -221,7 +218,7 @@ proxy_client_close(struct selector_key *key) {
 
     close(connection->client_fd);
     free_connection_data(connection);
-    connection_closed();
+    connectionClosed();
 }
 
 /*                        
@@ -277,7 +274,7 @@ proxy_origin_write(struct selector_key *key) {
         data = buffer_read_ptr(originBuffer, &maxBytes);
 
         if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
-            add_n_bytes_sent(totalBytes);
+            addBytesTransfered(totalBytes);
             buffer_read_adv(originBuffer, totalBytes);
             stm_handler_write(&connection->stm, key);
         } else {
@@ -300,13 +297,13 @@ proxy_origin_write(struct selector_key *key) {
 static void
 proxy_origin_close(struct selector_key *key) {
     close(key->fd);
-    connection_closed();
+    connectionClosed();
 }
 
 int register_origin_socket(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     connection->origin_status = ACTIVE_STATUS;
-    new_connection_added();
+    newConnectionRegistered();
     return selector_register(key->s, connection->origin_fd, &originHandler, OP_WRITE, connection);
 }
 
