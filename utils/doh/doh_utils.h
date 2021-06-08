@@ -1,8 +1,9 @@
 #ifndef _DOH_UTILS_H_
-#define _DH_UTILS_H_
+#define _DOH_UTILS_H_
 
 #include <stdint.h>
 
+#include "utils/args/args.h"
 #include "utils/selector/selector.h"
 
 /*
@@ -16,5 +17,8 @@ handle_origin_doh_connection(struct selector_key *key);
 
 unsigned
 try_next_dns_connection(struct selector_key *key);
+
+int 
+init_doh(struct doh argsDoh);
 
 #endif
