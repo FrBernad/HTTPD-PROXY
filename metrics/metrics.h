@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
+#include <sys/types.h>
 
 typedef struct global_proxy_metrics
 {

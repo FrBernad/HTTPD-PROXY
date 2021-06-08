@@ -4,7 +4,7 @@
 global_proxy_metrics metrics;
 
 void init_metric() {
-    memset(metrics, 0, sizeof(metrics));
+    memset(&metrics, 0, sizeof(metrics));
 }
 
 void add_n_bytes_sent(uint64_t n_bytes){
