@@ -37,8 +37,8 @@ Table of Contents
    1. Introduction ........................................................ 
    2. Requirements ........................................................
    3. Connections  ........................................................
-      3.1. Establishing Connection ........................................
-      3.2. Connection Established .........................................
+      3.1. Making a request ...............................................
+      3.2. Sending a response .............................................
       3.3. PERCY Request Message Format ...................................
       3.4. PERCY Response Message Format ..................................
       3.5. Conventions   ..................................................
@@ -50,30 +50,31 @@ Table of Contents
            4.2.1 Request Historical Connections  ..........................
            4.2.2 Request Concurrent Connections  .......................... 
            4.2.3 Request Bytes Sent .......................................
-           4.2.4 Request Bytes Recieved ...................................
+           4.2.4 Request Bytes received ...................................
            4.2.5 Request I/O Buffer Size ..................................
            4.2.6 Request Selector Timeout .................................
            4.2.7 Request Maximum Concurrent Connections ...................
-           4.2.8 Request Users List .......................................
-           4.2.9 Request Sniffed Credentials Data  ........................
       4.3. Modification Methods Definitions  ..............................
            4.3.1 Set I/O Buffer Size  .....................................
            4.3.2 Set Selector Timeout .....................................
-      4.4. Particular Methods Response Message Format   ...................
-           4.4.1. Response Users List .....................................
-           4.4.2. Response Sniffed Credentials Data .......................
       4.5. Method Error Handling ..........................................
            4.4.1 Set I/O Buffer Size ......................................
            4.4.2 Set Selector Timeout .....................................
+           4.4.3. Unothorized Requests  ...................................
+
 
 1. Introduction
 
+   PERCY is a stateless request/response protocol that operates by
+   exchanging messages between a client and a server.  A PERCY "client" 
+   is a program that establishes a connection to a server for the purpose 
+   of sending one or more requests.  A PERCY "server" is a program that 
+   recieves and analizes requests and proceeds to sending PERCY responses.
    This protocol aims to provide interaction between a client and a http proxy 
    managment service using UDP in a byte oriented way.  Furthermore, it allows 
    the client to change the proxy configuration while the server is runnning.  
-   #To assure the privacy and security of the client,  an authentication with 
-   #the server is mandatory after connection is established.  Once this is done,      FIXME:NOSE SI HAY AUTH
-   #the client proceeds to make a request, the server analyses it and responds accordingly.
+   To assure the privacy and security of the client, an authentication with 
+   the server is mandatory on each request made. 
 
 2. Requirements
 
@@ -91,27 +92,29 @@ Table of Contents
 
 3. Connections
                                             
-3.1. Establishing Connection
+3.1. Making a request
   
-   In order for a client to establish a connection with the http proxy managment service, 
-   it is required to open an UDP connection to the port and address the server is listening to.
-   This service is conventionally located on UDP port 9090. 
+   In order to send a request to the http proxy managment service, the client MUST send an 
+   UDP message to the port and address the server is listening to.  This service is 
+   conventionally located on UDP port 9090.  A passphrase MUST be provided to authorize 
+   each request.
 
-3.2. Connection Established
+3.2. Sending a response
 
-   After the connection is established, the client is allowed to send requests to the server. 
-   The server recieves and evaluates the request, replying according to it.  There may be subsequent 
-   requests/responses, all following the structure defined below.
+   Once a request is received, the server MUST analize the passphrase sent by the client.
+   Once the passphrase is validated, the server MUST send a response corresponding to
+   the requested method. There may be subsequent requests/responses, all following the 
+   structure defined below.
 
 3.3. PERCY Request Message Format
 
    The request message contains field/bytes in the following diagram:
 
-    +----------+----------+----------+----------+
-    |    VER   |   TYPE   |  METHOD  |   VALUE  |
-    +----------+----------+----------+----------+
-    |     1    |    1     |    1     |    1     |
-    +----------+----------+----------+----------+
+    +----------+----------+----------+----------+----------+----------+
+    |    VER   |   TYPE   |  METHOD  |   VALUE  |      PASSPHRASE     |
+    +----------+----------+----------+----------+---------------------+
+    |     1    |    1     |    1     |    1     |          6          |
+    +----------+----------+----------+----------+----------+----------+
   
    where:
 
@@ -132,15 +135,17 @@ Table of Contents
     VALUE          A single byte field that specifies an OPTIONAL value for the method being requested.
                    Commonly used for modification requests. 
 
+    PASSPHRASE     A six byte field that specifies a passphrase to authorize the request.
+
 3.4. PERCY Response Message Format
 
-   The response message, excluding X'07' and X'08' retrieval methods responses, 
-   contains field/bytes in the following diagram:
+   The response message retrieval methods responses contains field/bytes 
+   in the following diagram:
 
         +----------+----------+----------+
         |    VER   |  STATUS  |   VALUE  |
         +----------+----------+----------+
-        |     1    |     1    |    4     |
+        |     1    |     1    |     8    |
         +----------+----------+----------+
   
    where:
@@ -153,17 +158,18 @@ Table of Contents
     
                     X'00'               a successful response
 
-                    X'01'               an unsuccesful response 
+                    X'01'               unauthorized request 
 
-    VALUE          A four byte field that specifies an OPTIONAL value in response of the requested method.
+                    X'02'               an unsuccesful response 
+
+    VALUE          An eight byte field that specifies an OPTIONAL value in response of the requested method.
                    Commonly used for retrieval methods responses.                    
-
 
 3.5. Conventions                                                
 
 3.5.1. Preferred request syntax
 
-   When making a retrieval type requests it is RECOMMENDED to set the value field as X'00'.
+   When making a retrieval type requests it is RECOMMENDED to set the value field as X'00'. 
 
 3.5.2. Preferred response syntax
 
@@ -190,7 +196,7 @@ Table of Contents
     +---------+-------------------------------------------------+-------+
     | X'02'   | Request the number of bytes sent.               | 4.2.3 |
     +---------+-------------------------------------------------+-------+
-    | X'03'   | Request the number of bytes recieved.           | 4.2.4 |
+    | X'03'   | Request the number of bytes received.           | 4.2.4 |
     +---------+-------------------------------------------------+-------+
     | X'04'   | Request I/O buffer sizes                        | 4.2.5 |
     +---------+-------------------------------------------------+-------+
@@ -199,10 +205,7 @@ Table of Contents
     | X'06'   | Request the maximum amount of concurrent        | 4.2.7 |
     |         | connections.                                    |       |
     +---------+-------------------------------------------------+-------+
-    | X'07'   | Request users list (sites, history and their    | 4.2.8 |
-    |         | respective dates).                              |       |
-    +---------+-------------------------------------------------+-------+
-    | X'08'   | Request sniffed credentials data.               | 4.2.9 |
+    | X'07'   | Request the number of failed connections.       | 4.2.8 |
     +---------+-------------------------------------------------+-------+
 
    The values currently defined for MODIFICATION METHODS are:
@@ -231,9 +234,9 @@ Table of Contents
 
    The X'02' retrieval method returns the number of bytes sent by the server.
 
-4.2.4. Request Bytes Recieved
+4.2.4. Request Bytes received
 
-   The X'03' retrieval method returns the number of bytes recieved by the server.
+   The X'03' retrieval method returns the number of bytes received by the server.
 
 4.2.5. Request I/O Buffer Size
 
@@ -245,18 +248,12 @@ Table of Contents
 
 4.2.7. Request Maximum Concurrent Connections
      
-   The X'06' retrieval method returns the all time maximum amount of concurrent connections. 
+   The X'06' retrieval method returns the all time maximum amount of concurrent connections.
 
-4.2.8. Request Users List
+4.2.8. Request Failed Connections
+     
+   The X'07' retrieval method returns the number of connections that do not succeed.  
 
-   The X'07' retrieval method returns a list with all the users that have connected to the server, the sites
-   visited and their respective dates.
-
-4.2.9. Request Sniffed Credentials Data 
-
-   The X'08' retrieval method returns a list with all valid credentials (users and passwords) sniffed
-   by the proxy.
-  
 4.3. Modification Methods Definitions
 
 4.3.1. Set I/O Buffer Size
@@ -269,264 +266,19 @@ Table of Contents
    The X'01' modification method sets the amount of time (seconds) that the selector will be blocked waiting 
    for activity.  A user SHOULD only send a value between 0 and 10.
        
-4.4. Particular Methods Response Message Format  
-      
-4.4.1. Response Users List (Sec. 4.2.8)
-    
-   The X'07' method defines a specific response message format containing 
-   the field/bytes in the following diagram:
-
-    +----------+----------+-----------+-----------+-----------+-----------+-----------+
-    |    VER   |  STATUS  | UNAME_LEN |   UNAME   |  SITE_LEN |    SITE   |    DATE   |
-    +----------+----------+-----------+-----------+-----------+-----------+-----------+
-    |     1    |     1    |     4     |     50    |     4     |     50    |     20    |
-    +----------+----------+-----------+-----------+-----------+-----------+-----------+
-
-   where:
-
-    VER             A single byte field that specifies the version of the PERCY protocol being used.
-                    Currently X'01' is the only available version.
-
-    STATUS          A single byte field that specifies the status of the result for the requested method.
-                    The values are:   
-    
-                    X'00'               method success, no more data to recieve
-
-                    X'01'               an unsuccesful response 
-
-                    X'02'               method success, there is still remaining data to recieve
-
-    UNAME_LEN       A four byte field containing the length of the name in the UNAME field   
-
-    UNAME           A fifty byte field containing the name of the user   
-
-    SITE_LEN        A four byte field containing the length of the site in the SITE field   
-
-    SITE            A fifty byte field containing site visited by the user
-
-    DATE            A twenty byte field containing the date the site was visited
-
-
-   The client SHOULD keep sending X'07' retrieval requests until status X'00' is recieved. 
-   The server MUST send a response with a X'00' state when there is no more data to send.
-       
-  4.4.2. Response Sniffed Credentials Data (Sec. 4.2.9)
-    
-   The X'08' method response defines a specific message format containing 
-   the field/bytes in the following diagram:
-
-    +----------+----------+-----------+-----------+-----------+-----------+
-    |    VER   |  STATUS  | UNAME_LEN |   UNAME   |  PASS_LEN |    PASS   |
-    +----------+----------+-----------+-----------+-----------+-----------+
-    |     1    |     1    |     4     |     50    |     4     |     50    |
-    +----------+----------+-----------+-----------+-----------+-----------+
-       
-   where:
-
-    VER             A single byte field that specifies the version of the PERCY protocol being used.
-                    Currently X'01' is the only available version.
-
-    STATUS          A single byte field that specifies the status of the result for the requested method.
-                    The values are:   
-    
-                    X'00'               method success, no more data to recieve
-
-                    X'01'               an unsuccesful response 
-
-                    X'02'               method success, there is still remaining data to recieve
-
-    UNAME_LEN       A four byte field containing the length of the name in the UNAME field   
-
-    UNAME           A fifty byte field containing the name of the user   
-
-    PASS_LEN        A four byte field containing the length of the password in the PASS field  
-
-    PASS            A fifty byte field containing the users's password
-    
-   The client SHOULD keep sending X'08' retrieval requests until status X'00' is recieved. 
-   The server MUST send a response with a X'00' state when there is no more data to send.
-    
 4.4. Method Error Handling
 
 4.4.1. Set I/O Buffer Size (Sec. 4.3.1.)
 
-   When the value recieved in the value field is invalid, the server MUST respond with
-   a X'01' state.
+   When the value received in the value field is invalid, the server MUST respond with
+   a X'02' state.
   
 4.4.2. Set Selector Timeout (Sec. 4.3.2.)
 
-   When the value recieved in the value field is invalid, the server MUST respond with
+   When the value received in the value field is invalid, the server MUST respond with
+   a X'02' state.
+
+4.4.3. Unothorized Requests
+
+   When the value received in the passphrase field is invalid, the server MUST respond with
    a X'01' state.
-
-
-
-
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-############################################################################################
-
-
-
-
-
-   A published RFC will largely contain the elements in the following
-   list.  Some of these sections are required, as noted.  Those sections
-   marked with "*" will be supplied by the RFC Editor during the
-   editorial process when necessary.  Sections are allowed to contain
-   nothing but subsections.  The rules for each of these elements are
-   described in more detail below.
-
-      First-page header                      * [Required]
-      Title                                    [Required]
-      Abstract                                 [Required]
-      RFC Editor or Stream Note              * [Upon request]
-      Status of This Memo                    * [Required]
-      Copyright Notice                       * [Required]
-      Table of Contents                      * [Required]
-      Body of the Memo                         [Required]
-        1.  Introduction                       [Required]
-        2.  Requirements Language (RFC 2119)
-        3.  ...
-            MAIN BODY OF THE TEXT
-        6.  ...
-        7.  IANA Considerations                [Required in I-D]
-        8.  Internationalization Considerations
-        9.  Security Considerations            [Required]
-        10.  References
-        10.1.  Normative References
-        10.2.  Informative References
-        Appendix A.
-        Appendix B.
-      Acknowledgements
-      Contributors
-      Author's Address                         [Required] 
-       
-       
-
-
-
-
-
-
-
-
-
-
-
-
-       6.   implementar mecanismos que permitan recolectar métricas que
-        ayuden a monitorear la operación del sistema.
-
-        A.  cantidad de conexiones históricas
-
-        B.  cantidad de conexiones concurrentes
-
-        C.  cantidad de bytes transferidos
-
-        D.  cualquier otra métrica que considere oportuno para el 
-        entendimiento del funcionamiento dinámico del sistema
-
-         7.   implementar mecanismos que permitan manejar usuarios cambiar la
-        configuración del servidor en tiempo de ejecución sin reiniciar
-        el servidor.  Las diferentes implementaciones PUEDEN decidir
-        disponibilizar otros cambios de ejecución en tiempo de ejecución
-        de otras configuraciones (memoria utilizada en I/O, timeouts,
-        etc).
-
-   8.   implementar un registro de acceso que permitan a un
-        administrador entender los accesos de cada uno de los usuarios.
-        Pensar en el caso de que llega una queja externa y el
-        administrador debe saber quien fue el que se conectó a cierto
-        sitio web y cuando.
-
-   9.   monitorear el tráfico y generar un registro de credenciales de
-        acceso (usuarios y passwords) de forma similar a ettercap por lo
-        menos para protocolos HTTP, y POP3.
-
-        Protocolo:
-        Implementar mecanismos que permitan manejar usuarios cambiar la
-        configuración del servidor en tiempo de ejecución sin reiniciar
-        el servidor.  Las diferentes implementaciones PUEDEN decidir
-        disponibilizar otros cambios en tiempo de ejecución
-        de otras configuraciones (memoria utilizada en I/O, timeouts,
-        etc).
-
-        Monitorear el tráfico y generar un registro de credenciales de
-        acceso (usuarios y passwords) de forma similar a ettercap por lo
-        menos para protocolos HTTP, y POP3.
-
-        El protocolo que diseñe para monitoreo y configuración funcionará
-        sobre UDP o SCTP.  Deberá documentar detalladamente el protocolo
-        e implementar una aplicación cliente.
-
-        Tanto la aplicación servidor, como la aplicación cliente de
-        configuración/monitoreo DEBERÁN manejar los argumentos de línea
-        de comandos de cierta forma uniforme (por ejemplo -c <puerto>
-        podría especificar el puerto utilizado para el protocolo de
-        configuración/monitoreo).  Los detalles de qué parámetros se
-        deben manejar será publicado en otro documento.
-
-        Un informe en formato PDF [RFC3778] o text/plain (con
-        codificación UTF-8) que contenga las siguientes secciones
-        (respetando el orden):
-
-        Descripción detallada de los protocolos y aplicaciones
-        desarrolladas.
-  */
-
-      +----+------+------+----------+----------+----------+
-      |RSV | FRAG | ATYP | DST.ADDR | DST.PORT |   DATA   |
-      +----+------+------+----------+----------+----------+
-      | 2  |  1   |  1   | Variable |    2     | Variable |
-      +----+------+------+----------+----------+----------+
-          The fields in the UDP request header are:
-
-          o  RSV  Reserved X'0000'
-          o  FRAG    Current fragment number
-          o  ATYP    address type of following addresses:
-             o  IP V4 address: X'01'
-             o  DOMAINNAME: X'03'
-             o  IP V6 address: X'04'
-          o  DST.ADDR       desired destination address
-          o  DST.PORT       desired destination port
-          o  DATA     user data
-
-          4. 
-
-
-    +----------+----------+----------+
-    |    VER   |  METHOD  |   VALUE  |
-    +----------+----------+----------+
-    |     1    |    1     |    1     |
-    +----------+----------+----------+
-
-    VER             The VER field is set to X'01' for this version of the protocol.
-    
-    METHOD          The method request by the client.
-
-    VALUE           An optional value for the selected method.
-    
-
-     4. Methods ................................................21
-      4.1. Overview ..................................................21
-      4.2. Common Method Properties ..................................22
-           4.2.1. Safe Methods .......................................22
-           4.2.2. Idempotent Methods .................................23
-           4.2.3. Cacheable Methods ..................................24
-      4.3. Method Definitions ........................................24
-           4.3.1. GET ................................................24
-           4.3.2. HEAD ...............................................25
-           4.3.3. POST ...............................................25
-           4.3.4. PUT ................................................26
-           4.3.5. DELETE .............................................29
-           4.3.6. CONNECT ............................................30
-           4.3.7. OPTIONS ............................................31
-           4.3.8. TRACE ..............................................32
