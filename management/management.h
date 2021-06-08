@@ -20,12 +20,13 @@ typedef struct {
 
 bool addNewUserAndPassword(user_t user);
 bool addRegister(register_connection_t connection);
-void increaseHistoricalConnections();
-void increaseConcurrentConnections();
-void decreaseConcurrentConnections();
-void addBytesTransfered(unsigned long bytes);
-void destroyManagement();
 bool initManagement();
+void destroyManagement();
+void connectFailed();
+void connectionClosed();
+void newConnectionRegistered();
+void decreaseConcurrentConnections();
+void addBytesTransfered(uint64_t bytes);
 
 
 #endif

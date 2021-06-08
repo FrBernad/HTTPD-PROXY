@@ -3,11 +3,10 @@
 #include <string.h>
 
 #include "utils/list/listADT.h"
+#include "../metrics/metrics.h"
 
 typedef struct {
-    unsigned long historicalConnections;
-    unsigned long concurrentConnections;
-    unsigned long bytesTransfered;
+    global_proxy_metrics metrics;
     list_adt userList;
     list_adt registers;
 } management_t;
@@ -15,9 +14,7 @@ typedef struct {
 static management_t management;
 
 bool initManagement() {
-    management.historicalConnections = 0;
-    management.concurrentConnections = 0;
-    management.bytesTransfered = 0;
+    memset(&(management.metrics), 0, sizeof(global_proxy_metrics));
     management.userList = new_list(sizeof(user_t));
     if (management.userList == NULL) {
         return false;
@@ -43,18 +40,22 @@ bool addRegister(register_connection_t connection) {
     return add_to_list(management.registers, &connection);
 }
 
-void increaseHistoricalConnections() {
-    management.historicalConnections += 1;
+void connectFailed(){
+    connection_failed_metrics(&(management.metrics));
 }
 
-void increaseConcurrentConnections() {
-    management.concurrentConnections += 1;
+void connectionClosed(){
+    connection_closed_metrics(&(management.metrics));
+}
+
+void newConnectionRegistered(){
+    new_connection_added_metrics(&(management.metrics));
 }
 
 void decreaseConcurrentConnections() {
-    management.concurrentConnections -= 1;
+    connection_closed_metrics(&(management.metrics));
 }
 
-void addBytesTransfered(unsigned long bytes) {
-    management.bytesTransfered += bytes;
+void addBytesTransfered(uint64_t bytes) {
+    add_n_bytes_sent_metrics(&(management.metrics), bytes);
 }
