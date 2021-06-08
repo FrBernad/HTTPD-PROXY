@@ -1,4 +1,383 @@
-A published RFC will largely contain the elements in the following
+------------------------------------------------------------------------
+From:  ITBA                                          
+                                                  I. Manfredi
+
+                                                  F. Bernad
+
+                                                  J. Legammare
+
+                                                  N. Rampoldi
+                                                  
+Request for Comments: undefined               
+Category: Standards Track
+                                                  June 2021
+------------------------------------------------------------------------
+
+
+                        PERCY Protocol -- PP/1.0
+
+
+Abstract
+
+  This protocol aims to provide interaction between the client and a
+  http proxy server.
+
+Status of This Memo
+
+  This document specifies an Internet standards track protocol for the
+  Internet community, and requests discussion and suggestions for
+  improvements.  Distribution of this document is unlimited.
+
+Copyright Notice 
+
+  Copyright (C) Instituto Tecnológico de Buenos Aires (2021).  All Rights Reserved.
+
+Table of Contents
+
+   1. Introduction ........................................................ 
+   2. Requirements ........................................................
+   3. Connections  ........................................................
+      3.1. Establishing Connection ........................................
+      3.2. Connection Established .........................................
+      3.3. PERCY Request Message Format ...................................
+      3.4. PERCY Response Message Format ..................................
+      3.5. Conventions   ..................................................
+           3.5.1. Preferred request syntax  ...............................
+           3.5.2. Preferred response syntax  ..............................
+   4. Request Methods .....................................................
+      4.1. Overview  ......................................................
+      4.2. Request Methods Definitions  ...................................
+           4.2.1 Request Historical Connections  ..........................
+           4.2.2 Request Concurrent Connections  .......................... 
+           4.2.3 Request Bytes Sent .......................................
+           4.2.4 Request Bytes Recieved ...................................
+           4.2.5 Request I/O Buffer Size ..................................
+           4.2.6 Request Selector Timeout .................................
+           4.2.7 Request Maximum Concurrent Connections ...................
+           4.2.8 Request Users List .......................................
+           4.2.9 Request Sniffed Credentials Data  ........................
+      4.3. Modification Methods Definitions  ..............................
+           4.3.1 Set I/O Buffer Size  .....................................
+           4.3.2 Set Selector Timeout .....................................
+      4.4. Particular Methods Response Message Format   ...................
+           4.4.1. Response Users List .....................................
+           4.4.2. Response Sniffed Credentials Data .......................
+      4.5. Method Error Handling ..........................................
+           4.4.1 Set I/O Buffer Size ......................................
+           4.4.2 Set Selector Timeout .....................................
+
+1. Introduction
+
+   This protocol aims to provide interaction between a client and a http proxy 
+   managment service using UDP in a byte oriented way.  Furthermore, it allows 
+   the client to change the proxy configuration while the server is runnning.  
+   #To assure the privacy and security of the client,  an authentication with 
+   #the server is mandatory after connection is established.  Once this is done,      FIXME:NOSE SI HAY AUTH
+   #the client proceeds to make a request, the server analyses it and responds accordingly.
+
+2. Requirements
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", 
+   "SHOULD NOT", "RECOMMENDED", "MAY",  and "OPTIONAL" in this document are to be 
+   interpreted as described in RFC 2119 [34].
+    
+   An implementation is not compliant if it fails to satisfy one or more  
+   of the MUST or REQUIRED level requirements for the protocols it
+   implements.  An implementation that satisfies all the MUST or REQUIRED
+   level and all the SHOULD level requirements for its protocols is said
+   to be "unconditionally compliant"; one that satisfies all the MUST
+   level requirements but not all the SHOULD level requirements for its
+   protocols is said to be "conditionally compliant."
+
+3. Connections
+                                            
+3.1. Establishing Connection
+  
+   In order for a client to establish a connection with the http proxy managment service, 
+   it is required to open an UDP connection to the port and address the server is listening to.
+   This service is conventionally located on UDP port 9090. 
+
+3.2. Connection Established
+
+   After the connection is established, the client is allowed to send requests to the server. 
+   The server recieves and evaluates the request, replying according to it.  There may be subsequent 
+   requests/responses, all following the structure defined below.
+
+3.3. PERCY Request Message Format
+
+   The request message contains field/bytes in the following diagram:
+
+    +----------+----------+----------+----------+
+    |    VER   |   TYPE   |  METHOD  |   VALUE  |
+    +----------+----------+----------+----------+
+    |     1    |    1     |    1     |    1     |
+    +----------+----------+----------+----------+
+  
+   where:
+
+    VER             A single byte field that specifies the version of the PERCY protocol being used.
+                    Currently X'01' is the only available version.
+
+    TYPE            A single byte field that specifies the type of the method being requested.
+                    The values are:   
+    
+                    X'00'               a retrieval request
+
+                    X'01'               a modification request 
+
+                    X'02'               a server response 
+                    
+    METHOD         A single byte field that specifies the method being requested.
+      
+    VALUE          A single byte field that specifies an OPTIONAL value for the method being requested.
+                   Commonly used for modification requests. 
+
+3.4. PERCY Response Message Format
+
+   The response message, excluding X'07' and X'08' retrieval methods responses, 
+   contains field/bytes in the following diagram:
+
+        +----------+----------+----------+
+        |    VER   |  STATUS  |   VALUE  |
+        +----------+----------+----------+
+        |     1    |     1    |    4     |
+        +----------+----------+----------+
+  
+   where:
+
+    VER             A single byte field that specifies the version of the PERCY protocol being used.
+                    Currently X'01' is the only available version.
+
+    STATUS          A single byte field that specifies the status of the result for the requested method.
+                    The values are:   
+    
+                    X'00'               a successful response
+
+                    X'01'               an unsuccesful response 
+
+    VALUE          A four byte field that specifies an OPTIONAL value in response of the requested method.
+                   Commonly used for retrieval methods responses.                    
+
+
+3.5. Conventions                                                
+
+3.5.1. Preferred request syntax
+
+   When making a retrieval type requests it is RECOMMENDED to set the value field as X'00'.
+
+3.5.2. Preferred response syntax
+
+   When sending a response it is RECOMMENDED to set the value fields as X'00' for 
+   modification methods.
+
+4. Request Methods 
+
+4.1.  Overview
+         
+   The request method byte is the primary source of request semantics;
+   it indicates the purpose for which the client has made this request
+   and what is expected by the client as a successful result.  These
+   methods are divided into two categories: retrieval and modification.
+   
+   The values currently defined for RETRIEVAL METHODS are:
+
+    +---------+-------------------------------------------------+-------+
+    | Method  | Description                                     | Sec.  |
+    +---------+-------------------------------------------------+-------+
+    | X'00'   | Request the number of historical connections.   | 4.2.1 |
+    +---------+-------------------------------------------------+-------+
+    | X'01'   | Request the number of concurrent connections.   | 4.2.2 |
+    +---------+-------------------------------------------------+-------+
+    | X'02'   | Request the number of bytes sent.               | 4.2.3 |
+    +---------+-------------------------------------------------+-------+
+    | X'03'   | Request the number of bytes recieved.           | 4.2.4 |
+    +---------+-------------------------------------------------+-------+
+    | X'04'   | Request I/O buffer sizes                        | 4.2.5 |
+    +---------+-------------------------------------------------+-------+
+    | X'05'   | Request selector timeout.                       | 4.2.6 |
+    +---------+-------------------------------------------------+-------+
+    | X'06'   | Request the maximum amount of concurrent        | 4.2.7 |
+    |         | connections.                                    |       |
+    +---------+-------------------------------------------------+-------+
+    | X'07'   | Request users list (sites, history and their    | 4.2.8 |
+    |         | respective dates).                              |       |
+    +---------+-------------------------------------------------+-------+
+    | X'08'   | Request sniffed credentials data.               | 4.2.9 |
+    +---------+-------------------------------------------------+-------+
+
+   The values currently defined for MODIFICATION METHODS are:
+
+    +---------+-------------------------------------------------+-------+
+    | Config. | Description                                     | Sec.  |
+    +---------+-------------------------------------------------+-------+
+    | X'00'   | Set I/O buffer size.                            | 4.3.1 |
+    +---------+-------------------------------------------------+-------+
+    | X'01'   | Set selector timeout.                           | 4.3.2 |
+    +---------+-------------------------------------------------+-------+
+
+4.2. Request Methods Definitions
+
+4.2.1. Request Historical Connections
+
+   The X'00' retrieval method returns the number of historical connections, meaning the amount of clients
+   that have connected to the server.
+
+4.2.2. Request Concurrent Connections
+
+   The X'01' retrieval method returns the number of concurrent connections, meaning the amount of clients
+   that are connected to the server.
+       
+4.2.3. Request Bytes Sent
+
+   The X'02' retrieval method returns the number of bytes sent by the server.
+
+4.2.4. Request Bytes Recieved
+
+   The X'03' retrieval method returns the number of bytes recieved by the server.
+
+4.2.5. Request I/O Buffer Size
+
+   The X'04' retrieval method returns the size of the I/O buffer used by the server.
+  
+4.2.6. Request Selector Timeout
+
+   The X'05' retrieval method returns the amount of time (seconds) that a selector is blocked.
+
+4.2.7. Request Maximum Concurrent Connections
+     
+   The X'06' retrieval method returns the all time maximum amount of concurrent connections. 
+
+4.2.8. Request Users List
+
+   The X'07' retrieval method returns a list with all the users that have connected to the server, the sites
+   visited and their respective dates.
+
+4.2.9. Request Sniffed Credentials Data 
+
+   The X'08' retrieval method returns a list with all valid credentials (users and passwords) sniffed
+   by the proxy.
+  
+4.3. Modification Methods Definitions
+
+4.3.1. Set I/O Buffer Size
+
+   The X'00' modification method sets the size of the buffers dedicated to I/O operations by the server.
+   The size MUST be specified in the value field.  A user SHOULD only send a value between 1 and 1024. 
+  
+4.3.2. Set Selector Timeout
+
+   The X'01' modification method sets the amount of time (seconds) that the selector will be blocked waiting 
+   for activity.  A user SHOULD only send a value between 0 and 10.
+       
+4.4. Particular Methods Response Message Format  
+      
+4.4.1. Response Users List (Sec. 4.2.8)
+    
+   The X'07' method defines a specific response message format containing 
+   the field/bytes in the following diagram:
+
+    +----------+----------+-----------+-----------+-----------+-----------+-----------+
+    |    VER   |  STATUS  | UNAME_LEN |   UNAME   |  SITE_LEN |    SITE   |    DATE   |
+    +----------+----------+-----------+-----------+-----------+-----------+-----------+
+    |     1    |     1    |     4     |     50    |     4     |     50    |     20    |
+    +----------+----------+-----------+-----------+-----------+-----------+-----------+
+
+   where:
+
+    VER             A single byte field that specifies the version of the PERCY protocol being used.
+                    Currently X'01' is the only available version.
+
+    STATUS          A single byte field that specifies the status of the result for the requested method.
+                    The values are:   
+    
+                    X'00'               method success, no more data to recieve
+
+                    X'01'               an unsuccesful response 
+
+                    X'02'               method success, there is still remaining data to recieve
+
+    UNAME_LEN       A four byte field containing the length of the name in the UNAME field   
+
+    UNAME           A fifty byte field containing the name of the user   
+
+    SITE_LEN        A four byte field containing the length of the site in the SITE field   
+
+    SITE            A fifty byte field containing site visited by the user
+
+    DATE            A twenty byte field containing the date the site was visited
+
+
+   The client SHOULD keep sending X'07' retrieval requests until status X'00' is recieved. 
+   The server MUST send a response with a X'00' state when there is no more data to send.
+       
+  4.4.2. Response Sniffed Credentials Data (Sec. 4.2.9)
+    
+   The X'08' method response defines a specific message format containing 
+   the field/bytes in the following diagram:
+
+    +----------+----------+-----------+-----------+-----------+-----------+
+    |    VER   |  STATUS  | UNAME_LEN |   UNAME   |  PASS_LEN |    PASS   |
+    +----------+----------+-----------+-----------+-----------+-----------+
+    |     1    |     1    |     4     |     50    |     4     |     50    |
+    +----------+----------+-----------+-----------+-----------+-----------+
+       
+   where:
+
+    VER             A single byte field that specifies the version of the PERCY protocol being used.
+                    Currently X'01' is the only available version.
+
+    STATUS          A single byte field that specifies the status of the result for the requested method.
+                    The values are:   
+    
+                    X'00'               method success, no more data to recieve
+
+                    X'01'               an unsuccesful response 
+
+                    X'02'               method success, there is still remaining data to recieve
+
+    UNAME_LEN       A four byte field containing the length of the name in the UNAME field   
+
+    UNAME           A fifty byte field containing the name of the user   
+
+    PASS_LEN        A four byte field containing the length of the password in the PASS field  
+
+    PASS            A fifty byte field containing the users's password
+    
+   The client SHOULD keep sending X'08' retrieval requests until status X'00' is recieved. 
+   The server MUST send a response with a X'00' state when there is no more data to send.
+    
+4.4. Method Error Handling
+
+4.4.1. Set I/O Buffer Size (Sec. 4.3.1.)
+
+   When the value recieved in the value field is invalid, the server MUST respond with
+   a X'01' state.
+  
+4.4.2. Set Selector Timeout (Sec. 4.3.2.)
+
+   When the value recieved in the value field is invalid, the server MUST respond with
+   a X'01' state.
+
+
+
+
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+############################################################################################
+
+
+
+
+
+   A published RFC will largely contain the elements in the following
    list.  Some of these sections are required, as noted.  Those sections
    marked with "*" will be supplied by the RFC Editor during the
    editorial process when necessary.  Sections are allowed to contain
@@ -28,224 +407,21 @@ A published RFC will largely contain the elements in the following
         Appendix B.
       Acknowledgements
       Contributors
-      Author's Address                         [Required]
-
-------------------------------------------------------------------------
-From:  ITBA                                          
-                                                  I. Manfredi
-
-                                                  F. Bernad
-
-                                                  J. Legammare
-
-                                                  N. Rampoldi
-                                                  
-Request for Comments: undefined               
-Category: Standards Track
-                                                  June 2021
-------------------------------------------------------------------------
-
-
-                        Percy Protocol -- PP/1.0
-
-
-Abstract
-
-  This protocol aims to provide interaction between the client and a
-  http proxy server.
-
-Status of This Memo
-
-  This document specifies an Internet standards track protocol for the
-  Internet community, and requests discussion and suggestions for
-  improvements.  Distribution of this document is unlimited.
-
-Copyright Notice 
-
-  Copyright (C) Instituto Tecnológico de Buenos Aires (2021).  All Rights Reserved.
-
-Table of Contents
-
-  //TODO
-
-1. Introduction
-
-  This protocol aims to provide interaction between the client and a
-  http proxy server using UDP.  Furthermore, it allows the client to change the proxy
-  configuration while the server is runnning.  To assure the privacy and security 
-  of the client,  an authentication with the server is mandatory after connection    FIXME:NOSE SI HAY AUTH
-  is established.  Once this is done, the client proceeds to make a request, the 
-  server analyses it and responds accordingly.
-
-2. Requirements
-
-  The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", 
-  "SHOULD NOT", "RECOMMENDED", "MAY",  and "OPTIONAL" in this document are to be 
-  interpreted as described in RFC 2119 [34].
-   
-  An implementation is not compliant if it fails to satisfy one or more  
-  of the MUST or REQUIRED level requirements for the protocols it
-  implements.  An implementation that satisfies all the MUST or REQUIRED
-  level and all the SHOULD level requirements for its protocols is said
-  to be "unconditionally compliant"; one that satisfies all the MUST
-  level requirements but not all the SHOULD level requirements for its
-  protocols is said to be "conditionally compliant."
-
-3. Connections
-
-3.1 PERCY Request/Response Message Format
-
-  The request/response message contains field/bytes in the following diagram:
-
-    +----------+----------+----------+----------+
-    |    VER   |  METHOD  |   VALUE  |   VALUE  |
-    +----------+----------+----------+----------+
-    |     1    |    1     |    1     |    1     |
-    +----------+----------+----------+----------+
-    
-       The ID field identifies the query and is echoed in the response so
-   they can be matched.
-
-   The QR bit indicates whether the header is for a query or a response.
-
-   The AA, TC, RD, RA, AD, and CD bits are each theoretically meaningful
-   only in queries or only in responses, depending on the bit.  However,
-   some DNS implementations copy the query header as the initial value
-   of the response header without clearing bits.  Thus, any attempt to
-   use a "query" bit with a different meaning in a response or to define
-   a query meaning for a "response" bit is dangerous, given existing
-   implementation.  Such meanings may only be assigned by an IETF
-   Standards Action.
-
-    VER             The VER field is set to X'01' for this version of the protocol.
-    
-    METHOD          The method request by the client.
-
-    VALUE           An optional value for the selected method.
-
-3.1 Establishing Connection
-
-  In order for a client to establish a connection with the http proxy
-  server, it is required to open an UDP connection to the port and address
-  where the proxy managment server is listening.
-
-3.2 Connection Established
-
-  After the connection is succesfully established, the client is allowed to send
-  requests to the server, which will be answered with a respective response. There
-  may be subsequent requests/responses after the first one, all following the 
-  procedure defined below.
-
-4. Request Methods 
-
-4.1.  Overview
-         
-  The request method byte is the primary source of request semantics;
-  it indicates the purpose for which the client has made this request
-  and what is expected by the client as a successful result.  These
-  methods are divided into two categories: retrieval and modification.
-  
-  The values currently defined for RETRIEVAL METHODS are:
-
-  +---------+-------------------------------------------------+-------+
-  | Method  | Description                                     | Sec.  |
-  +---------+-------------------------------------------------+-------+
-  | X'00'   | Request the number of historical connections.   | 4.2.1 |
-  +---------+-------------------------------------------------+-------+
-  | X'01'   | Request the number of concurrent connections.   | 4.2.2 |
-  +---------+-------------------------------------------------+-------+
-  | X'02'   | Request the number of bytes sent.               | 4.2.3 |
-  +---------+-------------------------------------------------+-------+
-  | X'03'   | Request the number of bytes recieved.           | 4.2.4 |
-  +---------+-------------------------------------------------+-------+
-  | X'04'   | Request I/O buffer sizes                        | 4.2.5 |
-  +---------+-------------------------------------------------+-------+
-  | X'05'   | Request selector timeout.                       | 4.2.6 |
-  +---------+-------------------------------------------------+-------+
-  | X'06'   | Request users list (sites, history and their    | 4.2.7 |
-  |         | respective dates).                              |       |
-  +---------+-------------------------------------------------+-------+
-  | X'07'   | Request the maximum amount of concurrent        | 4.2.8 |
-  |         | connections.                                    |       |
-  +---------+-------------------------------------------------+-------+
-
-  The values currently defined for MODIFICATION METHODS are:
-
-  +---------+-------------------------------------------------+-------+
-  | Config. | Description                                     | Sec.  |
-  +---------+-------------------------------------------------+-------+
-  | X'00'   | Set I/O buffer size.                            | 4.3.1 |
-  +---------+-------------------------------------------------+-------+
-  | X'01'   | Set selector timeout.                           | 4.3.2 |
-  +---------+-------------------------------------------------+-------+
-
-4.2. Request Methods Definitions
-
-  4.2.1 Request Historical Connections
-
-    The X'00' method returns the number of historical connections, meaning the amount of clients
-    that have connected to the server.
-
-  4.2.2 Request Concurrent Connections
-
-    The X'01' method returns the number of concurrent connections, meaning the amount of clients
-    that are connected to the server.
-       
-  4.2.3 Request Bytes Sent
-
-    The X'02' method returns the number of bytes sent by the server.
-
-  4.2.4 Request Bytes Recieved
-
-    The X'03' method returns the number of bytes recieved by the server.
-
-  4.2.5 Request I/O Buffer Size
-
-    The X'04' method returns the size of the I/O buffer used by the server.
-  
-  4.2.6 Request Selector Timeout
-
-    The X'05' method returns the amount of time (seconds) that a selector is blocked.
-
-  4.2.7 Request Users List
-
-    The X'06' method returns a list with all the users that have connected to the server, the sites
-    they visited and their respective dates.
-
-  4.2.8 Request Maximum Concurrent Connections
-       
-    The X'07' method returns the all time maximum amount of concurrent connections. 
-  
-4.3. Modification Methods Definitions
-
-  4.3.1 Set I/O Buffer Size
-
-    Sets the size of the buffers dedicated to I/O operations by the server.
-  
-  4.3.2 Set Selector Timeout
-
-    Sets the amount of time (seconds) that the selector will be blocked waiting for
-    activity.
+      Author's Address                         [Required] 
        
        
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
-       
+
+
+
+
+
+
+
+
+
+
+
+
        6.   implementar mecanismos que permitan recolectar métricas que
         ayuden a monitorear la operación del sistema.
 
