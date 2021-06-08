@@ -80,10 +80,10 @@ typedef enum {
     INTERNAL_SERVER_ERROR = 500,
     NOT_IMPLEMENTED = 501,
     BAD_GATEWAY = 502,
-    HTTP_VERSION_NOT_SUPPORTED=505
+    HTTP_VERSION_NOT_SUPPORTED = 505
 } errors_t;
 
-    typedef struct proxyConnection {
+typedef struct proxyConnection {
     /*Informacion del cliente*/
     struct sockaddr_storage client_addr;
     socklen_t client_addr_en;
@@ -110,10 +110,17 @@ typedef enum {
         struct request_line_st request_line;
     } client;
 
+    struct {
+        struct headers_parser request_header_parser;
+        int bytesToSniff;
+    }client_sniffer;
+
+    struct headers_parser response_header_parser;
+
     doh_connection_t *dohConnection;
 
     connection_request_t connectionRequest;
-    
+
     errors_t error;
 
     buffer origin_buffer, client_buffer;

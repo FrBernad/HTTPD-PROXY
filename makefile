@@ -1,5 +1,5 @@
 include makefile.inc
-include sourceDirs.inc
+include source_dirs.inc
 
 CFLAGS+=-I$(CURDIR)
 

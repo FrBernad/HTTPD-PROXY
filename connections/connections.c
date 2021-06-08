@@ -3,12 +3,13 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #include "connections_def.h"
 #include "parsers/request_line_parser/request_line_parser.h"
-#include "utils/selector/selector.h"
 #include "state_machine/stm_initializer.h"
+#include "utils/selector/selector.h"
 
 // STATIC FUNCTIONS
 static proxyConnection *
@@ -43,6 +44,8 @@ free_connection_data(proxyConnection *connection);
 
 static void
 close_proxy_connection(struct selector_key *key);
+
+static bool parsingClientHeader(proxyConnection * connection);
 
 enum conections_defaults {
     BUFFER_SIZE = 2048,
@@ -150,7 +153,6 @@ create_new_connection(int clientFd) {
     return newConnection;
 }
 
-
 /*                        
 **     PROXY CLIENT HANDLER FUNCTIONS  
 */
@@ -175,6 +177,7 @@ proxy_client_read(struct selector_key *key) {
             connection->client_status = CLOSING_STATUS;
             //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
         }
+        connection->client_sniffer.bytesToSniff+=totalBytes;
         buffer_write_adv(buffer, totalBytes);
         stm_handler_read(&connection->stm, key);
     }
@@ -324,3 +327,4 @@ free_connection_data(proxyConnection *connection) {
     }
     free(connection);
 }
+
