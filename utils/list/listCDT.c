@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "listADT.h"
-
-static void freeListNode(node* n);
 
 // Node
 typedef struct node {
@@ -17,6 +16,8 @@ struct list_cdt {
     int dataSize;
     int size;
 };
+
+static void freeListNode(node* n);
 
 list_adt new_list(int dataSize) {
     struct list_cdt* list = calloc(1, sizeof(struct list_cdt));
@@ -61,6 +62,7 @@ bool add_to_list(list_adt l, void* data) {  //Devuelve false si no lo pudo agreg
         free(newNode);
         return false;
     }
+    memcpy(newNode->data, data, l->dataSize);
     newNode->next = l->first;
     l->first = newNode;
     l->size += 1;

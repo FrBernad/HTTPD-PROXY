@@ -12,9 +12,7 @@ set_connection_interests(struct selector_key *key);
     ENTRO AL ESTADO CON EL BUFFER DEL CLIENTE CON INFO Y EL DEL ORIGIN VACIO
 */
 void connected_on_arrival(const unsigned state, struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
     set_connection_interests(key);
-    sniffer_parser_init(&connection->client_sniffer.sniffer_parser);
 }
 
 unsigned
