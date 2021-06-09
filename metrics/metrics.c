@@ -10,7 +10,7 @@ static struct proxy_metrics {
     unsigned long failed_connections;
 } proxy_metrics;
 
-void initMetrics() {
+void init_metrics() {
     memset(&proxy_metrics, 0, sizeof(proxy_metrics));
 }
 
@@ -19,12 +19,12 @@ void increase_bytes_transfered(uint64_t bytes) {
         proxy_metrics.total_bytes_transfer += bytes;
 }
 
-void connection_failed_metrics() {
+void increase_failed_connections() {
     if (proxy_metrics.failed_connections < UINT64_MAX)
         proxy_metrics.failed_connections++;
 }
 
-void new_connection_connections() {
+void register_new_connection() {
     if (proxy_metrics.historical_connections < UINT64_MAX)
         proxy_metrics.historical_connections++;
     if (proxy_metrics.concurrent_connections < UINT16_MAX)

@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "connections/connections.h"
+#include "metrics/metrics.h"
 #include "utils/args/args.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/selector/selector.h"
@@ -76,6 +77,7 @@ int main(int argc, char *argv[]) {
     }
 
     init_doh(args.doh);
+    init_metrics();
 
     if (init_proxy_listener(selector) < 0) {
         fprintf(stderr, "Passive socket creation\n");

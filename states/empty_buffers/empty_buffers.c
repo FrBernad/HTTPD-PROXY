@@ -1,7 +1,9 @@
 #include "empty_buffers.h"
+
 #include <stdio.h>
 
 #include "connections/connections_def.h"
+#include "metrics/metrics.h"
 
 static void
 set_empty_buffers_interests(struct selector_key *key);
@@ -17,9 +19,11 @@ empty_buffers_on_write_ready(struct selector_key *key) {
     buffer *originBuffer = &connection->origin_buffer;
     buffer *clientBuffer = &connection->client_buffer;
 
-    if (!buffer_can_read(clientBuffer) && !buffer_can_read(originBuffer)) 
+    if (!buffer_can_read(clientBuffer) && !buffer_can_read(originBuffer)) {
+        close_connection();
         return DONE;
-    
+    }
+
     set_empty_buffers_interests(key);
 
     return connection->stm.current->state;
@@ -46,4 +50,3 @@ set_empty_buffers_interests(struct selector_key *key) {
     selector_set_interest(key->s, connection->client_fd, clientInterest);
     selector_set_interest(key->s, connection->origin_fd, originInterest);
 }
-

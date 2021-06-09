@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "connections/connections_def.h"
+#include "metrics/metrics.h"
 
 static void
 set_closing_connection_interests(struct selector_key *key);
@@ -19,8 +20,10 @@ closing_on_read_ready(struct selector_key *key) {
     buffer *clientBuffer = &connection->client_buffer;
 
     if (connection->origin_status == CLOSING_STATUS && connection->client_status == CLOSING_STATUS) {
-        if (!buffer_can_read(clientBuffer) && !buffer_can_read(originBuffer))
+        if (!buffer_can_read(clientBuffer) && !buffer_can_read(originBuffer)) {
+            close_connection();
             return DONE;
+        }
         return EMPTY_BUFFERS;
     }
     set_closing_connection_interests(key);

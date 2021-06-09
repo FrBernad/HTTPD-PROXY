@@ -280,6 +280,7 @@ proxy_origin_write(struct selector_key *key) {
     data = buffer_read_ptr(clientBuffer, &maxBytes);
 
     if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
+        increase_bytes_transfered(totalBytes);
         buffer_read_adv(clientBuffer, totalBytes);
         stm_handler_write(&connection->stm, key);
     } else {

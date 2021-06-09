@@ -6,6 +6,7 @@
 
 #include "connections/connections.h"
 #include "connections/connections_def.h"
+#include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/net/net_utils.h"
 
@@ -35,9 +36,10 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         /*En este caso ya estoy conectado al origin*/
         if (connection->connectionRequest.connect) {
             buffer_reset(&connection->client_buffer);
+            register_new_connection();
             return CONNECTED;
         }
-
+        register_new_connection();
         return SEND_REQUEST_LINE;
     }
 

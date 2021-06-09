@@ -6,6 +6,7 @@
 
 #include "connections/connections.h"
 #include "connections/connections_def.h"
+#include "metrics/metrics.h"
 #include "utils/net/net_utils.h"
 
 static unsigned
@@ -81,7 +82,7 @@ int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
                       "accept: application/dns-message\r\n"
                       "content-type: application/dns-message\r\n"
                       "content-length: %d\r\n\r\n",
-                       dohUtils.doh.path, dohUtils.doh.host, content_length);
+                      dohUtils.doh.path, dohUtils.doh.host, content_length);
 
     size_t size = len;
 
@@ -240,7 +241,7 @@ try_next_ipv6_connection(struct selector_key *key) {
 
         return TRY_CONNECTION_IP;
     }
-
+    increase_failed_connections();
     connection->error = INTERNAL_SERVER_ERROR;
     return ERROR;
 }

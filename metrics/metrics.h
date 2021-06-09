@@ -1,10 +1,10 @@
 #ifndef METRICS_H
 #define METRICS_H
 
-void initMetrics();
+void init_metrics();
 void increase_bytes_transfered(unsigned long bytes);
-void connection_failed_metrics();
-void new_connection_connections();
+void increase_failed_connections();
+void register_new_connection();
 void close_connection();
 unsigned long get_historical_connections();
 unsigned long get_concurrent_connections();

@@ -7,6 +7,7 @@
 
 #include "connections/connections.h"
 #include "connections/connections_def.h"
+#include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/net/net_utils.h"
 #include "utils/sniffer/sniffer_utils.h"
@@ -36,7 +37,7 @@ parsing_host_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     sniff_data(connection);
-    
+
     struct request_line_st *requestLine = &connection->client.request_line;
 
     while (buffer_can_read(requestLine->buffer)) {
@@ -126,6 +127,7 @@ handle_origin_ip_connection(struct selector_key *key) {
 
     if (connection->origin_fd == -1) {
         connection->error = INTERNAL_SERVER_ERROR;
+        increase_failed_connections();
         return ERROR;
     }
 
@@ -133,6 +135,7 @@ handle_origin_ip_connection(struct selector_key *key) {
 
     if (register_origin_socket(key) != SELECTOR_SUCCESS) {
         connection->error = INTERNAL_SERVER_ERROR;
+        increase_failed_connections();
         return ERROR;
     }
 
