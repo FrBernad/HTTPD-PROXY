@@ -28,7 +28,7 @@ closing_on_read_ready(struct selector_key *key) {
     }
     set_closing_connection_interests(key);
 
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 unsigned
@@ -36,7 +36,7 @@ closing_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     set_closing_connection_interests(key);
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 static void
@@ -64,7 +64,7 @@ set_closing_connection_interests(struct selector_key *key) {
         if (buffer_can_read(originBuffer)) {
             clientInterest |= OP_WRITE;
         } else {
-            shutdown(connection->client_fd, SHUT_WR);  //AL SOCKET DEL CLIENTE LE AVISO QUE NO LE VAN A ESCRIBIR MAS
+            shutdown(connection->client_fd, SHUT_WR);  
         }
     }
 
@@ -84,7 +84,7 @@ set_closing_connection_interests(struct selector_key *key) {
         if (buffer_can_read(clientBuffer)) {
             originInterest |= OP_WRITE;
         } else {
-            shutdown(connection->origin_fd, SHUT_WR);  //AL SOCKET DEL CLIENTE LE AVISO QUE NO LE VAN A ESCRIBIR MAS
+            shutdown(connection->origin_fd, SHUT_WR); 
         }
     }
 

@@ -26,7 +26,7 @@ empty_buffers_on_write_ready(struct selector_key *key) {
 
     set_empty_buffers_interests(key);
 
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 static void

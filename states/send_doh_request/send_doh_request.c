@@ -27,7 +27,7 @@ send_doh_request_on_write_ready(struct selector_key *key) {
         return AWAIT_DOH_RESPONSE;
     }
 
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 static void
@@ -44,8 +44,7 @@ write_doh_request(struct selector_key *key) {
         queryType = connection->dohConnection->currentType == ipv4_try ? IPV4_TYPE : IPV6_TYPE;
     }
 
-    int requestDohSize = build_doh_request(data, (uint8_t *)connection->connectionRequest.host.domain,
-                                           queryType);  //FIXME cuando tenga la ip real del servidor doh
+    int requestDohSize = build_doh_request(data, (uint8_t *)connection->connectionRequest.host.domain, queryType);
 
     buffer_write_adv(buffer, requestDohSize);
 }

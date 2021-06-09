@@ -69,7 +69,7 @@ await_doh_response_on_read_ready(struct selector_key *key) {
         return try_next_dns_connection(key);
     }
 
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 static void initDohState(struct selector_key *key) {

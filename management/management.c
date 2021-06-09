@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "httpd.h"
 #include "metrics/metrics.h"
@@ -21,13 +22,17 @@ enum {
 
 typedef struct {
     int socketFd;
+
     struct in_addr ipv4addr;
     in_port_t port;
-    uint8_t buffer[MAX_MSG_LEN];
+
     fd_handler managementHandler;
+
     struct percy_request_parser requestParser;
     struct request_percy request;
-    uint8_t *passphrase = "123456";
+    uint8_t buffer[MAX_MSG_LEN];
+
+    uint8_t *passphrase;
 } management_t;
 
 static int
@@ -40,10 +45,10 @@ static void
 management_read(struct selector_key *key);
 
 static void
-send_error_reply(struct sockaddr *addr, socklen_t clntAddrLen);
+send_reply(struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value);
 
-static void 
-build_reply(char *reply, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value);
+static void
+build_reply(uint8_t *reply, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value);
 
 static void
 serialize(uint64_t value, uint8_t serialized_value[8]);
@@ -56,7 +61,6 @@ parse_request(ssize_t bytesRcvd);
 
 static void
 management_close(struct selector_key *key);
-
 
 static management_t management;
 
@@ -89,6 +93,8 @@ int init_management(fd_selector selector) {
 
     management.requestParser.request = &management.request;
     percy_request_parser_init(&management.requestParser);
+
+    management.passphrase = (uint8_t*)"123456";
 
     return 1;
 }
@@ -130,7 +136,7 @@ init_management_handlers() {
 static void
 management_read(struct selector_key *key) {
     struct sockaddr_storage clntAddr;
-
+    // FIXME: RESETEAR PARSER
     socklen_t clntAddrLen = sizeof(clntAddr);
 
     ssize_t bytesRcvd = recvfrom(management.socketFd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *)&clntAddr, &clntAddrLen);
@@ -141,8 +147,8 @@ management_read(struct selector_key *key) {
     if (parse_request(bytesRcvd)) {
         if (!validate_passphrase()) {
             send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV, 0);
-        }else{
-            send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV, 50);
+        } else {
+            sendto(management.socketFd, "BIEN", 5, 0, (struct sockaddr *)&clntAddr, clntAddrLen);
         }
     } else {
         send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, 0);
@@ -159,19 +165,20 @@ send_reply(struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, uint8_t st
     }
 }
 
-static void build_reply(char *reply, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value) {
+static void
+build_reply(uint8_t *reply, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value) {
     reply[0] = ver;
     reply[1] = status;
     reply[2] = resv;
-    uint8_t serialized_value[8] ={0};
+    uint8_t serialized_value[8] = {0};
 
-    serialize(value,serialized_value);
+    serialize(value, serialized_value);
 
-    memcpy(reply + 3, serialized_value);
+    memcpy(reply + 3, serialized_value, sizeof(value));
 }
 
 static void
-serialize(uint64_t value, uint8_t serialized_value[8]){
+serialize(uint64_t value, uint8_t serialized_value[8]) {
     serialized_value[0] = value >> 56;
     serialized_value[1] = value >> 48;
     serialized_value[2] = value >> 40;

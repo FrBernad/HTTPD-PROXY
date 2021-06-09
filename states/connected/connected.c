@@ -24,19 +24,19 @@ connected_on_read_ready(struct selector_key *key) {
         return CLOSING;
     }
 
-    if (connection->sniffer.sniffEnabled) {
+    if (connection->sniffer.sniffEnabled && !connection->sniffer.isDone) {
         sniff_data(key);
     }
 
     set_connection_interests(key);
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 unsigned
 connected_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     set_connection_interests(key);
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 static void

@@ -26,14 +26,16 @@ void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     struct request_line_st *requestLine = &connection->client.request_line;
 
+
+    // Init request line parser
     requestLine->request_parser.request = &requestLine->request;
     requestLine->buffer = &connection->client_buffer;
-
     request_parser_init(&requestLine->request_parser);
 
+    // Init sniffer settings
     struct http_args args = get_httpd_args();
     connection->sniffer.sniffEnabled = args.disectors_enabled;
-
+    connection->sniffer.isDone = false;
     sniffer_parser_init(&connection->sniffer.sniffer_parser);
 }
 
@@ -63,7 +65,7 @@ parsing_host_on_read_ready(struct selector_key *key) {
                 if (connection->connectionRequest.connect) {
                     buffer_reset(&connection->client_buffer);
                 } else {
-                    if (connection->sniffer.sniffEnabled && connection->sniffer.bytesToSniff > 0) {
+                    if (connection->sniffer.sniffEnabled && connection->sniffer.bytesToSniff > 0 && !connection->sniffer.isDone) {
                         modify_sniffer_state(&connection->sniffer.sniffer_parser, sniff_http_authorization);
                         sniff_data(key);
                     }
@@ -74,7 +76,7 @@ parsing_host_on_read_ready(struct selector_key *key) {
         }
     }
 
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 static int
@@ -111,11 +113,12 @@ build_connection_request(struct selector_key *key) {
 
     struct request_line requestLine = connection->client.request_line.request;
 
+    connectionRequest->connect = strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0;
+
     sprintf((char *)connectionRequest->requestLine, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
     memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
     connectionRequest->port = requestLine.request_target.port;
     connectionRequest->host_type = requestLine.request_target.host_type;
-    connectionRequest->connect = strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0;
 }
 
 static unsigned

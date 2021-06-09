@@ -69,7 +69,7 @@ error_on_write_ready(struct selector_key *key) {
         return DONE;
     }
 
-    return connection->stm.current->state;
+    return stm_state(&connection->stm);
 }
 
 static void
