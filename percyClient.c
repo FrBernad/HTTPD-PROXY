@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define PORT 8080
+#define PORT 9090
 #define MAX_BUFF 1024
 #define PASS_PHRASE_LEN 6
 #define IS_DIGIT(x) (x >= '0' && x <= '9')
@@ -29,7 +29,7 @@ struct request_percy {
     uint16_t value;
 };
 
-static void buildRequest(char *buffer,int * sizeOfBuffer, int option, int value);
+static void buildRequest(char *buffer, int *sizeOfBuffer, int option, int value);
 static void clearScreen();
 static void showOptions();
 static void error();
@@ -41,13 +41,14 @@ int main(int argc, char const *argv[]) {
     int socketFd;
 
     struct sockaddr_in servaddr;
+    socklen_t servaddr_len = sizeof(servaddr);
 
     if ((socketFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("Client socket creation failed");
         exit(1);
     }
 
-    memset(&servaddr, 0, sizeof(servaddr));
+    memset(&servaddr, 0, servaddr_len);
 
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(PORT);
@@ -63,14 +64,14 @@ int main(int argc, char const *argv[]) {
         showOptions();
         bytesToRead = read(STDIN_FILENO, buff, MAX_BUFF);
         if (bytesToRead > 0) {
-            if (processInput(buff, bytesToRead, &option, &value) > 0) {
-                int len = 0;
-                buildRequest(buff,&len,option, value);
-                sendto(sockfd, buffer,len,MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
-                n = recvfrom(sockfd, (char *)buffer, MAX_BUFF, MSG_WAITALL, (struct sockaddr *) &servaddr,sizeof(servaddr));
-                printf("%d\n",n);
-            } else {
+            if (processInput(buff, bytesToRead, &option, &value) < 0)
                 error();
+            else {
+                int len = 0;
+                buildRequest(buff, &len, option, value);
+                sendto(socketFd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&servaddr, servaddr_len);
+                int n = recvfrom(socketFd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&servaddr, &servaddr_len);
+                printf("%d\n", n);
             }
         } else {
             reading = false;
@@ -140,7 +141,7 @@ static int processValue(char *buff, int bytesToRead, int *value) {
     return 0;
 }
 
-static void buildRequest(char *buffer, int * sizeOfBuffer, int option, int value) {
+static void buildRequest(char *buffer, int *sizeOfBuffer, int option, int value) {
     struct request_percy request;
     request.ver = 1;
     strcpy(request.passphrase, "CONTRA");
@@ -201,8 +202,7 @@ static void buildRequest(char *buffer, int * sizeOfBuffer, int option, int value
             error();
     }
     *sizeOfBuffer = sizeof(request);
-     memcpy(buffer, &request, *sizeOfBuffer);
-
+    memcpy(buffer, &request, *sizeOfBuffer);
 }
 
 static void clearScreen() {
