@@ -183,8 +183,9 @@ try_next_ipv4_connection(struct selector_key *key) {
     struct sockaddr_in ipv4;
 
     /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->currentTry != 0)
+    if (doh->currentTry != 0){
         increase_failed_connections();
+    }
 
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
@@ -223,8 +224,9 @@ try_next_ipv6_connection(struct selector_key *key) {
     struct sockaddr_in6 ipv6;
 
     /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->currentTry != 0)
+    if (doh->currentTry != 0){
         increase_failed_connections();
+    }
 
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
@@ -241,8 +243,6 @@ try_next_ipv6_connection(struct selector_key *key) {
         if (connection->origin_fd == -1) {
             continue;
         }
-
-        printf("registered origin!\n");
 
         if (register_origin_socket(key) != SELECTOR_SUCCESS) {
             connection->error = INTERNAL_SERVER_ERROR;

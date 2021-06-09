@@ -47,13 +47,14 @@ Table of Contents
    4. Request Methods .....................................................
       4.1. Overview  ......................................................
       4.2. Request Methods Definitions  ...................................
-           4.2.1 Request Historical Connections  ..........................
-           4.2.2 Request Concurrent Connections  .......................... 
-           4.2.3 Request Bytes Sent .......................................
-           4.2.4 Request Bytes received ...................................
-           4.2.5 Request I/O Buffer Size ..................................
-           4.2.6 Request Selector Timeout .................................
-           4.2.7 Request Maximum Concurrent Connections ...................
+           4.2.1. Request Historical Connections  .........................
+           4.2.2. Request Concurrent Connections  ......................... 
+           4.2.3. Request Bytes Sent ......................................
+           4.2.4. Request Bytes received ..................................
+           4.2.5. Request Bytes Transfered ................................
+           4.2.5. Request I/O Buffer Size .................................
+           4.2.6. Request Selector Timeout ................................
+           4.2.7. Request Maximum Concurrent Connections ..................
            4.2.8. Request Failed Connections ..............................
       4.3. Modification Methods Definitions  ..............................
            4.3.1 Set I/O Buffer Size  .....................................
@@ -207,14 +208,16 @@ Table of Contents
     +---------+-------------------------------------------------+-------+
     | X'03'   | Request the number of bytes received.           | 4.2.4 |
     +---------+-------------------------------------------------+-------+
-    | X'04'   | Request I/O buffer sizes                        | 4.2.5 |
+    | X'04'   | Request the number of total bytes transfered.   | 4.2.5 |
     +---------+-------------------------------------------------+-------+
-    | X'05'   | Request selector timeout.                       | 4.2.6 |
+    | X'05'   | Request I/O buffer sizes                        | 4.2.6 |
     +---------+-------------------------------------------------+-------+
-    | X'06'   | Request the maximum amount of concurrent        | 4.2.7 |
+    | X'06'   | Request selector timeout.                       | 4.2.7 |
+    +---------+-------------------------------------------------+-------+
+    | X'07'   | Request the maximum amount of concurrent        | 4.2.8 |
     |         | connections.                                    |       |
     +---------+-------------------------------------------------+-------+
-    | X'07'   | Request the number of failed connections.       | 4.2.8 |
+    | X'08'   | Request the number of failed connections.       | 4.2.9 |
     +---------+-------------------------------------------------+-------+
 
    The values currently defined for MODIFICATION METHODS are:
@@ -243,37 +246,43 @@ Table of Contents
        
 4.2.3. Request Bytes Sent
 
-   The X'02' retrieval method returns the number of bytes sent by the server.  In response of a valid X'02' 
-   request, the server MUST reply setting the value field with the integer number of bytes sent by the server
-   stored in big endian format.
+   The X'02' retrieval method returns the number of bytes sent from a client to the origin server.  In response of 
+   a valid X'02' request, the server MUST reply setting the value field with the integer number of bytes sent by the 
+   server stored in big endian format.
 
 4.2.4. Request Bytes received
 
-   The X'03' retrieval method returns the number of bytes received by the server.  In response of a valid X'03' 
-   request, the server MUST reply setting the value field with the integer number of bytes received by the server 
+   The X'03' retrieval method returns the number of bytes received by a client from the origin server.  In response of a
+   valid X'03' request, the server MUST reply setting the value field with the integer number of bytes received by the 
+   server stored in big endian format.
+
+4.2.5. Request Bytes Transfered
+
+   The X'04' retrieval method returns the number of total bytes transfered by the proxy.  In response of a valid
+   X'04' request, the server MUST reply setting the value field with the integer number of bytes received by the server 
    stored in big endian format.
 
-4.2.5. Request I/O Buffer Size
+4.2.6. Request I/O Buffer Size
 
-   The X'04' retrieval method returns the size of the I/O buffer used by the server.  In response of a valid X'04' 
+   The X'05' retrieval method returns the size of the I/O buffer used by the server.  In response of a valid X'05' 
    request, the server MUST reply setting the value field with the integer value of the I/O buffer size used by the 
    server stored in big endian format.
   
-4.2.6. Request Selector Timeout
+4.2.7. Request Selector Timeout
 
-   The X'05' retrieval method returns the interval in seconds the selector should block waiting for a connection
-   to become ready.  In response of a valid X'05' request, the server MUST reply setting the value field with the 
+   The X'06' retrieval method returns the interval in seconds the selector should block waiting for a connection
+   to become ready.  In response of a valid X'06' request, the server MUST reply setting the value field with the 
    integer interval in seconds stored in big endian format.
 
-4.2.7. Request Maximum Concurrent Connections
+4.2.8. Request Maximum Concurrent Connections
      
-   The X'06' retrieval method returns the all time maximum amount of concurrent connections.  In response of a 
-   valid X'06' request, the server MUST reply setting the value field with the integer value of the all time 
+   The X'07' retrieval method returns the all time maximum amount of concurrent connections.  In response of a 
+   valid X'07' request, the server MUST reply setting the value field with the integer value of the all time 
    maximum amount of concurrent connections stored in big endian format.
 
 4.2.8. Request Failed Connections
      
-   The X'07' retrieval method returns the number of failed.  In response of a valid X'07' request, the server 
+   The X'08' retrieval method returns the number of failed.  In response of a valid X'07' request, the server 
    MUST reply setting the value field with the integer number of failed connections stored in big endian format.
 
 4.3. Modification Methods Definitions

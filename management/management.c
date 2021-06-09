@@ -18,7 +18,13 @@ enum {
     PERCY_RESPONSE_SIZE = 11,
     PERCY_VERSION = 0x01,
     PERCY_RESV = 0x00,
+    RETRIEVAL = 0,
+    RETRIEVAL_METHODS_COUNT = 9,
+    MODIFICATION = 1,
+    MODIFICATION_METHODS_COUNT = 2,
 };
+
+static uint64_t (*retrievalMethods[RETRIEVAL_METHODS_COUNT])(void);
 
 typedef struct {
     int socketFd;
@@ -40,6 +46,9 @@ create_listener_socket(struct sockaddr_in sockaddr);
 
 static void
 init_management_handlers();
+
+static void
+init_management_functions();
 
 static void
 management_read(struct selector_key *key);
@@ -68,11 +77,9 @@ int init_management(fd_selector selector) {
     struct http_args args = get_httpd_args();
 
     management.port = htons(args.mng_port);
-
     if (inet_pton(AF_INET, args.mng_addr, &management.ipv4addr) < 0) {
         return -1;
     }
-
     struct sockaddr_in sockaddr = {
         .sin_addr = management.ipv4addr,
         .sin_family = AF_INET,
@@ -80,12 +87,12 @@ int init_management(fd_selector selector) {
     };
 
     management.socketFd = create_listener_socket(sockaddr);
-
     if (management.socketFd < 0) {
         return -1;
     }
 
     init_management_handlers();
+    init_management_functions();
 
     if (selector_register(selector, management.socketFd, &management.managementHandler, OP_READ, NULL) != SELECTOR_SUCCESS) {
         return -1;
@@ -93,8 +100,7 @@ int init_management(fd_selector selector) {
 
     management.requestParser.request = &management.request;
     percy_request_parser_init(&management.requestParser);
-
-    management.passphrase = (uint8_t*)"123456";
+    management.passphrase = (uint8_t *)"123456";
 
     return 1;
 }
@@ -133,6 +139,18 @@ init_management_handlers() {
     management.managementHandler.handle_block = NULL;
 }
 
+static void init_management_functions() {
+    retrievalMethods[0] = get_historical_connections;
+    retrievalMethods[1] = get_concurrent_connections;
+    retrievalMethods[2] = get_total_bytes_sent;
+    retrievalMethods[3] = get_total_bytes_received;
+    retrievalMethods[4] = get_total_bytes_transfered;
+    retrievalMethods[5] = NULL;
+    retrievalMethods[6] = NULL;
+    retrievalMethods[7] = get_concurrent_connections;
+    retrievalMethods[8] = get_failed_connections;
+}
+
 static void
 management_read(struct selector_key *key) {
     struct sockaddr_storage clntAddr;
@@ -148,11 +166,22 @@ management_read(struct selector_key *key) {
         if (!validate_passphrase()) {
             send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV, 0);
         } else {
-            sendto(management.socketFd, "BIEN", 5, 0, (struct sockaddr *)&clntAddr, clntAddrLen);
+            switch (management.request.type) {
+                case RETRIEVAL:
+                    if (management.request.method <= RETRIEVAL_METHODS_COUNT - 1) {
+                        send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV, retrievalMethods[management.request.method]());
+                        return;
+                    }
+                    break;
+                case MODIFICATION:
+                    break;
+                default:
+                    break;
+            }
         }
-    } else {
-        send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, 0);
     }
+
+    send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, 0);
 }
 
 static void
@@ -176,6 +205,9 @@ build_reply(uint8_t *reply, uint8_t ver, uint8_t status, uint8_t resv, uint64_t 
 
     memcpy(reply + 3, serialized_value, sizeof(value));
 }
+02 03 04
+
+02
 
 static void
 serialize(uint64_t value, uint8_t serialized_value[8]) {

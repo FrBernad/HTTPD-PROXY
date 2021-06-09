@@ -142,7 +142,6 @@ handle_origin_ip_connection(struct selector_key *key) {
 
     if (connection->origin_fd == -1) {
         connection->error = INTERNAL_SERVER_ERROR;
-        increase_failed_connections();
         return ERROR;
     }
 
@@ -150,7 +149,6 @@ handle_origin_ip_connection(struct selector_key *key) {
 
     if (register_origin_socket(key) != SELECTOR_SUCCESS) {
         connection->error = INTERNAL_SERVER_ERROR;
-        increase_failed_connections();
         return ERROR;
     }
 

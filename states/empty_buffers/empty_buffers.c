@@ -20,7 +20,7 @@ empty_buffers_on_write_ready(struct selector_key *key) {
     buffer *clientBuffer = &connection->client_buffer;
 
     if (!buffer_can_read(clientBuffer) && !buffer_can_read(originBuffer)) {
-        close_connection();
+        unregister_connection();
         return DONE;
     }
 

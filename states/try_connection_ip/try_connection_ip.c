@@ -25,7 +25,7 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
     if (check_origin_connection(connection->origin_fd)) {
-        /*Si dohConnection == NULL es que nunca mande el doh_request, si no esta active estoy probando ipv+ */
+        /*Si dohConnection == NULL es que nunca mande el doh_request, si no esta active tengo que probar ipv6 */
         if (connection->connectionRequest.host_type == domain &&
             (connection->dohConnection == NULL || !connection->dohConnection->isActive)) {
             return SEND_DOH_REQUEST;
@@ -43,7 +43,11 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         return try_next_dns_connection(key);
     }
 
-    printf("ERROR AL CONECTARSE A LA IP O AL DOH SERVER");
+    if (connection->connectionRequest.host_type != domain) {
+        // Connection with direct ip failed
+        increase_failed_connections();
+    }
+
     connection->error = INTERNAL_SERVER_ERROR;
     return ERROR;
 }

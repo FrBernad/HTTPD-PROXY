@@ -201,7 +201,7 @@ proxy_client_write(struct selector_key *key) {
     int totalBytes = send(key->fd, data, maxBytes, 0);
 
     if (totalBytes > 0) {
-        increase_bytes_transfered(totalBytes);
+        increase_bytes_received(totalBytes);
         buffer_read_adv(originBuffer, totalBytes);
         stm_handler_write(&connection->stm, key);
     } else {
@@ -275,7 +275,7 @@ proxy_origin_write(struct selector_key *key) {
         data = buffer_read_ptr(originBuffer, &maxBytes);
 
         if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
-            increase_bytes_transfered(totalBytes);
+            increase_bytes_sent(totalBytes);
             buffer_read_adv(originBuffer, totalBytes);
             stm_handler_write(&connection->stm, key);
         } else {
@@ -288,7 +288,7 @@ proxy_origin_write(struct selector_key *key) {
     data = buffer_read_ptr(clientBuffer, &maxBytes);
 
     if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
-        increase_bytes_transfered(totalBytes);
+        increase_bytes_sent(totalBytes);
         buffer_read_adv(clientBuffer, totalBytes);
         stm_handler_write(&connection->stm, key);
     } else {
@@ -322,7 +322,9 @@ close_proxy_connection(struct selector_key *key) {
 
 static void
 free_doh_connection(doh_connection_t *dohConnection) {
-    doh_response_parser_destroy(&dohConnection->dohParser);
+    if(dohConnection->isActive){
+        doh_response_parser_destroy(&dohConnection->dohParser);
+    }
     free(dohConnection);
 }
 

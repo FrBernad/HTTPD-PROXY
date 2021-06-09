@@ -177,32 +177,18 @@ doh_response_parser_feed(struct doh_response_parser *p, const uint8_t c) {
     return p->state = next;
 }
 
-// ------- HEADER --------
-// ID: 00 00
-// FLAGS: 81 80
-// QDCOUNT: 00 01
-// ANCOUNT: 00 01
-// NS AND AR COUNT: 00 00 00 00
-
 static enum doh_response_state
 r_header_id(struct doh_response_parser *p, const uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
-        // x01 01
         case 0:
-            // 0000 0001
-            // 0000 0000 0000 0000
-            // 0000 0000 0000 0001
             p->i++;
             p->response->header.id = ((uint16_t)c) << 8;
             next = response_header_id;
             break;
 
         case 1:
-            // 0000 0001  ==> 0000 0001 0000 0000
-            // 0000 0000 0000 0001
-            // 0000 0001 0000 0001
             p->response->header.id += (uint16_t)c;
             p->i = 0;
             p->n = HEADER_FLAGS_LENGTH;
@@ -287,10 +273,12 @@ r_header_ancount(struct doh_response_parser *p, const uint8_t c) {
             p->i = 0;
             p->n = HEADER_NSCOUNT_LENGTH;
             p->response->answers = calloc(sizeof(struct answer), p->response->header.ancount);
-            if (p->response->answers == NULL)
+            if (p->response->answers == NULL){
                 next = response_mem_alloc_error;
-            else
+            }
+            else{
                 next = response_header_nscount;
+            }
             break;
 
         default:
@@ -362,7 +350,6 @@ r_question_qname_label_length(struct doh_response_parser *p, const uint8_t c) {
     return response_question_qname_label;
 }
 
-// x03 w w w x00
 static enum doh_response_state
 r_question_qname_label(struct doh_response_parser *p, const uint8_t c) {
     if (p->i >= p->n)
@@ -620,6 +607,7 @@ r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
     int total = sprintf((char *)p->response->answers[p->response->answerIndex].ardata +
                             p->response->answers[p->response->answerIndex].ardatalength,
                         "%u", c);
+
     p->response->answers[p->response->answerIndex].ardatalength += total;
     p->response->answers[p->response->answerIndex].ardata[p->response->answers[p->response->answerIndex].ardatalength++] = '.';
     p->i++;
@@ -676,7 +664,6 @@ r_answer_cname_label_length_rdata(struct doh_response_parser *p, const uint8_t c
         p->i = 0;
         p->n = ANSWER_NAME_PTR_LENGTH;
         p->i++;
-        // p->response->answers[p->response->answerIndex].aoffset = (((uint16_t) c) & 0x3F) << 8;
         return response_answer_cname_pointer_rdata;
     }
 

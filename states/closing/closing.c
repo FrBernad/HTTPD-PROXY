@@ -21,7 +21,7 @@ closing_on_read_ready(struct selector_key *key) {
 
     if (connection->origin_status == CLOSING_STATUS && connection->client_status == CLOSING_STATUS) {
         if (!buffer_can_read(clientBuffer) && !buffer_can_read(originBuffer)) {
-            close_connection();
+            unregister_connection();
             return DONE;
         }
         return EMPTY_BUFFERS;
