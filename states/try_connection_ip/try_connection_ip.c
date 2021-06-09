@@ -29,7 +29,7 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         if (connection->connectionRequest.host_type == domain &&
             (connection->dohConnection == NULL || !connection->dohConnection->isActive)) {
             if (connection->connectionRequest.connect) {
-                buffer_reset(&connection->client_buffer);
+                buffer_reset(&connection->client_buffer);  //FIXME: VER QUE ONDA ESTO
             }
             return SEND_DOH_REQUEST;
         }

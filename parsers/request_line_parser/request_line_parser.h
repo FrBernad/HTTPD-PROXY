@@ -53,6 +53,8 @@ enum {
     VERSION_LENGTH = 8,
 
     MAX_ORIGIN_FORM = 1 << 10,
+
+    MAX_PORT_NUMBER = 65535
 };
 
 struct request_line {

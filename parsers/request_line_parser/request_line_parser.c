@@ -113,9 +113,9 @@ r_method(const uint8_t c, struct request_parser *p) {
 
 static enum request_state
 getMethodState(struct request_parser *p) {
-    char *method = (char *) p->request->method;
+    char *method = (char *)p->request->method;
 
-    if (strcmp(method, CONNECT) != 0) { //FIXME: 
+    if (strcmp(method, CONNECT) != 0) {  //FIXME:
         p->request->request_target.type = absolute_form;
         p->n = SCHEME_LENGTH;
         return request_target_scheme;
@@ -128,7 +128,7 @@ getMethodState(struct request_parser *p) {
 
 static enum request_state
 r_target_scheme(const uint8_t c, struct request_parser *p) {
-    char *scheme = (char *) SCHEME;
+    char *scheme = (char *)SCHEME;
 
     if (p->i >= p->n || scheme[p->i] != c)
         return request_error;
@@ -288,6 +288,10 @@ r_target_port(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
+    if (p->i != 0 && p->request->request_target.port > MAX_PORT_NUMBER) {
+        return request_error;
+    }
+
     if (END_OF_AUTHORITY(c)) {
         p->request->request_target.port = htons(p->request->request_target.port);
         assign_port(p);
@@ -354,7 +358,8 @@ r_version(const uint8_t c, struct request_parser *p) {
         return request_version_major;
     }
 
-    return request_version;;
+    return request_version;
+    ;
 }
 
 static enum request_state

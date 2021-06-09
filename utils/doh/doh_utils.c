@@ -144,7 +144,7 @@ unsigned
 try_next_dns_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    // Unregister doh connection socket
+    // la primera vez se borra del selector el doh y las proximas veces los sockets con conexiones fallidas mediante una ip
     if (selector_unregister_fd(key->s, connection->origin_fd) != SELECTOR_SUCCESS) {
         connection->error = INTERNAL_SERVER_ERROR;
         return ERROR;
@@ -180,6 +180,10 @@ try_next_ipv4_connection(struct selector_key *key) {
     struct answer currentAnswer;
     struct sockaddr_in ipv4;
 
+    /*Significa que no es la primera vez que intento con una ip*/
+    if (doh->currentTry != 0)
+        increase_failed_connections();
+
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
         if (currentAnswer.atype != IPV4_TYPE) {
@@ -189,7 +193,7 @@ try_next_ipv4_connection(struct selector_key *key) {
         memset(&ipv4, 0, sizeof(ipv4));
         ipv4.sin_addr = currentAnswer.aip.ipv4;
         ipv4.sin_family = AF_INET;
-        ipv4.sin_port = htons(80);
+        ipv4.sin_port = connection.client.request_line.request.request_target.port; 
 
         connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv4, sizeof(ipv4),
                                                             ipv4.sin_family);
@@ -216,6 +220,10 @@ try_next_ipv6_connection(struct selector_key *key) {
     struct answer currentAnswer;
     struct sockaddr_in6 ipv6;
 
+    /*Significa que no es la primera vez que intento con una ip*/
+    if (doh->currentTry != 0)
+        increase_failed_connections();
+
     while (doh->currentTry < doh->dohResponse.header.ancount) {
         currentAnswer = doh->dohResponse.answers[doh->currentTry++];
         if (currentAnswer.atype != IPV6_TYPE) {
@@ -225,7 +233,7 @@ try_next_ipv6_connection(struct selector_key *key) {
         memset(&ipv6, 0, sizeof(ipv6));
         ipv6.sin6_addr = currentAnswer.aip.ipv6;
         ipv6.sin6_family = AF_INET6;
-        ipv6.sin6_port = htons(80);
+        ipv6.sin6_port = connection.client.request_line.request.request_target.port; 
 
         connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv6, sizeof(ipv6), ipv6.sin6_family);
         if (connection->origin_fd == -1) {
@@ -241,7 +249,7 @@ try_next_ipv6_connection(struct selector_key *key) {
 
         return TRY_CONNECTION_IP;
     }
-    increase_failed_connections();
+    
     connection->error = INTERNAL_SERVER_ERROR;
     return ERROR;
 }
