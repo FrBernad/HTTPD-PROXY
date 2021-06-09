@@ -54,13 +54,17 @@ Table of Contents
            4.2.5 Request I/O Buffer Size ..................................
            4.2.6 Request Selector Timeout .................................
            4.2.7 Request Maximum Concurrent Connections ...................
+           4.2.8. Request Failed Connections ..............................
       4.3. Modification Methods Definitions  ..............................
            4.3.1 Set I/O Buffer Size  .....................................
            4.3.2 Set Selector Timeout .....................................
-      4.5. Method Error Handling ..........................................
-           4.4.1 Set I/O Buffer Size ......................................
-           4.4.2 Set Selector Timeout .....................................
-           4.4.3. Unothorized Requests  ...................................
+      4.4. Method Error Handling  .........................................
+           4.4.1. Retrieval Methods .......................................
+           4.4.2. Modification Methods ....................................
+                  4.4.2.1. Set I/O Buffer Size (Sec. 4.3.1.) ..............
+                  4.4.2.2. Set Selector Timeout (Sec. 4.3.2.) .............
+           4.4.3. Unauthorized Requests ...................................
+
 
 
 1. Introduction
@@ -103,18 +107,18 @@ Table of Contents
 
    Once a request is received, the server MUST analize the passphrase sent by the client.
    Once the passphrase is validated, the server MUST send a response corresponding to
-   the requested method. There may be subsequent requests/responses, all following the 
+   the requested method.  There may be subsequent requests/responses, all following the 
    structure defined below.
 
 3.3. PERCY Request Message Format
 
    The request message contains field/bytes in the following diagram:
 
-    +----------+----------+----------+----------+----------+----------+
-    |    VER   |   TYPE   |  METHOD  |   VALUE  |      PASSPHRASE     |
-    +----------+----------+----------+----------+---------------------+
-    |     1    |    1     |    1     |    1     |          6          |
-    +----------+----------+----------+----------+----------+----------+
+    +----------+----------+----------+----------+----------+----------+----------+
+    |    VER   |      PASSPHRASE     |   TYPE   |  METHOD  |   RESV   |   VALUE  |
+    +----------+---------------------+----------+----------+----------+----------+
+    |     1    |          6          |    1     |     1    |    1     |    2     |
+    +----------+----------+----------+----------+----------+----------+----------+
   
    where:
 
@@ -130,23 +134,26 @@ Table of Contents
 
                     X'02'               a server response 
                     
+    PASSPHRASE     A six byte field that specifies a passphrase to authorize the request.
+
     METHOD         A single byte field that specifies the method being requested.
+
+    RESV           A single byte field reserved for future use.
       
-    VALUE          A single byte field that specifies an OPTIONAL value for the method being requested.
+    VALUE          A two byte field that specifies an OPTIONAL value for the method being requested.
                    Commonly used for modification requests. 
 
-    PASSPHRASE     A six byte field that specifies a passphrase to authorize the request.
 
 3.4. PERCY Response Message Format
 
    The response message retrieval methods responses contains field/bytes 
    in the following diagram:
 
-        +----------+----------+----------+
-        |    VER   |  STATUS  |   VALUE  |
-        +----------+----------+----------+
-        |     1    |     1    |     8    |
-        +----------+----------+----------+
+        +----------+----------+----------+----------+
+        |    VER   |  STATUS  |   RESV   |   VALUE  |
+        +----------+----------+----------+----------+
+        |     1    |     1    |    1     |     8    |
+        +----------+----------+----------+----------+
   
    where:
 
@@ -162,6 +169,8 @@ Table of Contents
 
                     X'02'               an unsuccesful response 
 
+    RESV           A single byte field reserved for future use.
+
     VALUE          An eight byte field that specifies an OPTIONAL value in response of the requested method.
                    Commonly used for retrieval methods responses.                    
 
@@ -173,7 +182,7 @@ Table of Contents
 
 3.5.2. Preferred response syntax
 
-   When sending a response it is RECOMMENDED to set the value fields as X'00' for 
+   When sending a response it is RECOMMENDED to set the value field with zeros for 
    modification methods.
 
 4. Request Methods 
@@ -218,67 +227,88 @@ Table of Contents
     | X'01'   | Set selector timeout.                           | 4.3.2 |
     +---------+-------------------------------------------------+-------+
 
-4.2. Request Methods Definitions
+4.2. Retrieval Methods Definitions
 
 4.2.1. Request Historical Connections
 
    The X'00' retrieval method returns the number of historical connections, meaning the amount of clients
-   that have connected to the server.
+   that have connected to the server.  In response of a valid X'00' request, the server MUST reply setting 
+   the value field with the integer number of historical connections stored in big endian format. 
 
 4.2.2. Request Concurrent Connections
 
    The X'01' retrieval method returns the number of concurrent connections, meaning the amount of clients
-   that are connected to the server.
+   that are connected to the server.  In response of a valid X'01' request, the server MUST reply setting 
+   the value field with the integer number of concurrent connections stored in big endian format.
        
 4.2.3. Request Bytes Sent
 
-   The X'02' retrieval method returns the number of bytes sent by the server.
+   The X'02' retrieval method returns the number of bytes sent by the server.  In response of a valid X'02' 
+   request, the server MUST reply setting the value field with the integer number of bytes sent by the server
+   stored in big endian format.
 
 4.2.4. Request Bytes received
 
-   The X'03' retrieval method returns the number of bytes received by the server.
+   The X'03' retrieval method returns the number of bytes received by the server.  In response of a valid X'03' 
+   request, the server MUST reply setting the value field with the integer number of bytes received by the server 
+   stored in big endian format.
 
 4.2.5. Request I/O Buffer Size
 
-   The X'04' retrieval method returns the size of the I/O buffer used by the server.
+   The X'04' retrieval method returns the size of the I/O buffer used by the server.  In response of a valid X'04' 
+   request, the server MUST reply setting the value field with the integer value of the I/O buffer size used by the 
+   server stored in big endian format.
   
 4.2.6. Request Selector Timeout
 
-   The X'05' retrieval method returns the amount of time (seconds) that a selector is blocked.
+   The X'05' retrieval method returns the interval in seconds the selector should block waiting for a connection
+   to become ready.  In response of a valid X'05' request, the server MUST reply setting the value field with the 
+   integer interval in seconds stored in big endian format.
 
 4.2.7. Request Maximum Concurrent Connections
      
-   The X'06' retrieval method returns the all time maximum amount of concurrent connections.
+   The X'06' retrieval method returns the all time maximum amount of concurrent connections.  In response of a 
+   valid X'06' request, the server MUST reply setting the value field with the integer value of the all time 
+   maximum amount of concurrent connections stored in big endian format.
 
 4.2.8. Request Failed Connections
      
-   The X'07' retrieval method returns the number of connections that do not succeed.  
+   The X'07' retrieval method returns the number of failed.  In response of a valid X'07' request, the server 
+   MUST reply setting the value field with the integer number of failed connections stored in big endian format.
 
 4.3. Modification Methods Definitions
 
 4.3.1. Set I/O Buffer Size
 
    The X'00' modification method sets the size of the buffers dedicated to I/O operations by the server.
-   The size MUST be specified in the value field.  A user SHOULD only send a value between 1 and 1024. 
+   The desired size MUST be an integer value between 1 and 1024 stored in big endian format specified in 
+   the value field.  In response of a valid X'00' request, the server MUST reply with a X'00' state.  
   
 4.3.2. Set Selector Timeout
 
-   The X'01' modification method sets the amount of time (seconds) that the selector will be blocked waiting 
-   for activity.  A user SHOULD only send a value between 0 and 10.
+   The X'01' modification method sets the interval in seconds the selector should block waiting for a connection
+   to become ready. The desired interval MUST be an integer value between 0 and 10 stored in big endian format 
+   in the value field. In response of a valid X'01' request, the server MUST reply with a X'00' state.  
        
 4.4. Method Error Handling
 
-4.4.1. Set I/O Buffer Size (Sec. 4.3.1.)
+4.4.1. Retrieval Methods
 
-   When the value received in the value field is invalid, the server MUST respond with
-   a X'02' state.
+   A server SHOULD reply with a X'00' status to all retrieval methods, except for unauthorized requests. 
+
+4.4.2. Modification Methods
+
+4.4.2.1. Set I/O Buffer Size (Sec. 4.3.1.)
+
+   When the value received in the value field is invalid, the server MUST reply with
+   a X'02' state. 
   
-4.4.2. Set Selector Timeout (Sec. 4.3.2.)
+4.4.2.2. Set Selector Timeout (Sec. 4.3.2.)
 
-   When the value received in the value field is invalid, the server MUST respond with
+   When the value received in the value field is invalid, the server MUST reply with
    a X'02' state.
 
-4.4.3. Unothorized Requests
+4.4.3. Unauthorized Requests
 
-   When the value received in the passphrase field is invalid, the server MUST respond with
+   When the value received in the passphrase field is invalid, the server MUST reply with
    a X'01' state.
