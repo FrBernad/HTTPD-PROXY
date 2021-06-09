@@ -8,6 +8,7 @@
 /** init parser */
 void percy_request_parser_init(struct percy_request_parser *p) {
     p->state = percy_request_ver;
+    p->i = 0;
     memset(p->request, 0, sizeof(*(p->request)));
 }
 static enum percy_request_state p_request_ver(struct percy_request_parser *p, const uint8_t c);

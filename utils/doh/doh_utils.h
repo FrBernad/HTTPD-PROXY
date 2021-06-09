@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#include "utils/args/args.h"
+#include "httpd.h"
 #include "utils/selector/selector.h"
 
 /*
@@ -19,6 +19,6 @@ unsigned
 try_next_dns_connection(struct selector_key *key);
 
 void 
-init_doh(struct doh argsDoh);
+init_doh();
 
 #endif

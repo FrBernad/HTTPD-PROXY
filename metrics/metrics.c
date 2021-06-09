@@ -1,13 +1,12 @@
 #include "metrics.h"
 
-#include <stdint.h>
 #include <string.h>
 
 static struct proxy_metrics {
-    unsigned long historical_connections;
-    int concurrent_connections;
-    unsigned long total_bytes_transfer;
-    unsigned long failed_connections;
+    uint64_t historical_connections;
+    uint16_t concurrent_connections;
+    uint64_t total_bytes_transfer;
+    uint64_t failed_connections;
 } proxy_metrics;
 
 void init_metrics() {

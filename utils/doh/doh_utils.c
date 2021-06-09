@@ -36,7 +36,9 @@ static struct doh_utils {
     in_port_t port;
 } dohUtils;
 
-void init_doh(struct doh argsDoh) {
+void init_doh() {
+    struct doh argsDoh = get_httpd_args().doh;
+
     dohUtils.doh = argsDoh;
     dohUtils.port = htons(argsDoh.port);
 

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "management/management.h"
 #include "connections/connections.h"
 #include "metrics/metrics.h"
 #include "httpd.h"
@@ -76,11 +77,17 @@ int main(int argc, char *argv[]) {
         goto finally;
     }
 
-    init_doh(args.doh);
+    init_doh();
     init_metrics();
 
     if (init_proxy_listener(selector) < 0) {
         fprintf(stderr, "Passive socket creation\n");
+        returnVal = 2;
+        goto finally;
+    }
+
+    if (init_management(selector) < 0) {
+        fprintf(stderr, "Management socket creation\n");
         returnVal = 2;
         goto finally;
     }

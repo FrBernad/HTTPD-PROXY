@@ -14,7 +14,8 @@
 
 enum {
     PASS_PHRASE_LEN = 6,
-    VALUE_LEN = 2
+    VALUE_LEN = 2,
+    PERCY_REQUEST_SIZE = 12
 };
 
 struct request_percy {
