@@ -1,19 +1,3 @@
-/**
- * 
- * 
- *  +----------+----------+----------+----------+----------+----------+----------+
-    |    VER   |      PASSPHRASE     |   TYPE   |  METHOD  |   RESV   |   VALUE  |
-    +----------+---------------------+----------+----------+----------+----------+
-    |     1    |          6          |    1     |     1    |    1     |    2     |
-    +----------+----------+----------+----------+----------+----------+----------+
- * 
-        +----------+----------+----------+----------+
-//         |    VER   |  STATUS  |   RESV   |   VALUE  |
-        +----------+----------+----------+----------+
-        |     1    |     1    |    1     |     8    |
-        +----------+----------+----------+----------+
-*/
-
 #include <arpa/inet.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -27,6 +11,7 @@
 #define PORT 8080
 #define MAX_BUFF 1024
 #define PASS_PHRASE_LEN 6
+#define IS_DIGIT(x) (x >= '0' && x <= '9')
 
 struct percy_response {
     uint8_t ver;
@@ -44,38 +29,49 @@ struct request_percy {
     uint16_t value;
 };
 
-static void buildRequest(char *buffer, int option, int value);
+static void buildRequest(char *buffer,int * sizeOfBuffer, int option, int value);
 static void clearScreen();
 static void showOptions();
 static void error();
+static int processInput(char *buff, int bytesToRead, int *option, int *value);
+int getValue(int *option, int *value);
+static int processValue(char *buff, int bytesToRead, int *value);
 
 int main(int argc, char const *argv[]) {
     int socketFd;
 
     struct sockaddr_in servaddr;
 
-    // if ((socketFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-    //     perror("Client socket creation failed");
-    //     exit(1);
-    // }
+    if ((socketFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("Client socket creation failed");
+        exit(1);
+    }
 
-    // memset(&servaddr, 0, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
 
-    // servaddr.sin_family = AF_INET;
-    // servaddr.sin_port = htons(PORT);
-    // servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(PORT);
+    servaddr.sin_addr.s_addr = INADDR_ANY;
 
-    char buff[MAX_BUFF];
     int bytesToRead;
-    char sendBuff[MAX_BUFF];
+    char buff[MAX_BUFF];
 
     bool reading = true;
+    int option = 0, value = 0;
 
     while (reading) {
         showOptions();
         bytesToRead = read(STDIN_FILENO, buff, MAX_BUFF);
         if (bytesToRead > 0) {
-            
+            if (processInput(buff, bytesToRead, &option, &value) > 0) {
+                int len = 0;
+                buildRequest(buff,&len,option, value);
+                sendto(sockfd, buffer,len,MSG_CONFIRM, (const struct sockaddr *) &servaddr, sizeof(servaddr));
+                n = recvfrom(sockfd, (char *)buffer, MAX_BUFF, MSG_WAITALL, (struct sockaddr *) &servaddr,sizeof(servaddr));
+                printf("%d\n",n);
+            } else {
+                error();
+            }
         } else {
             reading = false;
         }
@@ -85,7 +81,66 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 
-static void buildRequest(char *buffer, int option, int value) {
+static int processInput(char *buff, int bytesToRead, int *option, int *value) {
+    int i = 0;
+    int aux = 0;
+    while (i < bytesToRead) {
+        if (buff[i] == '\n')
+            break;
+        if (IS_DIGIT(buff[i]))
+            aux = i == 0 ? buff[i] - '0' : aux * 10 + buff[i] - '0';
+
+        i++;
+    }
+
+    *option = aux;
+
+    if (*option >= 0 && *option <= 8) {
+        *value = 0;
+        return 0;
+    } else if (*option >= 9 && *option <= 10) {
+        return getValue(option, value);
+    } else {
+        return -1;
+    }
+}
+
+int getValue(int *option, int *value) {
+    switch (*option) {
+        case 9:
+            printf("\n\nThe value of the I/O buffer size should be between 1 and 1024:  \n\n");
+            break;
+        case 10:
+            printf("\n\n1 to set on the sniffer and 0 to set off:   \n\n");
+            break;
+    }
+    printf("Value: ");
+    fflush(stdout);
+
+    char buff[MAX_BUFF];
+    int bytesToRead = read(STDIN_FILENO, buff, MAX_BUFF);
+    return processValue(buff, bytesToRead, value);
+}
+
+static int processValue(char *buff, int bytesToRead, int *value) {
+    int i = 0;
+    int aux = 0;
+    while (i < bytesToRead) {
+        if (buff[i] == '\n')
+            break;
+        if (IS_DIGIT(buff[i])) {
+            aux = i == 0 ? buff[i] - '0' : aux * 10 + buff[i] - '0';
+        } else {
+            return -1;
+        }
+        i++;
+    }
+
+    *value = aux;
+    return 0;
+}
+
+static void buildRequest(char *buffer, int * sizeOfBuffer, int option, int value) {
     struct request_percy request;
     request.ver = 1;
     strcpy(request.passphrase, "CONTRA");
@@ -135,16 +190,18 @@ static void buildRequest(char *buffer, int option, int value) {
         case 9:
             request.type = 1;
             request.method = 0;
-            request.value = 0;
+            request.value = value;
             break;
         case 10:
             request.type = 1;
             request.method = 1;
-            request.value = 0;
+            request.value = value;
             break;
         default:
             error();
     }
+    *sizeOfBuffer = sizeof(request);
+     memcpy(buffer, &request, *sizeOfBuffer);
 
 }
 
@@ -153,7 +210,10 @@ static void clearScreen() {
 }
 
 static void showOptions() {
+    printf("Select an option\n\n");
+
     printf("Request methods:\n\n");
+
     printf("-1  Request the number of historical connections.\n");
     printf("-2  Request the number of concurrent connections. \n");
     printf("-3  Request the number of bytes sent.\n");
@@ -162,9 +222,14 @@ static void showOptions() {
     printf("-6  Request selector timeout.\n");
     printf("-7  Request the maximum amount of concurrent connections.\n");
     printf("-8  Request the number of failed connections.\n\n");
+
     printf("Modification methods:\n\n");
+
     printf("-9  Set I/O buffer size. \n");
     printf("-10 Set selector timeout. \n\n");
+
+    printf("Option: ");
+    fflush(stdout);
 }
 
 static void error() {
