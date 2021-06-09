@@ -10,7 +10,7 @@
 
 #include "connections/connections.h"
 #include "metrics/metrics.h"
-#include "utils/args/args.h"
+#include "httpd.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/selector/selector.h"
 
@@ -269,4 +269,9 @@ default_proxy_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
     }
 
     return socketfd;
+}
+
+struct http_args
+get_httpd_args(){
+    return args;
 }

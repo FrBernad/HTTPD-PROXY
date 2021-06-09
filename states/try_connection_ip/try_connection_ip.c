@@ -28,18 +28,13 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         /*Si dohConnection == NULL es que nunca mande el doh_request, si no esta active estoy probando ipv+ */
         if (connection->connectionRequest.host_type == domain &&
             (connection->dohConnection == NULL || !connection->dohConnection->isActive)) {
-            if (connection->connectionRequest.connect) {
-                buffer_reset(&connection->client_buffer);  //FIXME: VER QUE ONDA ESTO
-            }
             return SEND_DOH_REQUEST;
         }
         /*En este caso ya estoy conectado al origin*/
+        register_new_connection();
         if (connection->connectionRequest.connect) {
-            buffer_reset(&connection->client_buffer);
-            register_new_connection();
             return CONNECTED;
         }
-        register_new_connection();
         return SEND_REQUEST_LINE;
     }
 

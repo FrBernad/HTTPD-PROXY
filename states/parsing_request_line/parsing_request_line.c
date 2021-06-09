@@ -9,6 +9,7 @@
 #include "connections/connections_def.h"
 #include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
+#include "httpd.h"
 #include "utils/net/net_utils.h"
 #include "utils/sniffer/sniffer_utils.h"
 
@@ -29,19 +30,22 @@ void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     requestLine->buffer = &connection->client_buffer;
 
     request_parser_init(&requestLine->request_parser);
-    sniffer_parser_init(&connection->client_sniffer.sniffer_parser);
+
+    struct http_args args = get_httpd_args();
+    connection->sniffer.sniffEnabled = args.disectors_enabled;
+
+    sniffer_parser_init(&connection->sniffer.sniffer_parser);
 }
 
 unsigned
 parsing_host_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    sniff_data(connection);
-
     struct request_line_st *requestLine = &connection->client.request_line;
 
     while (buffer_can_read(requestLine->buffer)) {
         request_state state = request_parser_feed(&requestLine->request_parser, buffer_read(requestLine->buffer));
+        connection->sniffer.bytesToSniff--;
 
         if (check_request_line_error(connection, state)) {
             return ERROR;
@@ -56,6 +60,14 @@ parsing_host_on_read_ready(struct selector_key *key) {
 
             if (nextState != ERROR) {
                 build_connection_request(key);
+                if (connection->connectionRequest.connect) {
+                    buffer_reset(&connection->client_buffer);
+                } else {
+                    if (connection->sniffer.sniffEnabled && connection->sniffer.bytesToSniff > 0) {
+                        modify_sniffer_state(&connection->sniffer.sniffer_parser, sniff_http_authorization);
+                        sniff_data(key);
+                    }
+                }
             }
 
             return nextState;

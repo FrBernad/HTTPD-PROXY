@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "connections/connections_def.h"
+#include "httpd.h"
 #include "utils/sniffer/sniffer_utils.h"
 
 static void
@@ -21,14 +22,15 @@ connected_on_read_ready(struct selector_key *key) {
 
     if (connection->client_status == CLOSING_STATUS || connection->origin_status == CLOSING_STATUS) {
         return CLOSING;
-    }   
+    }
 
-    sniff_data(connection);
-   
+    if (connection->sniffer.sniffEnabled) {
+        sniff_data(key);
+    }
+
     set_connection_interests(key);
     return connection->stm.current->state;
 }
-
 
 unsigned
 connected_on_write_ready(struct selector_key *key) {

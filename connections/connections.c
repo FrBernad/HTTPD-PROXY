@@ -62,7 +62,7 @@ void init_selector_handlers() {
     originHandler.handle_block = NULL;
 }
 
-/*                        
+/*
 **     PROXY LISTENER SOCKET HANDLER FUNCTIONS
 */
 
@@ -71,7 +71,7 @@ void accept_new_ipv4_connection(struct selector_key *key) {
 
     struct sockaddr_in addr;
 
-    accept_and_init_new_connection(key, (struct sockaddr *)&addr, sizeof(addr));
+    accept_and_init_new_connection(key, (struct sockaddr *) &addr, sizeof(addr));
 }
 
 void accept_new_ipv6_connection(struct selector_key *key) {
@@ -79,7 +79,7 @@ void accept_new_ipv6_connection(struct selector_key *key) {
 
     struct sockaddr_in6 addr;
 
-    accept_and_init_new_connection(key, (struct sockaddr *)&addr, sizeof(addr));
+    accept_and_init_new_connection(key, (struct sockaddr *) &addr, sizeof(addr));
 }
 
 static void
@@ -149,8 +149,8 @@ create_new_connection(int clientFd) {
     return newConnection;
 }
 
-/*                        
-**     PROXY CLIENT HANDLER FUNCTIONS  
+/*
+**     PROXY CLIENT HANDLER FUNCTIONS
 */
 static void
 proxy_client_read(struct selector_key *key) {
@@ -166,14 +166,17 @@ proxy_client_read(struct selector_key *key) {
     if (totalBytes < 0) {
         close_proxy_connection(key);
     }
-    /* Si el client no quiere mandar nada más, marco al client como que está cerrando y
-        que envie los bytes que quedan en su buffer */
+        /* Si el client no quiere mandar nada más, marco al client como que está cerrando y
+            que envie los bytes que quedan en su buffer */
     else {
         if (totalBytes == 0) {
             connection->client_status = CLOSING_STATUS;
             //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
         } else {
-            connection->client_sniffer.bytesToSniff = totalBytes;
+            unsigned currentState = stm_state(&connection->stm);
+            if (currentState == PARSING_REQUEST_LINE || currentState == CONNECTED) {
+                connection->sniffer.bytesToSniff = totalBytes;
+            }
             buffer_write_adv(buffer, totalBytes);
         }
         stm_handler_read(&connection->stm, key);
@@ -214,8 +217,8 @@ proxy_client_close(struct selector_key *key) {
     free_connection_data(connection);
 }
 
-/*                        
-**     PROXY ORIGIN HANDLER FUNCTIONS  
+/*
+**     PROXY ORIGIN HANDLER FUNCTIONS
 */
 
 static void
@@ -232,13 +235,18 @@ proxy_origin_read(struct selector_key *key) {
     if (totalBytes < 0) {
         close_proxy_connection(key);
     }
-    /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
-        que envie los bytes que quedan en su buffer */
+        /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
+            que envie los bytes que quedan en su buffer */
     else {
         if (totalBytes == 0) {
             connection->origin_status = CLOSING_STATUS;
+        } else {
+            unsigned currentState = stm_state(&connection->stm);
+            if (currentState == PARSING_REQUEST_LINE || currentState == CONNECTED) {
+                connection->sniffer.bytesToSniff = totalBytes;
+            }
+            buffer_write_adv(buffer, totalBytes);
         }
-        buffer_write_adv(buffer, totalBytes);
         stm_handler_read(&connection->stm, key);
     }
 }
@@ -299,7 +307,7 @@ int register_origin_socket(struct selector_key *key) {
     return selector_register(key->s, connection->origin_fd, &originHandler, OP_WRITE, connection);
 }
 
-/*                        
+/*
 **     PROXY FREE RESOURCES FUNCTIONS
 */
 
@@ -322,8 +330,8 @@ static void
 free_connection_data(proxyConnection *connection) {
     free(connection->origin_buffer.data);
     free(connection->client_buffer.data);
-    if (connection->client_sniffer.sniffer_parser.parserIsSet) {
-        free(connection->client_sniffer.sniffer_parser.stringParser);
+    if (connection->sniffer.sniffer_parser.parserIsSet) {
+        free(connection->sniffer.sniffer_parser.stringParser);
     }
     if (connection->dohConnection != NULL) {
         free_doh_connection(connection->dohConnection);
