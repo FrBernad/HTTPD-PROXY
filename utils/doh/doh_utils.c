@@ -193,7 +193,7 @@ try_next_ipv4_connection(struct selector_key *key) {
         memset(&ipv4, 0, sizeof(ipv4));
         ipv4.sin_addr = currentAnswer.aip.ipv4;
         ipv4.sin_family = AF_INET;
-        ipv4.sin_port = connection.client.request_line.request.request_target.port; 
+        ipv4.sin_port = connection->client.request_line.request.request_target.port; 
 
         connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv4, sizeof(ipv4),
                                                             ipv4.sin_family);
@@ -233,7 +233,7 @@ try_next_ipv6_connection(struct selector_key *key) {
         memset(&ipv6, 0, sizeof(ipv6));
         ipv6.sin6_addr = currentAnswer.aip.ipv6;
         ipv6.sin6_family = AF_INET6;
-        ipv6.sin6_port = connection.client.request_line.request.request_target.port; 
+        ipv6.sin6_port = connection->client.request_line.request.request_target.port; 
 
         connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv6, sizeof(ipv6), ipv6.sin6_family);
         if (connection->origin_fd == -1) {

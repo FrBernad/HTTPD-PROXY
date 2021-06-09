@@ -288,9 +288,13 @@ r_target_port(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
+/*FIXME:
+
     if (p->i != 0 && p->request->request_target.port > MAX_PORT_NUMBER) {
         return request_error;
     }
+*/
+
 
     if (END_OF_AUTHORITY(c)) {
         p->request->request_target.port = htons(p->request->request_target.port);
