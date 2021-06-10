@@ -3,7 +3,7 @@
 #include <string.h>
 
 #define IS_PERCY_TYPE(x) (x == 0x00 || x == 0x01 || x == 0x02)
-#define IS_PERCY_METHOD(x) (x == 0x00 || x == 0x01 || x == 0x03 || x == 0x04 || x == 0x05 || x == 0x06 || x == 0x07)
+#define IS_PERCY_METHOD(x) (x == 0x00 || x == 0x01 || x == 0x02 || x == 0x03 || x == 0x04 || x == 0x05 || x == 0x06 || x == 0x07)
 
 /** init parser */
 void percy_request_parser_init(struct percy_request_parser *p) {
@@ -12,17 +12,23 @@ void percy_request_parser_init(struct percy_request_parser *p) {
     memset(p->request, 0, sizeof(*(p->request)));
 }
 
-static enum percy_request_state p_request_ver(struct percy_request_parser *p, const uint8_t c);
+static enum percy_request_state 
+p_request_ver(struct percy_request_parser *p, const uint8_t c);
 
-static enum percy_request_state p_request_type(struct percy_request_parser *p, const uint8_t c);
+static enum percy_request_state 
+p_request_type(struct percy_request_parser *p, const uint8_t c);
 
-static enum percy_request_state p_request_passphrase(struct percy_request_parser *p, const uint8_t c);
+static enum percy_request_state 
+p_request_passphrase(struct percy_request_parser *p, const uint8_t c);
 
-static enum percy_request_state p_request_method(struct percy_request_parser *p, const uint8_t c);
+static enum percy_request_state 
+p_request_method(struct percy_request_parser *p, const uint8_t c);
 
-static enum percy_request_state p_request_resv(struct percy_request_parser *p, const uint8_t c);
+static enum percy_request_state 
+p_request_resv(struct percy_request_parser *p, const uint8_t c);
 
-static enum percy_request_state p_request_value(struct percy_request_parser *p, const uint8_t c);
+static enum percy_request_state 
+p_request_value(struct percy_request_parser *p, const uint8_t c);
 
 enum percy_request_state
 percy_request_parser_feed(struct percy_request_parser *p, const uint8_t c) {
@@ -72,7 +78,8 @@ percy_request_parser_feed(struct percy_request_parser *p, const uint8_t c) {
     +----------+----------+----------+----------+----------+----------+----------+
 
 */
-static enum percy_request_state p_request_ver(struct percy_request_parser *p, const uint8_t c) {
+static enum percy_request_state 
+p_request_ver(struct percy_request_parser *p, const uint8_t c) {
     if (c != 0x01) {
         return percy_request_error;
     }
@@ -82,7 +89,8 @@ static enum percy_request_state p_request_ver(struct percy_request_parser *p, co
     return percy_request_passphrase;
 }
 
-static enum percy_request_state p_request_passphrase(struct percy_request_parser *p, const uint8_t c) {
+static enum percy_request_state 
+p_request_passphrase(struct percy_request_parser *p, const uint8_t c) {
     p->request->passphrase[p->i++] = c;
 
     if (p->i == p->n) {
@@ -92,7 +100,8 @@ static enum percy_request_state p_request_passphrase(struct percy_request_parser
     return percy_request_passphrase;
 }
 
-static enum percy_request_state p_request_type(struct percy_request_parser *p, const uint8_t c) {
+static enum percy_request_state 
+p_request_type(struct percy_request_parser *p, const uint8_t c) {
     if (!IS_PERCY_TYPE(c)) {
         return percy_request_error;
     }
@@ -100,7 +109,8 @@ static enum percy_request_state p_request_type(struct percy_request_parser *p, c
     return percy_request_method;
 }
 
-static enum percy_request_state p_request_method(struct percy_request_parser *p, const uint8_t c) {
+static enum percy_request_state 
+p_request_method(struct percy_request_parser *p, const uint8_t c) {
     if (!IS_PERCY_METHOD(c)) {
         return percy_request_error;
     }
@@ -109,14 +119,16 @@ static enum percy_request_state p_request_method(struct percy_request_parser *p,
     return percy_request_resv;
 }
 
-static enum percy_request_state p_request_resv(struct percy_request_parser *p, const uint8_t c) {
+static enum percy_request_state 
+p_request_resv(struct percy_request_parser *p, const uint8_t c) {
     p->request->resv = c;
     p->i = 0;
     p->n = VALUE_LEN;
     return percy_request_value;
 }
 
-static enum percy_request_state p_request_value(struct percy_request_parser *p, const uint8_t c) {
+static enum percy_request_state 
+p_request_value(struct percy_request_parser *p, const uint8_t c) {
     percy_request_state next;
 
     switch (p->i) {

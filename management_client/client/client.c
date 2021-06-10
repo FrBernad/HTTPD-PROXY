@@ -24,14 +24,29 @@ struct request_percy {
     uint16_t value;
 };
 
-static void buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value);
-// static void clearScreen();
-static void showOptions();
-static void error();
-static int processInput(uint8_t *buff, int bytesToRead, int *option, int *value);
-int getValue(int *option, int *value);
-static int processValue(char *buff, int bytesToRead, int *value);
-static void parseAnswer(uint8_t *buff, int len);
+static void
+buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value);
+
+static void
+clearScreen();
+
+static void
+showOptions();
+
+static void
+error();
+
+static int
+processInput(uint8_t *buff, int bytesToRead, int *option, int *value);
+
+static int
+getValue(int *option, int *value);
+
+static int
+processValue(char *buff, int bytesToRead, int *value);
+
+static void
+parseAnswer(uint8_t *buff, int len);
 
 int main(int argc, char const *argv[]) {
     int socketFd;
@@ -58,7 +73,7 @@ int main(int argc, char const *argv[]) {
 
     while (reading) {
         showOptions();
-        bytesToRead = read(STDIN_FILENO, (char*)buff, MAX_BUFF);
+        bytesToRead = read(STDIN_FILENO, (char *)buff, MAX_BUFF);
         if (bytesToRead > 0) {
             if (processInput(buff, bytesToRead, &option, &value) < 0)
                 error();
@@ -78,7 +93,8 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 
-static int processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
+static int
+processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
     int i = 0;
     int aux = 0;
     while (i < bytesToRead) {
@@ -102,7 +118,8 @@ static int processInput(uint8_t *buff, int bytesToRead, int *option, int *value)
     }
 }
 
-int getValue(int *option, int *value) {
+static int
+getValue(int *option, int *value) {
     switch (*option) {
         case 9:
             printf("\n\nThe value of the I/O buffer size should be between 1 and 1024:  \n\n");
@@ -119,7 +136,8 @@ int getValue(int *option, int *value) {
     return processValue(buff, bytesToRead, value);
 }
 
-static int processValue(char *buff, int bytesToRead, int *value) {
+static int
+processValue(char *buff, int bytesToRead, int *value) {
     int i = 0;
     int aux = 0;
     while (i < bytesToRead) {
@@ -137,11 +155,12 @@ static int processValue(char *buff, int bytesToRead, int *value) {
     return 0;
 }
 
-static void buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value) {
+static void
+buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value) {
     struct request_percy request;
-    //VERSION 
-    buffer[0] = 1;       
-    
+    //VERSION
+    buffer[0] = 1;
+
     //PASSPHRASE
     buffer[1] = '1';
     buffer[2] = '2';
@@ -151,83 +170,83 @@ static void buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_
     buffer[6] = '6';
 
     //RESV
-    buffer[9] = '0';
+    buffer[9] = 0;
 
     switch (option) {
         case 1:
-            
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 0;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 0;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
         case 2:
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 1;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 1;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
         case 3:
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 2;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 2;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
         case 4:
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 3;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 3;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
         case 5:
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 4;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 4;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
         case 6:
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 5;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 5;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
         case 7:
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 6;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 6;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
         case 8:
-            buffer[7] = 0;              //TYPE
-            buffer[8] = 7;              //METHOD
-            buffer[10] = 0;             //VALUE
-            buffer[11] = 0;             //VALUE
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 7;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
             break;
 
         case 9:
-            buffer[7] = 1;              //TYPE
-            buffer[8] = 0;              //METHOD
-            buffer[10] = value>>8;      //VALUE
-            buffer[11] = value;         //VALUE
+            buffer[7] = 1;            //TYPE
+            buffer[8] = 0;            //METHOD
+            buffer[10] = value >> 8;  //VALUE
+            buffer[11] = value;       //VALUE
             break;
         case 10:
-            buffer[7] = 1;              //TYPE
-            buffer[8] = 1;              //METHOD
-            buffer[10] = value >>8;     //VALUE8;
-            buffer[11] = value;         //VALUE
+            buffer[7] = 1;            //TYPE
+            buffer[8] = 1;            //METHOD
+            buffer[10] = value >> 8;  //VALUE8;
+            buffer[11] = value;       //VALUE
             break;
         default:
             error();
     }
     *sizeOfBuffer = sizeof(request);
-    memcpy(buffer, &request, *sizeOfBuffer);
 }
 
-// static void clearScreen() {
-//     printf("\033{1;1H\033[2J");
-// }
+static void
+clearScreen() {
+    printf("\033{1;1H\033[2J\n");
+}
 
-static void showOptions() {
+static void
+showOptions() {
     printf("Select an option\n\n");
 
     printf("Request methods:\n\n");
@@ -250,22 +269,36 @@ static void showOptions() {
     fflush(stdout);
 }
 
-static void error() {
+static void
+error() {
     printf("Invalid option\n");
 }
 
-static void parseAnswer(uint8_t *buff, int len) {
+static void
+parseAnswer(uint8_t *buff, int len) {
     struct percy_response_parser response;
     struct percy_response percy_response;
     response.response = &percy_response;
-    
+
     percy_response_parser_init(&response);
     int i = 0;
     while (i < len) {
         percy_response_parser_feed(&response, buff[i++]);
     }
+
+    clearScreen();
+
+    printf("\n\nRESPONSE: \n\n");
+
     printf("Version %d\n", response.response->ver);
     printf("Status  %d\n", response.response->status);
     printf("Resv    %d\n", response.response->resv);
     printf("Value   %ld\n", response.response->value);
+
+    printf("\n\npress enter to continue\n");
+
+    while (getchar() != '\n')
+        ;
+
+    clearScreen();
 }

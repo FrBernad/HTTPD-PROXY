@@ -221,6 +221,7 @@ management_read(struct selector_key *key) {
         } else {
             switch (management.request.type) {
                 case RETRIEVAL:
+                    printf("received %d\n\n", management.request.method);
                     if (management.request.method <= RETRIEVAL_METHODS_COUNT - 1) {
                         send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS, PERCY_RESV, retrievalMethods[management.request.method]());
                         return;
