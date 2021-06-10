@@ -27,18 +27,18 @@ void log_new_connection(struct selector_key *key) {
     char clientAddr[IP_MAX] = {0};
 
     if (connection->client_addr.ss_family == AF_INET) {
-        inet_ntop(AF_INET, (struct in_addr *)&connection->client_addr, clientAddr, IP_MAX);
+        inet_ntop(AF_INET,&((struct sockaddr_in *)&connection->client_addr)->sin_addr, clientAddr, IP_MAX);
         bytesWritten += sprintf(buffer + bytesWritten, "%s\t", clientAddr);
         bytesWritten += sprintf(buffer + bytesWritten, "%d\t",
-                                (int)ntohs(
-                                    (((struct sockaddr_in *)&connection->client_addr)->sin_port)));
+                                (int)ntohs((((struct sockaddr_in *)&connection->client_addr)->sin_port))
+                                        );
 
     } else {
-        inet_ntop(AF_INET6, (struct in6_addr *)&connection->client_addr, clientAddr, IP_MAX);
-        bytesWritten += sprintf(buffer + bytesWritten, "[%s]\t", clientAddr);
-        bytesWritten += sprintf(buffer + bytesWritten, ":%d\t",
-                                (int)ntohs(
-                                    (((struct sockaddr_in6 *)&connection->client_addr)->sin6_port)));
+        inet_ntop(AF_INET6, &((struct sockaddr_in6 *)&connection->client_addr)->sin6_addr, clientAddr, IP_MAX);
+        bytesWritten += sprintf(buffer + bytesWritten, "%s\t", clientAddr);
+        bytesWritten += sprintf(buffer + bytesWritten, "%d\t",
+                                (int)ntohs((((struct sockaddr_in6 *)&connection->client_addr)->sin6_port))
+                                        );
     }
 
     bytesWritten += sprintf(buffer + bytesWritten, "%s\t", connection->connectionRequest.method);
