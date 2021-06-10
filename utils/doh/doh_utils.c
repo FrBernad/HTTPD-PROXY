@@ -132,8 +132,6 @@ handle_origin_doh_connection(struct selector_key *key) {
         return ERROR;
     }
 
-    printf("registered doh origin!\n");
-
     if (register_origin_socket(key) != SELECTOR_SUCCESS) {
         connection->error = INTERNAL_SERVER_ERROR;
         return ERROR;

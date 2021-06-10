@@ -60,9 +60,9 @@ typedef struct doh_connection {
 
 typedef struct connection_request {
 
-    uint8_t requestLine[REQUEST_LINE_MAX];
-    uint8_t method[REQUEST_LINE_MAX];
-    uint8_t target[REQUEST_LINE_MAX];
+    uint8_t requestLine[MAX_METHOD_LENGTH+SCHEME_LENGTH+MAX_FQDN_LENGTH+MAX_PORT_LENGTH+MAX_ORIGIN_FORM+VERSION_LENGTH+16];
+    uint8_t method[MAX_METHOD_LENGTH];
+    uint8_t target[SCHEME_LENGTH+MAX_FQDN_LENGTH+MAX_PORT_LENGTH+MAX_ORIGIN_FORM+16];
 
     bool connect;
 

@@ -63,7 +63,7 @@ dkms.conf
 .history/
 
 # Compiled files
-/httpd
+httpd
 .vscode/
 
 .idea/
