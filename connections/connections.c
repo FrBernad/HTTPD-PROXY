@@ -41,7 +41,7 @@ static void
 close_proxy_connection(struct selector_key *key);
 
 enum conections_defaults {
-    BUFFER_SIZE = 2048,
+    BUFFER_SIZE = 1024*8,
 };
 
 static fd_handler clientHandler;
@@ -65,8 +65,6 @@ void init_selector_handlers() {
 
 void
 accept_new_connection(struct selector_key *key) {
-    printf("new connection!\n");
-
     struct sockaddr_storage addr;
     socklen_t addrlen = sizeof(addr);
 

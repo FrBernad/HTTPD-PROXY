@@ -156,7 +156,6 @@ handle_origin_ip_connection(struct selector_key *key) {
     struct request_target *request_target = &connection->client.request_line.request.request_target;
 
     if (request_target->host_type == ipv4) {
-        printf("Connecting to ipv4\n");
         connection->origin_fd = establish_origin_connection(
             (struct sockaddr *)&request_target->host.ipv4,
             sizeof(request_target->host.ipv4),

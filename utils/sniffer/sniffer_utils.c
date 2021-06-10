@@ -35,7 +35,6 @@ sniff_data(struct selector_key *key) {
             break;
         } else if (state == sniff_error) {
             connection->sniffer.isDone = true;
-            printf("error parsing!\n");
             break;
         }
     }
