@@ -40,11 +40,19 @@ typedef enum sniffer_state {
 
 struct sniffer_parser {
     sniffer_state state;
+    
     uint8_t user[MAX_USER_LENGTH + 1];
     uint8_t password[MAX_PASSWORD_LENGTH + 1];
     uint8_t auth_value[MAX_AUTH_VALUE_LENGTH + 1];
+
+    enum protocol{
+        POP3,
+        HTTP,
+    }sniffedProtocol;
+
     struct parser *stringParser;
     bool parserIsSet;
+
     int i;
 };
 

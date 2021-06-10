@@ -58,14 +58,13 @@ s_pop3_origin_pass_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner)
 void sniffer_parser_init(struct sniffer_parser *p) {
     p->parserIsSet = false;
     p->state = sniff_start;
-    memset(p->auth_value, 0, MAX_AUTH_VALUE_LENGTH+1);
-    memset(p->user, 0, MAX_USER_LENGTH+1);
-    memset(p->password, 0, MAX_PASSWORD_LENGTH+1);
+    memset(p->auth_value, 0, MAX_AUTH_VALUE_LENGTH + 1);
+    memset(p->user, 0, MAX_USER_LENGTH + 1);
+    memset(p->password, 0, MAX_PASSWORD_LENGTH + 1);
     p->i = 0;
 }
 
-void
-modify_sniffer_state(struct sniffer_parser *p, enum sniffer_state newState) {
+void modify_sniffer_state(struct sniffer_parser *p, enum sniffer_state newState) {
     p->state = newState;
     set_string_parser(p, "AUTHORIZATION:");
 }
@@ -400,6 +399,7 @@ s_pop3_origin_pass_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner)
 
     if (state == STRING_CMP_EQ) {
         p->i = 0;
+        p->sniffedProtocol = POP3;
         return sniff_done;
     }
 
@@ -420,6 +420,7 @@ decode_and_parse_auth(struct sniffer_parser *p) {
 
     parse_user_and_password(authorization, len, p);
     free(authorization);
+    p->sniffedProtocol = HTTP;
 
     return sniff_done;
 }
