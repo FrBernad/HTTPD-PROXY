@@ -61,6 +61,9 @@ await_doh_response_on_read_ready(struct selector_key *key) {
             } else if (dohResponseState == response_mem_alloc_error) {
                 connection->error = INTERNAL_SERVER_ERROR;
                 return ERROR;
+            }else if(connection->dohConnection->dohParser.state == doh_response_done){
+                buffer_reset(origin_buffer);
+                break;
             }
         }
     }

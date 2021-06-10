@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "connections/connections.h"
+#include "management/management.h"
 #include "metrics/metrics.h"
 #include "utils/args/args.h"
 #include "utils/doh/doh_utils.h"
@@ -62,6 +63,8 @@ int main(int argc, char *argv[]) {
 
     connectionsManager.port = htons(args.http_port);
 
+    close(STDIN_FILENO);
+
     init_signal_handler(SIGINT);
     init_signal_handler(SIGTERM);
 
@@ -84,6 +87,12 @@ int main(int argc, char *argv[]) {
 
     if (init_proxy_listener(selector) < 0) {
         fprintf(stderr, "Passive socket creation\n");
+        returnVal = 2;
+        goto finally;
+    } 
+
+    if(init_management(selector)<0){
+        fprintf(stderr,"Management socket creation\n");
         returnVal = 2;
         goto finally;
     }

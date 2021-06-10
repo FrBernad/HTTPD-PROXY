@@ -150,6 +150,11 @@
     /                                               /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 
+   00 00 80 80   00 01 00 01   00 00 65 03
+   00 01 03 77   77 77 06 67   6f 6f 67 6c
+   6d 00 00 01   00 01 03 77   77 77 06 67   6f 6f 67 6c
+   65 03 63 6f   6d 00 00 01   00 01 63 6f
+
     NAME            a domain name to which this resource record pertains.
 
     TYPE            two octets containing one of the RR type codes.  This

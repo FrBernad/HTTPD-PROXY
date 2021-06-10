@@ -184,12 +184,12 @@ r_header_id(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->header.id = ((uint16_t)c) << 8;
+            p->response->header.id = ((uint16_t) c) << 8;
             next = response_header_id;
             break;
 
         case 1:
-            p->response->header.id += (uint16_t)c;
+            p->response->header.id += (uint16_t) c;
             p->i = 0;
             p->n = HEADER_FLAGS_LENGTH;
             next = response_header_flags;
@@ -239,12 +239,12 @@ r_header_qdcount(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->header.qdcount = ((uint16_t)c) << 8;
+            p->response->header.qdcount = ((uint16_t) c) << 8;
             next = response_header_qdcount;
             break;
 
         case 1:
-            p->response->header.qdcount += (uint16_t)c;
+            p->response->header.qdcount += (uint16_t) c;
             p->n = HEADER_ANCOUNT_LENGTH;
             p->i = 0;
             next = response_header_ancount;
@@ -264,19 +264,22 @@ r_header_ancount(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->header.ancount = ((uint16_t)c) << 8;
+            p->response->header.ancount = ((uint16_t) c) << 8;
             next = response_header_ancount;
             break;
 
         case 1:
-            p->response->header.ancount += (uint16_t)c;
+            p->response->header.ancount += (uint16_t) c;
             p->i = 0;
             p->n = HEADER_NSCOUNT_LENGTH;
-            p->response->answers = calloc(sizeof(struct answer), p->response->header.ancount);
-            if (p->response->answers == NULL){
-                next = response_mem_alloc_error;
+            if (p->response->header.ancount == 0) {
+                next = doh_response_error;
+                break;
             }
-            else{
+            p->response->answers = calloc(sizeof(struct answer), p->response->header.ancount);
+            if (p->response->answers == NULL) {
+                next = response_mem_alloc_error;
+            } else {
                 next = response_header_nscount;
             }
             break;
@@ -295,12 +298,12 @@ r_header_nscount(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->header.nscount = ((uint16_t)c) << 8;
+            p->response->header.nscount = ((uint16_t) c) << 8;
             next = response_header_nscount;
             break;
 
         case 1:
-            p->response->header.nscount += (uint16_t)c;
+            p->response->header.nscount += (uint16_t) c;
             p->i = 0;
             p->n = HEADER_ARCOUNT_LENGTH;
             next = response_header_arcount;
@@ -320,12 +323,12 @@ r_header_arcount(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->header.arcount = ((uint16_t)c) << 8;
+            p->response->header.arcount = ((uint16_t) c) << 8;
             next = response_header_arcount;
             break;
 
         case 1:
-            p->response->header.arcount += (uint16_t)c;
+            p->response->header.arcount += (uint16_t) c;
             next = response_question_qname_label_length;
             break;
 
@@ -373,12 +376,12 @@ r_question_qtype(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->question.qtype = ((uint16_t)c) << 8;
+            p->response->question.qtype = ((uint16_t) c) << 8;
             next = response_question_qtype;
             break;
 
         case 1:
-            p->response->question.qtype += (uint16_t)c;
+            p->response->question.qtype += (uint16_t) c;
             p->n = QUESTION_QCLASS_LENGTH;
             p->i = 0;
             next = response_question_qclass;
@@ -398,12 +401,12 @@ r_question_qclass(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->question.qclass = ((uint16_t)c) << 8;
+            p->response->question.qclass = ((uint16_t) c) << 8;
             next = response_question_qclass;
             break;
 
         case 1:
-            p->response->question.qclass += (uint16_t)c;
+            p->response->question.qclass += (uint16_t) c;
             p->i = 0;
             next = response_answer_name_label_length;
             break;
@@ -427,7 +430,7 @@ r_answer_name_label_length(struct doh_response_parser *p, const uint8_t c) {
         p->i = 0;
         p->n = ANSWER_NAME_PTR_LENGTH;
         p->i++;
-        p->response->answers[p->response->answerIndex].aoffset = (((uint16_t)c) & 0x3F) << 8;
+        p->response->answers[p->response->answerIndex].aoffset = (((uint16_t) c) & 0x3F) << 8;
         return response_answer_name_pointer;
     }
 
@@ -459,7 +462,7 @@ r_answer_name_pointer(struct doh_response_parser *p, const uint8_t c) {
 
     switch (p->i) {
         case 1:
-            p->response->answers[p->response->answerIndex].aoffset += (uint16_t)c;
+            p->response->answers[p->response->answerIndex].aoffset += (uint16_t) c;
             p->response->answers[p->response->answerIndex].aname.ptr = p->response->question.qname;
             p->i = 0;
             p->n = ANSWER_TYPE_LENGTH;
@@ -480,12 +483,12 @@ r_answer_type(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->answers[p->response->answerIndex].atype = ((uint16_t)c) << 8;
+            p->response->answers[p->response->answerIndex].atype = ((uint16_t) c) << 8;
             next = response_answer_type;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].atype += (uint16_t)c;
+            p->response->answers[p->response->answerIndex].atype += (uint16_t) c;
             p->i = 0;
             p->n = ANSWER_CLASS_LENGTH;
             next = response_answer_class;
@@ -505,12 +508,12 @@ r_answer_class(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->answers[p->response->answerIndex].aclass = ((uint16_t)c) << 8;
+            p->response->answers[p->response->answerIndex].aclass = ((uint16_t) c) << 8;
             next = response_answer_class;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].aclass += (uint16_t)c;
+            p->response->answers[p->response->answerIndex].aclass += (uint16_t) c;
             p->i = 0;
             p->n = ANSWER_TTL_LENGTH;
             next = response_answer_ttl;
@@ -529,25 +532,25 @@ r_answer_ttl(struct doh_response_parser *p, const uint8_t c) {
 
     switch (p->i) {
         case 0:
-            p->response->answers[p->response->answerIndex].attl = ((uint32_t)c) << 24;
+            p->response->answers[p->response->answerIndex].attl = ((uint32_t) c) << 24;
             p->i++;
             next = response_answer_ttl;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].attl += ((uint32_t)c) << 16;
+            p->response->answers[p->response->answerIndex].attl += ((uint32_t) c) << 16;
             p->i++;
             next = response_answer_ttl;
             break;
 
         case 2:
-            p->response->answers[p->response->answerIndex].attl += ((uint32_t)c) << 8;
+            p->response->answers[p->response->answerIndex].attl += ((uint32_t) c) << 8;
             p->i++;
             next = response_answer_ttl;
             break;
 
         case 3:
-            p->response->answers[p->response->answerIndex].attl += (uint32_t)c;
+            p->response->answers[p->response->answerIndex].attl += (uint32_t) c;
             p->i = 0;
             p->n = ANSWER_RD_LENGTH;
             next = response_answer_rdlength;
@@ -567,12 +570,12 @@ r_answer_rdlength(struct doh_response_parser *p, const uint8_t c) {
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->answers[p->response->answerIndex].ardlength = ((uint16_t)c) << 8;
+            p->response->answers[p->response->answerIndex].ardlength = ((uint16_t) c) << 8;
             next = response_answer_rdlength;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].ardlength += (uint16_t)c;
+            p->response->answers[p->response->answerIndex].ardlength += (uint16_t) c;
             p->i = 0;
             switch (p->response->answers[p->response->answerIndex].atype) {
                 case IPV4_TYPE:
@@ -604,8 +607,8 @@ r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
     if (p->i >= p->n)
         return doh_response_error;
 
-    int total = sprintf((char *)p->response->answers[p->response->answerIndex].ardata +
-                            p->response->answers[p->response->answerIndex].ardatalength,
+    int total = sprintf((char *) p->response->answers[p->response->answerIndex].ardata +
+                        p->response->answers[p->response->answerIndex].ardatalength,
                         "%u", c);
 
     p->response->answers[p->response->answerIndex].ardatalength += total;
@@ -613,7 +616,7 @@ r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
     p->i++;
     if (p->i == p->n) {
         p->response->answers[p->response->answerIndex].ardata[--p->response->answers[p->response->answerIndex].ardatalength] = 0;
-        inet_pton(AF_INET, (char *)p->response->answers[p->response->answerIndex].ardata,
+        inet_pton(AF_INET, (char *) p->response->answers[p->response->answerIndex].ardata,
                   &p->response->answers[p->response->answerIndex].aip.ipv4);
 
         /*No hay otra respuesta para analizar*/
@@ -635,7 +638,7 @@ r_answer_ipv6_rdata(struct doh_response_parser *p, const uint8_t c) {
     if (p->i == p->n) {
         p->response->answers[p->response->answerIndex].ardatalength = INET6_ADDRSTRLEN - 1;
         inet_ntop(AF_INET6, &p->response->answers[p->response->answerIndex].aip.ipv6,
-                  (char *)p->response->answers[p->response->answerIndex].ardata,
+                  (char *) p->response->answers[p->response->answerIndex].ardata,
                   p->response->answers[p->response->answerIndex].ardatalength);
 
         /*No hay otra respuesta para analizar*/
@@ -680,10 +683,8 @@ r_answer_cname_label_rdata(struct doh_response_parser *p, const uint8_t c) {
         return doh_response_error;
 
     p->i++;
-    // p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = c;
 
     if (p->i == p->n) {
-        // p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = '.';
         return response_answer_cname_label_length_rdata;
     }
 
