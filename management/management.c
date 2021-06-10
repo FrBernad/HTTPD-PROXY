@@ -30,6 +30,7 @@ typedef struct {
     int socketFd;
 
     struct in_addr ipv4addr;
+    struct in6_addr ipv6addr;
     in_port_t port;
 
     fd_handler managementHandler;
@@ -42,7 +43,13 @@ typedef struct {
 } management_t;
 
 static int
-create_listener_socket(struct sockaddr_in sockaddr);
+create_ipv4_listener_socket(struct sockaddr_in sockaddr);
+
+static int
+create_ipv6_listener_socket(struct sockaddr_in6 sockaddr);
+
+static int
+default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len);
 
 static void
 init_management_handlers();
@@ -76,17 +83,32 @@ static management_t management;
 int init_management(fd_selector selector) {
     struct http_args args = get_httpd_args();
 
+    bool isIpv4 = true;
+
     management.port = htons(args.mng_port);
     if (inet_pton(AF_INET, args.mng_addr, &management.ipv4addr) < 0) {
+        isIpv4 = false;
+    }
+    if (inet_pton(AF_INET6, args.mng_addr, &management.ipv6addr) < 0) {
         return -1;
     }
-    struct sockaddr_in sockaddr = {
-        .sin_addr = management.ipv4addr,
-        .sin_family = AF_INET,
-        .sin_port = management.port,
-    };
 
-    management.socketFd = create_listener_socket(sockaddr);
+    if (isIpv4) {
+        struct sockaddr_in sockaddr = {
+            .sin_addr = management.ipv4addr,
+            .sin_family = AF_INET,
+            .sin_port = management.port,
+        };
+        management.socketFd = create_ipv4_listener_socket(sockaddr);
+    } else {
+        struct sockaddr_in6 sockaddr = {
+            .sin6_addr = management.ipv6addr,
+            .sin6_family = AF_INET6,
+            .sin6_port = management.port,
+        };
+        management.socketFd = create_ipv6_listener_socket(sockaddr);
+    }
+
     if (management.socketFd < 0) {
         return -1;
     }
@@ -99,20 +121,39 @@ int init_management(fd_selector selector) {
     }
 
     management.requestParser.request = &management.request;
-    percy_request_parser_init(&management.requestParser);
     management.passphrase = (uint8_t *)"123456";
 
     return 1;
 }
 
+
+
+
+// Socket creation
 static int
-create_listener_socket(struct sockaddr_in sockaddr) {
+create_ipv4_listener_socket(struct sockaddr_in sockaddr) {
     int socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (socketfd < 0) {
         fprintf(stderr, "Management socket creation\n");
         return -1;
     }
 
+    return default_management_socket_settings(socketfd,(struct sockaddr *)&sockaddr, sizeof(sockaddr));
+}
+
+static int
+create_ipv6_listener_socket(struct sockaddr_in6 sockaddr) {
+    int socketfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    if (socketfd < 0) {
+        fprintf(stderr, "Management socket creation\n");
+        return -1;
+    }
+
+    return default_management_socket_settings(socketfd,(struct sockaddr *)&sockaddr, sizeof(sockaddr));
+}
+
+static int
+default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
     if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
         fprintf(stderr, "Setsockopt opt: SO_REUSEADDR\n");
         return -1;
@@ -123,13 +164,19 @@ create_listener_socket(struct sockaddr_in sockaddr) {
         return -1;
     }
 
-    if (bind(socketfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) < 0) {
+    if (bind(socketfd, sockaddr, len) < 0) {
         fprintf(stderr, "bind\n");
         return -1;
     }
 
     return socketfd;
 }
+
+
+
+
+
+// Management initialization
 
 static void
 init_management_handlers() {
@@ -151,10 +198,16 @@ static void init_management_functions() {
     retrievalMethods[8] = get_failed_connections;
 }
 
+
+
+// Management functions
+
 static void
 management_read(struct selector_key *key) {
+    // reset parser
+    percy_request_parser_init(&management.requestParser);
+
     struct sockaddr_storage clntAddr;
-    // FIXME: RESETEAR PARSER
     socklen_t clntAddrLen = sizeof(clntAddr);
 
     ssize_t bytesRcvd = recvfrom(management.socketFd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *)&clntAddr, &clntAddrLen);
@@ -205,9 +258,6 @@ build_reply(uint8_t *reply, uint8_t ver, uint8_t status, uint8_t resv, uint64_t 
 
     memcpy(reply + 3, serialized_value, sizeof(value));
 }
-02 03 04
-
-02
 
 static void
 serialize(uint64_t value, uint8_t serialized_value[8]) {
