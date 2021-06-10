@@ -8,34 +8,30 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "percy_response_parser.h"
+
 #define PORT 9090
 #define MAX_BUFF 1024
 #define PASS_PHRASE_LEN 6
 #define IS_DIGIT(x) (x >= '0' && x <= '9')
 
-struct percy_response {
-    uint8_t ver;
-    uint8_t status;
-    uint8_t resv;
-    uint64_t value;
-};
-
 struct request_percy {
     uint8_t ver;
-    uint8_t type;
     uint8_t passphrase[PASS_PHRASE_LEN];
+    uint8_t type;
     uint8_t method;
     uint8_t resv;
     uint16_t value;
 };
 
-static void buildRequest(char *buffer, int *sizeOfBuffer, int option, int value);
-static void clearScreen();
+static void buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value);
+// static void clearScreen();
 static void showOptions();
 static void error();
-static int processInput(char *buff, int bytesToRead, int *option, int *value);
+static int processInput(uint8_t *buff, int bytesToRead, int *option, int *value);
 int getValue(int *option, int *value);
 static int processValue(char *buff, int bytesToRead, int *value);
+static void parseAnswer(uint8_t *buff, int len);
 
 int main(int argc, char const *argv[]) {
     int socketFd;
@@ -55,14 +51,14 @@ int main(int argc, char const *argv[]) {
     servaddr.sin_addr.s_addr = INADDR_ANY;
 
     int bytesToRead;
-    char buff[MAX_BUFF];
+    uint8_t buff[MAX_BUFF];
 
     bool reading = true;
     int option = 0, value = 0;
 
     while (reading) {
         showOptions();
-        bytesToRead = read(STDIN_FILENO, buff, MAX_BUFF);
+        bytesToRead = read(STDIN_FILENO, (char*)buff, MAX_BUFF);
         if (bytesToRead > 0) {
             if (processInput(buff, bytesToRead, &option, &value) < 0)
                 error();
@@ -71,7 +67,7 @@ int main(int argc, char const *argv[]) {
                 buildRequest(buff, &len, option, value);
                 sendto(socketFd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&servaddr, servaddr_len);
                 int n = recvfrom(socketFd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&servaddr, &servaddr_len);
-                printf("%d\n", n);
+                parseAnswer(buff, n);
             }
         } else {
             reading = false;
@@ -82,7 +78,7 @@ int main(int argc, char const *argv[]) {
     return 0;
 }
 
-static int processInput(char *buff, int bytesToRead, int *option, int *value) {
+static int processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
     int i = 0;
     int aux = 0;
     while (i < bytesToRead) {
@@ -141,62 +137,78 @@ static int processValue(char *buff, int bytesToRead, int *value) {
     return 0;
 }
 
-static void buildRequest(char *buffer, int *sizeOfBuffer, int option, int value) {
+static void buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value) {
     struct request_percy request;
-    request.ver = 1;
-    strcpy(request.passphrase, "CONTRA");
-    request.resv = 0;
+    buffer[0] = 1;
+    buffer[1] = '1';
+    buffer[2] = '2';
+    buffer[3] = '3';
+    buffer[4] = '4';
+    buffer[5] = '5';
+    buffer[6] = '6';
+    buffer[9] = '0';
+
     switch (option) {
         case 1:
-            request.type = 0;
-            request.method = 0;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 0;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
         case 2:
-            request.type = 0;
-            request.method = 1;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 1;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
         case 3:
-            request.type = 0;
-            request.method = 2;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 2;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
         case 4:
-            request.type = 0;
-            request.method = 3;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 3;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
         case 5:
-            request.type = 0;
-            request.method = 4;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 4;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
         case 6:
-            request.type = 0;
-            request.method = 5;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 5;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
         case 7:
-            request.type = 0;
-            request.method = 6;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 6;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
         case 8:
-            request.type = 0;
-            request.method = 7;
-            request.value = 0;
+            buffer[7] = 0;
+            buffer[8] = 7;
+            buffer[10] = 0;
+            buffer[11] = 0;
             break;
 
         case 9:
-            request.type = 1;
-            request.method = 0;
-            request.value = value;
+            buffer[7] = 1;
+            buffer[8] = 0;
+            buffer[10] = value >> 8;
+            buffer[11] = value;
             break;
         case 10:
-            request.type = 1;
-            request.method = 1;
-            request.value = value;
+            buffer[7] = 1;
+            buffer[8] = 1;
+            buffer[10] = value >> 8;
+            buffer[11] = value;
             break;
         default:
             error();
@@ -205,9 +217,9 @@ static void buildRequest(char *buffer, int *sizeOfBuffer, int option, int value)
     memcpy(buffer, &request, *sizeOfBuffer);
 }
 
-static void clearScreen() {
-    printf("\033{1;1H\033[2J");
-}
+// static void clearScreen() {
+//     printf("\033{1;1H\033[2J");
+// }
 
 static void showOptions() {
     printf("Select an option\n\n");
@@ -234,4 +246,20 @@ static void showOptions() {
 
 static void error() {
     printf("Invalid option\n");
+}
+
+static void parseAnswer(uint8_t *buff, int len) {
+    struct percy_response_parser response;
+    struct percy_response percy_response;
+    response.response = &percy_response;
+    
+    percy_response_parser_init(&response);
+    int i = 0;
+    while (i < len) {
+        percy_response_parser_feed(&response, buff[i++]);
+    }
+    printf("Version %d\n", response.response->ver);
+    printf("Status %d\n", response.response->status);
+    printf("Resv %d\n", response.response->resv);
+    printf("Value %ld\n", response.response->value);
 }

@@ -27,6 +27,8 @@ struct request_percy {
     uint16_t value;
 };
 
+
+
 typedef enum percy_request_state {
 
     percy_request_ver,
