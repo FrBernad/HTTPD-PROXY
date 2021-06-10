@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "percy_response_parser.h"
+#include "management_client/percy_response_parser/percy_response_parser.h"
 
 #define PORT 9090
 #define MAX_BUFF 1024

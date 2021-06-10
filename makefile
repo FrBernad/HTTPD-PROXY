@@ -6,15 +6,23 @@ CFLAGS+=-I$(CURDIR)
 SOURCES_SERVER=httpd.c
 EXECUTABLE_SERVER=httpd
 
+EXECUTABLE_MANAGEMENT_CLIENT=client
+
+SOURCES_MANAGEMENT_CLIENT_FILES=$(foreach dir,$(MANAGEMENT_CLIENT_DIRS),$(wildcard $(dir)/*.c))
+OBJECTS_MANAGEMENT_CLIENT_FILES=$(SOURCES_MANAGEMENT_CLIENT_FILES:.c=.o)
+
 SOURCES_FILES=$(foreach dir,$(SOURCE_DIRS),$(wildcard $(dir)/*.c))
 OBJECTS_FILES=$(SOURCES_FILES:.c=.o)
 
 SOURCES_CPP=$(SOURCES_C:.c=.cpp)
 
-all: $(EXECUTABLE_SERVER)
+all: $(EXECUTABLE_SERVER) $(EXECUTABLE_MANAGEMENT_CLIENT)
 
 $(EXECUTABLE_SERVER): $(OBJECTS_FILES)
 	$(CC) $(CFLAGS) $(SOURCES_SERVER) $^ -o $@
+
+$(EXECUTABLE_MANAGEMENT_CLIENT): $(OBJECTS_MANAGEMENT_CLIENT_FILES)
+	$(CC) $(CFLAGS) $^ -o $@
 
 test: cpp scanbuild #complexity 
 
@@ -30,7 +38,7 @@ scanbuild:
 #	complexity --histogram --score $(SOURCES_C) >results.cpxt 2> /dev/null
 
 clean:
-	rm -rf $(OBJECTS_FILES) $(EXECUTABLE_SERVER)
+	rm -rf $(OBJECTS_FILES) $(EXECUTABLE_SERVER) $(OBJECTS_MANAGEMENT_CLIENT_FILES) $(EXECUTABLE_MANAGEMENT_CLIENT)
 
 cleanTest:
 	rm -rf results.cppOut results.sb scanBuildResults 

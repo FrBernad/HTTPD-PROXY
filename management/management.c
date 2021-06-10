@@ -222,7 +222,7 @@ management_read(struct selector_key *key) {
             switch (management.request.type) {
                 case RETRIEVAL:
                     if (management.request.method <= RETRIEVAL_METHODS_COUNT - 1) {
-                        send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV, retrievalMethods[management.request.method]());
+                        send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS, PERCY_RESV, retrievalMethods[management.request.method]());
                         return;
                     }
                     break;
