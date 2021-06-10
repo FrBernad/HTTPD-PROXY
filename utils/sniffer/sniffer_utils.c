@@ -1,6 +1,7 @@
 #include "sniffer_utils.h"
 
 #include <stdio.h>
+#include "logger/logger_utils.h"
 
 #include "connections/connections_def.h"
 
@@ -30,8 +31,7 @@ sniff_data(struct selector_key *key) {
         state = sniffer_parser_feed(dataToParse[i], &connection->sniffer.sniffer_parser, dataOwner);
         if (state == sniff_done) {
             connection->sniffer.isDone = true;
-            printf("user: %s, password:%s\n", connection->sniffer.sniffer_parser.user,
-                   connection->sniffer.sniffer_parser.password);
+            log_user_and_password(key);
             break;
         } else if (state == sniff_error) {
             connection->sniffer.isDone = true;
