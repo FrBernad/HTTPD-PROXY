@@ -7,11 +7,12 @@
 
 #include "connections/connections.h"
 #include "connections/connections_def.h"
+#include "httpd.h"
 #include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
-#include "httpd.h"
 #include "utils/net/net_utils.h"
 #include "utils/sniffer/sniffer_utils.h"
+#include "logger/logger_utils.h"
 
 static unsigned
 handle_origin_ip_connection(struct selector_key *key);
@@ -25,7 +26,6 @@ check_request_line_error(proxyConnection *connection, request_state state);
 void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     struct request_line_st *requestLine = &connection->client.request_line;
-
 
     // Init request line parser
     requestLine->request_parser.request = &requestLine->request;
@@ -70,6 +70,7 @@ parsing_host_on_read_ready(struct selector_key *key) {
                         sniff_data(key);
                     }
                 }
+                log_new_connection(key);
             }
 
             return nextState;
@@ -116,9 +117,31 @@ build_connection_request(struct selector_key *key) {
     connectionRequest->connect = strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0;
 
     sprintf((char *)connectionRequest->requestLine, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
-    memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
-    connectionRequest->port = requestLine.request_target.port;
+
     connectionRequest->host_type = requestLine.request_target.host_type;
+    connectionRequest->port = requestLine.request_target.port;
+    memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
+
+    char originHost[MAX_FQDN_LENGTH + 1] = {0};
+    switch (connectionRequest->host_type) {
+        case ipv4:
+            inet_ntop(AF_INET, &requestLine.request_target.host.ipv4, originHost, MAX_FQDN_LENGTH + 1);
+            break;
+        case ipv6:
+            inet_ntop(AF_INET6, &requestLine.request_target.host.ipv6, originHost, MAX_FQDN_LENGTH + 1);
+            break;
+        default:
+            strcpy(originHost, requestLine.request_target.host.domain);
+            break;
+    }
+
+    sprintf((char *)connectionRequest->target, "%s%s:%d%s\r\n",
+            requestLine.request_target.type == absolute_form ? "http://": "",
+                originHost,
+            (int)ntohs(connectionRequest->port),
+            requestLine.request_target.origin_form);
+
+    strcpy((char*)connectionRequest->method, (char*)requestLine.method);
 }
 
 static unsigned

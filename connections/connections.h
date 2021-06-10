@@ -4,10 +4,7 @@
 #include "utils/selector/selector.h"
 
 void 
-accept_new_ipv4_connection(struct selector_key *key);
-
-void 
-accept_new_ipv6_connection(struct selector_key *key);
+accept_new_connection(struct selector_key *key);
 
 void 
 init_selector_handlers();
