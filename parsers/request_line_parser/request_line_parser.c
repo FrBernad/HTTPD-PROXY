@@ -191,7 +191,9 @@ r_target_host(const uint8_t c, struct request_parser *p) {
             p->request->request_target.host.domain[p->i - 1] = 0;
             if (!parseIpv6(p))
                 return request_error;
-            p->request->request_target.origin_form[0] = '/';
+            if (strcmp((char*)p->request->method, "OPTIONS") != 0) {
+                p->request->request_target.origin_form[0] = '/';
+            }
             p->i = 0;
             p->n = VERSION_LENGTH;
             return request_version;
@@ -217,7 +219,9 @@ r_target_host(const uint8_t c, struct request_parser *p) {
 
     if (c == ' ') {
         parseIpv4(p);
-        p->request->request_target.origin_form[0] = '/';
+        if (strcmp((char*)p->request->method, "OPTIONS") != 0) {
+            p->request->request_target.origin_form[0] = '/';
+        }
         p->i = 0;
         p->n = VERSION_LENGTH;
         return request_version;
@@ -287,13 +291,12 @@ r_target_port(const uint8_t c, struct request_parser *p) {
     if (p->i >= p->n)
         return request_error;
 
-/*FIXME:
+    /*FIXME:
 
     if (p->i != 0 && p->request->request_target.port > MAX_PORT_NUMBER) {
         return request_error;
     }
 */
-
 
     if (END_OF_AUTHORITY(c)) {
         p->request->request_target.port = htons(p->request->request_target.port);
@@ -304,11 +307,15 @@ r_target_port(const uint8_t c, struct request_parser *p) {
         return request_target_ogform;
     }
 
-    if (c == ' ') {
+        if (c == ' ') {
         p->request->request_target.port = htons(p->request->request_target.port);
         assign_port(p);
+        if (strcmp((char*)p->request->method, "OPTIONS") != 0) {
+            p->request->request_target.origin_form[0] = '/';
+        }
         p->i = 0;
         p->n = VERSION_LENGTH;
+        
         return request_version;
     }
 

@@ -114,7 +114,7 @@ build_connection_request(struct selector_key *key) {
 
     struct request_line requestLine = connection->client.request_line.request;
 
-    if (strcmp((char *)requestLine.method, "OPTIONS") == 0 && strcmp((char *)requestLine.request_target.origin_form,"/") == 0)  {
+    if (strcmp((char *)requestLine.method, "OPTIONS") == 0 && requestLine.request_target.origin_form[0] == 0)  {
         sprintf((char *)connectionRequest->requestLine, "%s * HTTP/1.0\r\n", requestLine.method);
     } else {
         if (strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0) {
