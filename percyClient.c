@@ -139,76 +139,82 @@ static int processValue(char *buff, int bytesToRead, int *value) {
 
 static void buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value) {
     struct request_percy request;
-    buffer[0] = 1;
+    //VERSION 
+    buffer[0] = 1;       
+    
+    //PASSPHRASE
     buffer[1] = '1';
     buffer[2] = '2';
     buffer[3] = '3';
     buffer[4] = '4';
     buffer[5] = '5';
     buffer[6] = '6';
+
+    //RESV
     buffer[9] = '0';
 
     switch (option) {
         case 1:
-            buffer[7] = 0;
-            buffer[8] = 0;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 0;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
         case 2:
-            buffer[7] = 0;
-            buffer[8] = 1;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 1;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
         case 3:
-            buffer[7] = 0;
-            buffer[8] = 2;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 2;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
         case 4:
-            buffer[7] = 0;
-            buffer[8] = 3;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 3;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
         case 5:
-            buffer[7] = 0;
-            buffer[8] = 4;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 4;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
         case 6:
-            buffer[7] = 0;
-            buffer[8] = 5;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 5;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
         case 7:
-            buffer[7] = 0;
-            buffer[8] = 6;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 6;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
         case 8:
-            buffer[7] = 0;
-            buffer[8] = 7;
-            buffer[10] = 0;
-            buffer[11] = 0;
+            buffer[7] = 0;              //TYPE
+            buffer[8] = 7;              //METHOD
+            buffer[10] = 0;             //VALUE
+            buffer[11] = 0;             //VALUE
             break;
 
         case 9:
-            buffer[7] = 1;
-            buffer[8] = 0;
-            buffer[10] = value >> 8;
-            buffer[11] = value;
+            buffer[7] = 1;              //TYPE
+            buffer[8] = 0;              //METHOD
+            buffer[10] = value>>8;      //VALUE
+            buffer[11] = value;         //VALUE
             break;
         case 10:
-            buffer[7] = 1;
-            buffer[8] = 1;
-            buffer[10] = value >> 8;
-            buffer[11] = value;
+            buffer[7] = 1;              //TYPE
+            buffer[8] = 1;              //METHOD
+            buffer[10] = value >>8;     //VALUE8;
+            buffer[11] = value;         //VALUE
             break;
         default:
             error();
@@ -259,7 +265,7 @@ static void parseAnswer(uint8_t *buff, int len) {
         percy_response_parser_feed(&response, buff[i++]);
     }
     printf("Version %d\n", response.response->ver);
-    printf("Status %d\n", response.response->status);
-    printf("Resv %d\n", response.response->resv);
-    printf("Value %ld\n", response.response->value);
+    printf("Status  %d\n", response.response->status);
+    printf("Resv    %d\n", response.response->resv);
+    printf("Value   %ld\n", response.response->value);
 }
