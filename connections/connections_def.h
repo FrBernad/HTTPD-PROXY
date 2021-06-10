@@ -59,8 +59,13 @@ typedef struct doh_connection {
 } doh_connection_t;
 
 typedef struct connection_request {
+
     uint8_t requestLine[REQUEST_LINE_MAX];
+    uint8_t method[REQUEST_LINE_MAX];
+    uint8_t target[REQUEST_LINE_MAX];
+
     bool connect;
+
     enum host_type host_type;
     union {
         char domain[MAX_FQDN_LENGTH + 1];
@@ -87,19 +92,11 @@ typedef enum {
 typedef struct proxyConnection {
     /*Informacion del cliente*/
     struct sockaddr_storage client_addr;
-    socklen_t client_addr_en;
     int client_fd;
     connection_status_t client_status;  //usado para determinar si quiere cerrar la conexión pero puede que todavia quede algo en el buffer
 
-    /* resolucion de la direccion del origin server*/
-    struct addrinfo origin_resolution;
-    /*intento actual de la direccion del origin server*/
-    struct addrinfo origin_resolution_current;
-
     /*información del origin server*/
     struct sockaddr_storage origin_addr;
-    socklen_t origin_addr_en;
-    int origin_domain;
     int origin_fd;
     connection_status_t origin_status;  //usado para determinar si quiere cerrar la conexión pero puede que todavia quede algo en el buffer
 

@@ -4,7 +4,8 @@
 
 #include "connections/connections_def.h"
 
-void sniff_data(struct selector_key *key) {
+void 
+sniff_data(struct selector_key *key) {
 
     proxyConnection *connection = ATTACHMENT(key);
 

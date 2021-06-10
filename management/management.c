@@ -28,7 +28,7 @@ static uint64_t (*retrievalMethods[RETRIEVAL_METHODS_COUNT])(void);
 
 typedef struct {
     int socketFd;
-
+    //FIXME:union
     struct in_addr ipv4addr;
     struct in6_addr ipv6addr;
     in_port_t port;
