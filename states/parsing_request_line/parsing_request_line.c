@@ -8,11 +8,11 @@
 #include "connections/connections.h"
 #include "connections/connections_def.h"
 #include "httpd.h"
+#include "logger/logger_utils.h"
 #include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/net/net_utils.h"
 #include "utils/sniffer/sniffer_utils.h"
-#include "logger/logger_utils.h"
 
 static unsigned
 handle_origin_ip_connection(struct selector_key *key);
@@ -114,9 +114,14 @@ build_connection_request(struct selector_key *key) {
 
     struct request_line requestLine = connection->client.request_line.request;
 
-    connectionRequest->connect = strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0;
-
-    sprintf((char *)connectionRequest->requestLine, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
+    if (strcmp((char *)requestLine.method, "OPTIONS") == 0 && strcmp((char *)requestLine.request_target.origin_form,"/") == 0)  {
+        sprintf((char *)connectionRequest->requestLine, "%s * HTTP/1.0\r\n", requestLine.method);
+    } else {
+        if (strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0) {
+            connectionRequest->connect = true;
+        }
+        sprintf((char *)connectionRequest->requestLine, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
+    }
 
     connectionRequest->host_type = requestLine.request_target.host_type;
     connectionRequest->port = requestLine.request_target.port;
@@ -136,12 +141,12 @@ build_connection_request(struct selector_key *key) {
     }
 
     sprintf((char *)connectionRequest->target, "%s%s:%d%s\r\n",
-            requestLine.request_target.type == absolute_form ? "http://": "",
-                originHost,
+            requestLine.request_target.type == absolute_form ? "http://" : "",
+            originHost,
             (int)ntohs(connectionRequest->port),
             requestLine.request_target.origin_form);
 
-    strcpy((char*)connectionRequest->method, (char*)requestLine.method);
+    strcpy((char *)connectionRequest->method, (char *)requestLine.method);
 }
 
 static unsigned

@@ -184,7 +184,7 @@ r_target_host(const uint8_t c, struct request_parser *p) {
                 return request_error;
             p->i = 0;
             p->n = MAX_ORIGIN_FORM;
-            p->request->request_target.origin_form[p->i] = c;
+            p->request->request_target.origin_form[p->i++] = c;
             return request_target_ogform;
         }
 
@@ -212,7 +212,7 @@ r_target_host(const uint8_t c, struct request_parser *p) {
         parseIpv4(p);
         p->i = 0;
         p->n = MAX_ORIGIN_FORM;
-        p->request->request_target.origin_form[p->i] = c;
+        p->request->request_target.origin_form[p->i++] = c;
         return request_target_ogform;
     }
 
@@ -301,7 +301,7 @@ r_target_port(const uint8_t c, struct request_parser *p) {
         assign_port(p);
         p->i = 0;
         p->n = MAX_ORIGIN_FORM;
-        p->request->request_target.origin_form[p->i] = c;
+        p->request->request_target.origin_form[p->i++] = c;
         return request_target_ogform;
     }
 
