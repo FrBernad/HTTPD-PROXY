@@ -9,10 +9,6 @@
  */
 #include "parser.h"
 
-#define CONNECT "CONNECT"
-#define OPTIONS "OPTIONS"
-#define SCHEME "http://"
-#define HTTP "HTTP/"
 #define IS_DIGIT(x) ((x) >= '0' && (x) <= '9')
 #define IS_ALPHA(x) (((x) >= 'a' && (x) <= 'z') || ((x) >= 'A' && (x) <= 'Z'))
 #define IS_TOKEN(x) ((x) == '!' || (x) == '#' || (x) == '$' || (x) == '%' || (x) == '&' || (x) == '\'' || (x) == '*' || (x) == '+' || (x) == '-' || (x) == '.' || (x) == '^' || (x) == '_' || (x) == '`' || (x) == '|' || (x) == '~' || IS_DIGIT(x) || IS_ALPHA(x))

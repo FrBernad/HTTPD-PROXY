@@ -115,7 +115,7 @@ static enum request_state
 getMethodState(struct request_parser *p) {
     char *method = (char *)p->request->method;
 
-    if (strcmp(method, CONNECT) != 0) {  //FIXME:
+    if (strcmp(method, "CONNECT") != 0) {  //FIXME:
         p->request->request_target.type = absolute_form;
         p->n = SCHEME_LENGTH;
         return request_target_scheme;
@@ -128,7 +128,7 @@ getMethodState(struct request_parser *p) {
 
 static enum request_state
 r_target_scheme(const uint8_t c, struct request_parser *p) {
-    char *scheme = (char *)SCHEME;
+    char *scheme = "http://";
 
     if (p->i >= p->n || scheme[p->i] != c)
         return request_error;
@@ -161,7 +161,6 @@ r_target_host(const uint8_t c, struct request_parser *p) {
         p->request->request_target.host_type = ipv6;
         return request_target_host;
     }
-    // http://[1fff:0:a88:85a3::ac1f]/index.html
 
     if (p->request->request_target.host_type == ipv6) {
         if (c == ']') {
@@ -349,7 +348,7 @@ r_target_ogform(const uint8_t c, struct request_parser *p) {
 
 static enum request_state
 r_version(const uint8_t c, struct request_parser *p) {
-    char *version = HTTP;
+    char *version = "HTTP/";
 
     if (p->i >= p->n || version[p->i] != c)
         return request_error;

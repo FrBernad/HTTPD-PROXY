@@ -68,7 +68,7 @@ enum status_line_state status_line_parser_feed(struct status_line_parser *p, con
 
 static enum status_line_state
 sl_version(const uint8_t c, struct status_line_parser *p) {
-    char *version = HTTP;
+    char *version = "HTTP/";
 
     if (p->i >= p->n || version[p->i] != c)
         return status_line_error;

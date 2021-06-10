@@ -58,8 +58,11 @@ void log_user_and_password(struct selector_key *key) {
     info = localtime(&rawtime);
     int bytesWritten = strftime(buffer, 80, "%Y-%m-%dT%H:%M:%SZ\tP\t", info);
 
-    char *protocol = "HTTP";
-    bytesWritten += sprintf(buffer + bytesWritten, "%s\t", protocol);
+    if(connection->sniffer.sniffer_parser.sniffedProtocol == HTTP){
+        bytesWritten += sprintf(buffer + bytesWritten, "%s\t", "HTTP");
+    }else{
+        bytesWritten += sprintf(buffer + bytesWritten, "%s\t", "POP3");
+    }
     bytesWritten += sprintf(buffer + bytesWritten, "%s\t", connection->connectionRequest.target);
     bytesWritten += sprintf(buffer + bytesWritten, "%s\t%s\t\n", connection->sniffer.sniffer_parser.user,
                             connection->sniffer.sniffer_parser.password);
