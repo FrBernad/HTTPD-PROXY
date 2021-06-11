@@ -324,3 +324,7 @@ free_connection_data(proxyConnection *connection) {
     }
     free(connection);
 }
+
+uint64_t get_buffer_size(){
+    return BUFFER_SIZE;
+}

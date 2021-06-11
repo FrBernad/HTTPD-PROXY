@@ -5,11 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <stdint.h>
 #include "httpd.h"
 #include "metrics/metrics.h"
 #include "parsers/percy_request_parser/percy_request_parser.h"
-
+#include "connections/connections.h"
 enum {
     MAX_MSG_LEN = 128,
     SUCCESS_STATUS = 0x00,
@@ -21,10 +21,27 @@ enum {
     RETRIEVAL = 0,
     RETRIEVAL_METHODS_COUNT = 9,
     MODIFICATION = 1,
-    MODIFICATION_METHODS_COUNT = 2,
+    MODIFICATION_METHODS_COUNT = 1,
 };
 
+typedef struct values_range{
+
+    uint16_t min;
+    uint16_t max;
+
+}values_range;
+
+typedef struct modification_method{
+
+    values_range range_of_value;
+    uint64_t (*modificationMethod)(uint16_t);
+
+}modification_method;
+
 static uint64_t (*retrievalMethods[RETRIEVAL_METHODS_COUNT])(void);
+
+static struct modification_method modif_methods[MODIFICATION_METHODS_COUNT];
+
 
 typedef struct {
     int socketFd;
@@ -77,6 +94,10 @@ parse_request(ssize_t bytesRcvd);
 
 static void
 management_close(struct selector_key *key);
+
+static int validate_input_value(uint8_t method,uint16_t value);
+
+uint64_t set_sniffer_mode(uint16_t op);
 
 static management_t management;
 
@@ -187,18 +208,21 @@ init_management_handlers() {
 }
 
 static void init_management_functions() {
+
     retrievalMethods[0] = get_historical_connections;
     retrievalMethods[1] = get_concurrent_connections;
     retrievalMethods[2] = get_total_bytes_sent;
     retrievalMethods[3] = get_total_bytes_received;
     retrievalMethods[4] = get_total_bytes_transfered;
-    retrievalMethods[5] = NULL;
-    retrievalMethods[6] = NULL;
+    retrievalMethods[5] = get_buffer_size;
+    retrievalMethods[6] = get_selector_timeout;
     retrievalMethods[7] = get_concurrent_connections;
     retrievalMethods[8] = get_failed_connections;
+
+    modif_methods[0].range_of_value.min = 0;
+    modif_methods[0].range_of_value.max = 1;
+    modif_methods[0].modificationMethod = set_sniffer_mode;
 }
-
-
 
 // Management functions
 
@@ -212,23 +236,38 @@ management_read(struct selector_key *key) {
 
     ssize_t bytesRcvd = recvfrom(management.socketFd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *)&clntAddr, &clntAddrLen);
     if (bytesRcvd < 0) {
-        printf("Smoething went wrong(management)\n");
+        printf("Something went wrong(management)\n");
     }
 
     if (parse_request(bytesRcvd)) {
         if (!validate_passphrase()) {
             send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV, 0);
         } else {
-            switch (management.request.type) {
+                uint8_t method = management.request.method;
+                uint16_t value = management.request.value;
+
+            switch (management.request.type) {   
+
                 case RETRIEVAL:
-                    printf("received %d\n\n", management.request.method);
-                    if (management.request.method <= RETRIEVAL_METHODS_COUNT - 1) {
-                        send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS, PERCY_RESV, retrievalMethods[management.request.method]());
+                    printf("received %d\n\n",method);
+                    if (method <= RETRIEVAL_METHODS_COUNT - 1) {
+                        send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS, PERCY_RESV, retrievalMethods[method]());
                         return;
                     }
                     break;
                 case MODIFICATION:
-                    break;
+            
+                    printf("Modification method : %d with entry: %d\n\n",method,value);
+                    if(method <= MODIFICATION_METHODS_COUNT -1){
+                        if(validate_input_value(method,value)){
+                            send_reply((struct sockaddr *)&clntAddr,clntAddrLen,PERCY_VERSION,SUCCESS_STATUS,PERCY_RESV,modif_methods[method].modificationMethod(value));
+                            return;
+                        }else{
+                            send_reply((struct sockaddr *)&clntAddr,clntAddrLen,PERCY_VERSION,UNSUCCESFUL_STATUS,PERCY_RESV,modif_methods[method].modificationMethod(value));
+                            return;
+                        }
+                    }
+                    
                 default:
                     break;
             }
@@ -244,7 +283,7 @@ send_reply(struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, uint8_t st
     build_reply(reply, ver, status, resv, value);
     ssize_t bytesSent = sendto(management.socketFd, reply, PERCY_RESPONSE_SIZE, 0, addr, clntAddrLen);
     if (bytesSent < 0) {
-        printf("Smoething went wrong(management)\n");
+        printf("Something went wrong(management)\n");
     }
 }
 
@@ -305,4 +344,28 @@ management_close(struct selector_key *key) {
     if (management.socketFd >= 0) {
         close(management.socketFd);
     }
+}
+
+static int validate_input_value(uint8_t method,uint16_t value){
+
+    if( value <= modif_methods[method].range_of_value.max && value >= modif_methods[method].range_of_value.min){
+        return true;
+    }
+
+    return false;
+}
+
+
+uint64_t set_sniffer_mode(uint16_t op){
+
+    if(op == 0 ){
+        set_disectors_disabled();
+        return 0;
+    }
+    if(op == 1){
+        set_disectors_enabled();
+        return 0;
+    }
+
+    return 1;
 }

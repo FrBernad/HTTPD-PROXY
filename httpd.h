@@ -6,4 +6,10 @@
 struct http_args
 get_httpd_args();
 
+uint64_t get_selector_timeout();
+
+void set_disectors_enabled();
+
+void set_disectors_disabled();
+
 #endif

@@ -1,10 +1,7 @@
 #include <arpa/inet.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -70,7 +67,7 @@ int main(int argc, char *argv[]) {
 
     // Init variables for try/catch
     int returnVal = 0;
-    selector_status status = SELECTOR_SUCCESS;
+    selector_status status;
 
     init_selector_handlers();
     fd_selector selector = init_selector();
@@ -280,7 +277,19 @@ default_proxy_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
     return socketfd;
 }
 
+uint64_t get_selector_timeout(){
+    return DEFAULT_CHECK_TIME;
+}
+
 struct http_args
 get_httpd_args() {
     return args;
+}
+
+void set_disectors_enabled(){
+    args.disectors_enabled = true;
+}
+
+void set_disectors_disabled(){
+    args.disectors_enabled = false;
 }

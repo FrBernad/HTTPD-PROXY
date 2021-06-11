@@ -225,9 +225,7 @@ Table of Contents
     +---------+-------------------------------------------------+-------+
     | Config. | Description                                     | Sec.  |
     +---------+-------------------------------------------------+-------+
-    | X'00'   | Set I/O buffer size.                            | 4.3.1 |
-    +---------+-------------------------------------------------+-------+
-    | X'01'   | Set selector timeout.                           | 4.3.2 |
+    | X'00'   | Set enable o disable the sniffer                | 4.3.1 |
     +---------+-------------------------------------------------+-------+
 
 4.2. Retrieval Methods Definitions
@@ -287,17 +285,13 @@ Table of Contents
 
 4.3. Modification Methods Definitions
 
-4.3.1. Set I/O Buffer Size
+4.3.1 Set enable o disable the sniffer
 
-   The X'00' modification method sets the size of the buffers dedicated to I/O operations by the server.
-   The desired size MUST be an integer value between 1 and 1024 stored in big endian format specified in 
-   the value field.  In response of a valid X'00' request, the server MUST reply with a X'00' state.  
-  
-4.3.2. Set Selector Timeout
+   The X'00' modification method sets disable or enable the sniffer mode in the server. The determination of the
+   action to take is specified by the value field. The only accepted values for this method are 0 and 1: with a
+   value of 0 the sniffer mode will become disable and with a value of 1 the sniffer mode will become enable.
+   In response of a valid X'00' request, the server MUST reply with a X'00' state.
 
-   The X'01' modification method sets the interval in seconds the selector should block waiting for a connection
-   to become ready. The desired interval MUST be an integer value between 0 and 10 stored in big endian format 
-   in the value field. In response of a valid X'01' request, the server MUST reply with a X'00' state.  
        
 4.4. Method Error Handling
 

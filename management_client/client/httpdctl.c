@@ -102,16 +102,18 @@ processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
             break;
         if (IS_DIGIT(buff[i]))
             aux = i == 0 ? buff[i] - '0' : aux * 10 + buff[i] - '0';
-
+        else{
+            return -1;
+        }
         i++;
     }
 
     *option = aux;
 
-    if (*option >= 0 && *option <= 8) {
+    if (*option >= 1 && *option <= 8) {
         *value = 0;
         return 0;
-    } else if (*option >= 9 && *option <= 10) {
+    } else if (*option == 9 ) {
         return getValue(option, value);
     } else {
         return -1;
@@ -120,14 +122,8 @@ processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
 
 static int
 getValue(int *option, int *value) {
-    switch (*option) {
-        case 9:
-            printf("\n\nThe value of the I/O buffer size should be between 1 and 1024:  \n\n");
-            break;
-        case 10:
-            printf("\n\n1 to set on the sniffer and 0 to set off:   \n\n");
-            break;
-    }
+    printf("\n\n1 to set on the sniffer and 0 to set off:   \n\n");
+
     printf("Value: ");
     fflush(stdout);
 
@@ -228,12 +224,6 @@ buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value) {
             buffer[10] = value >> 8;  //VALUE
             buffer[11] = value;       //VALUE
             break;
-        case 10:
-            buffer[7] = 1;            //TYPE
-            buffer[8] = 1;            //METHOD
-            buffer[10] = value >> 8;  //VALUE8;
-            buffer[11] = value;       //VALUE
-            break;
         default:
             error();
     }
@@ -262,8 +252,7 @@ showOptions() {
 
     printf("Modification methods:\n\n");
 
-    printf("-9  Set I/O buffer size. \n");
-    printf("-10 Set selector timeout. \n\n");
+    printf("-9  Change sniffer mode.  \n\n");
 
     printf("Option: ");
     fflush(stdout);
