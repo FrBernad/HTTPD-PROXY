@@ -374,12 +374,13 @@ r_version(const uint8_t c, struct request_parser *p) {
 
 static enum request_state
 r_version_major(const uint8_t c, struct request_parser *p) {
-    if (p->i >= p->n)
+    if (p->i >= p->n){
         return request_error_unsupported_version;
+    }
 
     if (c == '.') {
         p->i = 0;
-        p->n = 2;  //FIXME: CREAR ENUM
+        p->n = 2;
         return request_version_minor;
     }
 
@@ -404,8 +405,9 @@ r_version_major(const uint8_t c, struct request_parser *p) {
 
 static enum request_state
 r_version_minor(const uint8_t c, struct request_parser *p) {
-    if (p->i >= p->n)
+    if (p->i >= p->n){
         return request_error_unsupported_version;
+    }
 
     if (c == '\r') {
         p->i = 0;

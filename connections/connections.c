@@ -301,10 +301,10 @@ int register_origin_socket(struct selector_key *key) {
 static void
 close_proxy_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
-    proxy_client_close(key);
     if (connection->origin_status != INACTIVE_STATUS) {
         proxy_origin_close(key);
     }
+    proxy_client_close(key);
 }
 
 static void

@@ -53,6 +53,7 @@ int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     struct dns_request_header dnsHeader;
     size_t dnsHeaderLength = sizeof(dnsHeader);
     memset(&dnsHeader, 0, dnsHeaderLength);
+    dnsHeader.flags[0] = 0x01;
     dnsHeader.qdcount[1] = 0x01;
 
     uint8_t query[MAX_QUERY_LENGTH];
@@ -78,7 +79,7 @@ int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     uint8_t qclass[2] = {0x00, 0x01};
     uint8_t content_length = dnsHeaderLength + j + sizeof(uint16_t) * 2;
 
-    int len = sprintf((char *)dst,
+    int len = sprintf((char *) dst,
                       "POST %s HTTP/1.0\r\n"
                       "Host: %s\r\n"
                       "accept: application/dns-message\r\n"
@@ -107,24 +108,24 @@ handle_origin_doh_connection(struct selector_key *key) {
 
     if (dohUtils.isipv4) {
         struct sockaddr_in sockaddr = {
-            .sin_addr = dohUtils.ip.ipv4addr,
-            .sin_family = AF_INET,
-            .sin_port = dohUtils.port,
+                .sin_addr = dohUtils.ip.ipv4addr,
+                .sin_family = AF_INET,
+                .sin_port = dohUtils.port,
         };
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&sockaddr,
-            sizeof(sockaddr),
-            AF_INET);
+                (struct sockaddr *) &sockaddr,
+                sizeof(sockaddr),
+                AF_INET);
     } else {
         struct sockaddr_in6 sockaddr = {
-            .sin6_addr = dohUtils.ip.ipv6addr,
-            .sin6_family = AF_INET6,
-            .sin6_port = dohUtils.port,
+                .sin6_addr = dohUtils.ip.ipv6addr,
+                .sin6_family = AF_INET6,
+                .sin6_port = dohUtils.port,
         };
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&sockaddr,
-            sizeof(sockaddr),
-            AF_INET6);
+                (struct sockaddr *) &sockaddr,
+                sizeof(sockaddr),
+                AF_INET6);
     }
 
     if (connection->origin_fd < 0) {
@@ -181,7 +182,7 @@ try_next_ipv4_connection(struct selector_key *key) {
     struct sockaddr_in ipv4;
 
     /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->currentTry != 0){
+    if (doh->currentTry != 0) {
         increase_failed_connections();
     }
 
@@ -194,9 +195,9 @@ try_next_ipv4_connection(struct selector_key *key) {
         memset(&ipv4, 0, sizeof(ipv4));
         ipv4.sin_addr = currentAnswer.aip.ipv4;
         ipv4.sin_family = AF_INET;
-        ipv4.sin_port = connection->client.request_line.request.request_target.port; 
+        ipv4.sin_port = connection->client.request_line.request.request_target.port;
 
-        connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv4, sizeof(ipv4),
+        connection->origin_fd = establish_origin_connection((struct sockaddr *) &ipv4, sizeof(ipv4),
                                                             ipv4.sin_family);
         if (connection->origin_fd == -1) {
             continue;
@@ -222,7 +223,7 @@ try_next_ipv6_connection(struct selector_key *key) {
     struct sockaddr_in6 ipv6;
 
     /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->currentTry != 0){
+    if (doh->currentTry != 0) {
         increase_failed_connections();
     }
 
@@ -235,9 +236,9 @@ try_next_ipv6_connection(struct selector_key *key) {
         memset(&ipv6, 0, sizeof(ipv6));
         ipv6.sin6_addr = currentAnswer.aip.ipv6;
         ipv6.sin6_family = AF_INET6;
-        ipv6.sin6_port = connection->client.request_line.request.request_target.port; 
+        ipv6.sin6_port = connection->client.request_line.request.request_target.port;
 
-        connection->origin_fd = establish_origin_connection((struct sockaddr *)&ipv6, sizeof(ipv6), ipv6.sin6_family);
+        connection->origin_fd = establish_origin_connection((struct sockaddr *) &ipv6, sizeof(ipv6), ipv6.sin6_family);
         if (connection->origin_fd == -1) {
             continue;
         }
@@ -249,7 +250,7 @@ try_next_ipv6_connection(struct selector_key *key) {
 
         return TRY_CONNECTION_IP;
     }
-    
+
     connection->error = INTERNAL_SERVER_ERROR;
     return ERROR;
 }

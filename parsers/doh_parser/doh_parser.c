@@ -165,6 +165,7 @@ doh_response_parser_feed(struct doh_response_parser *p, const uint8_t c) {
             break;
 
         case doh_response_done:
+        case doh_no_answers:
         case response_mem_alloc_error:
         case doh_response_error:
             next = p->state;
@@ -273,7 +274,7 @@ r_header_ancount(struct doh_response_parser *p, const uint8_t c) {
             p->i = 0;
             p->n = HEADER_NSCOUNT_LENGTH;
             if (p->response->header.ancount == 0) {
-                next = doh_response_error;
+                next = doh_no_answers;
                 break;
             }
             p->response->answers = calloc(sizeof(struct answer), p->response->header.ancount);

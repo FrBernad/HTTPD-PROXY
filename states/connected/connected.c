@@ -24,9 +24,9 @@ connected_on_read_ready(struct selector_key *key) {
         return CLOSING;
     }
 
-    if (connection->sniffer.sniffEnabled && !connection->sniffer.isDone) {
-        sniff_data(key);
-    }
+//    if (connection->sniffer.sniffEnabled && !connection->sniffer.isDone) {
+//        sniff_data(key);
+//    }
 
     set_connection_interests(key);
     return stm_state(&connection->stm);

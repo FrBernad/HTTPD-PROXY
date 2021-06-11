@@ -33,6 +33,12 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         /*En este caso ya estoy conectado al origin*/
         register_new_connection();
         if (connection->connectionRequest.connect) {
+            buffer *originBuffer = &connection->origin_buffer;
+            buffer_reset(originBuffer);
+            size_t maxBytes;
+            uint8_t *data = buffer_write_ptr(originBuffer, &maxBytes);
+            int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", 200, "OK");
+            buffer_write_adv(originBuffer, len);
             return CONNECTED;
         }
         return SEND_REQUEST_LINE;

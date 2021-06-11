@@ -61,7 +61,20 @@ await_doh_response_on_read_ready(struct selector_key *key) {
             } else if (dohResponseState == response_mem_alloc_error) {
                 connection->error = INTERNAL_SERVER_ERROR;
                 return ERROR;
-            }else if(connection->dohConnection->dohParser.state == doh_response_done){
+            } else if (dohResponseState == doh_no_answers) {
+                if (connection->dohConnection->currentType == ipv6_try) {
+                    connection->error = INTERNAL_SERVER_ERROR;
+                    return ERROR;
+                } else {
+                    //try ipv6
+                    buffer_reset(origin_buffer);
+                    selector_unregister_fd(key->s, connection->origin_fd);
+                    doh_response_parser_destroy(&connection->dohConnection->dohParser);
+                    connection->dohConnection->isActive = false;
+                    connection->dohConnection->currentType = ipv6_try;
+                    return handle_origin_doh_connection(key);
+                }
+            } else if (connection->dohConnection->dohParser.state == doh_response_done) {
                 buffer_reset(origin_buffer);
                 break;
             }
@@ -92,6 +105,7 @@ static void initDohState(struct selector_key *key) {
         doh->statusLineParser.status_line = &doh->statusLine;
         doh->currentType = ipv4_try;
     }
+
     connection->dohConnection->isActive = true;
     doh->currentTry = 0;
     headers_parser_init(&doh->headersParser);

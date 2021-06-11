@@ -433,6 +433,7 @@ typedef enum doh_response_state {
     doh_response_done,
 
     //Error
+    doh_no_answers,
     response_mem_alloc_error,
     doh_response_error,
 } doh_response_state;

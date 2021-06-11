@@ -65,7 +65,8 @@ parsing_host_on_read_ready(struct selector_key *key) {
                 if (connection->connectionRequest.connect) {
                     buffer_reset(&connection->client_buffer);
                 } else {
-                    if (connection->sniffer.sniffEnabled && connection->sniffer.bytesToSniff > 0 && !connection->sniffer.isDone) {
+                    if (connection->sniffer.sniffEnabled && connection->sniffer.bytesToSniff > 0 &&
+                        !connection->sniffer.isDone) {
                         modify_sniffer_state(&connection->sniffer.sniffer_parser, sniff_http_authorization);
                         sniff_data(key);
                     }
@@ -114,13 +115,14 @@ build_connection_request(struct selector_key *key) {
 
     struct request_line requestLine = connection->client.request_line.request;
 
-    if (strcmp((char *)requestLine.method, "OPTIONS") == 0 && requestLine.request_target.origin_form[0] == 0)  {
-        sprintf((char *)connectionRequest->requestLine, "%s * HTTP/1.0\r\n", requestLine.method);
+    if (strcmp((char *) requestLine.method, "OPTIONS") == 0 && requestLine.request_target.origin_form[0] == 0) {
+        sprintf((char *) connectionRequest->requestLine, "%s * HTTP/1.0\r\n", requestLine.method);
     } else {
-        if (strcmp((char *)connection->client.request_line.request.method, "CONNECT") == 0) {
+        if (strcmp((char *) connection->client.request_line.request.method, "CONNECT") == 0) {
             connectionRequest->connect = true;
         }
-        sprintf((char *)connectionRequest->requestLine, "%s %s HTTP/1.0\r\n", requestLine.method, requestLine.request_target.origin_form);
+        sprintf((char *) connectionRequest->requestLine, "%s %s HTTP/1.0\r\n", requestLine.method,
+                requestLine.request_target.origin_form);
     }
 
     connectionRequest->host_type = requestLine.request_target.host_type;
@@ -140,13 +142,13 @@ build_connection_request(struct selector_key *key) {
             break;
     }
 
-    sprintf((char *)connectionRequest->target, "%s%s:%d%s",
-            requestLine.request_target.type == absolute_form ? "http://": "",
-                originHost,
-            (int)ntohs(connectionRequest->port),
-            requestLine.request_target.origin_form);
+    sprintf((char *) connectionRequest->target, "%s%s:%d%s",
+            requestLine.request_target.type == absolute_form ? "http://" : "",
+            originHost,
+            (int) ntohs(connectionRequest->port),
+            connectionRequest->connect == true ? "" : (char*)requestLine.request_target.origin_form);
 
-    strcpy((char *)connectionRequest->method, (char *)requestLine.method);
+    strcpy((char *) connectionRequest->method, (char *) requestLine.method);
 }
 
 static unsigned
@@ -157,14 +159,14 @@ handle_origin_ip_connection(struct selector_key *key) {
 
     if (request_target->host_type == ipv4) {
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&request_target->host.ipv4,
-            sizeof(request_target->host.ipv4),
-            AF_INET);
+                (struct sockaddr *) &request_target->host.ipv4,
+                sizeof(request_target->host.ipv4),
+                AF_INET);
     } else {
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&request_target->host.ipv6,
-            sizeof(request_target->host.ipv6),
-            AF_INET6);
+                (struct sockaddr *) &request_target->host.ipv6,
+                sizeof(request_target->host.ipv6),
+                AF_INET6);
     }
 
     if (connection->origin_fd == -1) {

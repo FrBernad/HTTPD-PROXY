@@ -44,7 +44,7 @@ void error_on_arrival(const unsigned state, struct selector_key *key) {
             break;
 
         case BAD_GATEWAY:
-            write_error(key, connection->error, "HTTP VERSION NOT SUPPORTED");
+            write_error(key, connection->error, "BAD GATEWAY");
             break;
 
         default:
@@ -82,6 +82,6 @@ write_error(struct selector_key *key, errors_t errorCode, char *reasonPhrase) {
 
     size_t maxBytes;
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
-    int len = sprintf((char *)data, "HTTP/1.0 %d %s", errorCode, reasonPhrase);
+    int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", errorCode, reasonPhrase);
     buffer_write_adv(buffer, len);
 }
