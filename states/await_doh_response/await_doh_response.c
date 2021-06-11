@@ -5,8 +5,8 @@
 #include "connections/connections.h"
 #include "connections/connections_def.h"
 #include "states/send_doh_request/send_doh_request.h"
-#include "utils/net/net_utils.h"
 #include "utils/doh/doh_utils.h"
+#include "utils/net/net_utils.h"
 
 static void
 initDohState(struct selector_key *key);
@@ -112,4 +112,3 @@ static void initDohState(struct selector_key *key) {
     status_line_parser_init(&doh->statusLineParser);
     doh_response_parser_init(&doh->dohParser);
 }
-

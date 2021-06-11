@@ -41,7 +41,7 @@ static void
 close_proxy_connection(struct selector_key *key);
 
 enum conections_defaults {
-    BUFFER_SIZE = 1024*8,
+    BUFFER_SIZE = 1024 * 8,
 };
 
 static fd_handler clientHandler;
@@ -63,8 +63,7 @@ void init_selector_handlers() {
 **     PROXY LISTENER SOCKET HANDLER FUNCTIONS
 */
 
-void
-accept_new_connection(struct selector_key *key) {
+void accept_new_connection(struct selector_key *key) {
     struct sockaddr_storage addr;
     socklen_t addrlen = sizeof(addr);
 
@@ -86,7 +85,7 @@ accept_new_connection(struct selector_key *key) {
         fprintf(stderr, "error creating new connection\n");
         close(clientSocket);
         return;
-    }   
+    }
 
     newConnection->client_addr = addr;
 
@@ -98,8 +97,6 @@ accept_new_connection(struct selector_key *key) {
         free_connection_data(newConnection);
         return;
     }
-
-
 }
 
 static proxyConnection *
@@ -162,7 +159,7 @@ proxy_client_read(struct selector_key *key) {
         } else {
             unsigned currentState = stm_state(&connection->stm);
             if (currentState == PARSING_REQUEST_LINE || currentState == CONNECTED) {
-                connection->sniffer.bytesToSniff = totalBytes;
+                connection->bytesToAnalize = totalBytes;
             }
             buffer_write_adv(buffer, totalBytes);
         }
@@ -230,7 +227,7 @@ proxy_origin_read(struct selector_key *key) {
         } else {
             unsigned currentState = stm_state(&connection->stm);
             if (currentState == PARSING_REQUEST_LINE || currentState == CONNECTED) {
-                connection->sniffer.bytesToSniff = totalBytes;
+                connection->bytesToAnalize = totalBytes;
             }
             buffer_write_adv(buffer, totalBytes);
         }

@@ -58,11 +58,17 @@ typedef struct doh_connection {
     struct doh_response_parser dohParser;
 } doh_connection_t;
 
-typedef struct connection_request {
+typedef struct http_response {
+    struct status_line statusLine;
+    struct status_line_parser statusLineParser;
+    bool done;
+} http_response_t;
 
-    uint8_t requestLine[MAX_METHOD_LENGTH+SCHEME_LENGTH+MAX_FQDN_LENGTH+MAX_PORT_LENGTH+MAX_ORIGIN_FORM+VERSION_LENGTH+16];
+typedef struct connection_request {
+    uint8_t requestLine[MAX_METHOD_LENGTH + SCHEME_LENGTH + MAX_FQDN_LENGTH + MAX_PORT_LENGTH + MAX_ORIGIN_FORM + VERSION_LENGTH + 16];
     uint8_t method[MAX_METHOD_LENGTH];
-    uint8_t target[SCHEME_LENGTH+MAX_FQDN_LENGTH+MAX_PORT_LENGTH+MAX_ORIGIN_FORM+16];
+    uint8_t target[SCHEME_LENGTH + MAX_FQDN_LENGTH + MAX_PORT_LENGTH + MAX_ORIGIN_FORM + 16];
+    uint16_t status_code;
 
     bool connect;
 
@@ -113,11 +119,14 @@ typedef struct proxyConnection {
         int bytesToSniff;
         bool sniffEnabled;
         bool isDone;
-    }sniffer;
+    } sniffer;
 
     struct headers_parser response_header_parser;
 
+    http_response_t http_response;
     doh_connection_t *dohConnection;
+
+    int bytesToAnalize;
 
     connection_request_t connectionRequest;
 

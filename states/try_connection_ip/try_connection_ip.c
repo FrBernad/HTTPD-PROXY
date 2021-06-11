@@ -6,6 +6,7 @@
 
 #include "connections/connections.h"
 #include "connections/connections_def.h"
+#include "logger/logger_utils.h"
 #include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/net/net_utils.h"
@@ -33,12 +34,18 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         /*En este caso ya estoy conectado al origin*/
         register_new_connection();
         if (connection->connectionRequest.connect) {
+            connection->connectionRequest.status_code = 200;
+            log_new_connection(key);
+
             buffer *originBuffer = &connection->origin_buffer;
             buffer_reset(originBuffer);
+
             size_t maxBytes;
             uint8_t *data = buffer_write_ptr(originBuffer, &maxBytes);
-            int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", 200, "OK");
+
+            int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", connection->connectionRequest.status_code, "OK");
             buffer_write_adv(originBuffer, len);
+
             return CONNECTED;
         }
         return SEND_REQUEST_LINE;

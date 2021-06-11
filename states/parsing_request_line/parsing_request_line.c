@@ -71,7 +71,6 @@ parsing_host_on_read_ready(struct selector_key *key) {
                         // sniff_data(key);
                     }
                 }
-                log_new_connection(key);
             }
 
             return nextState;

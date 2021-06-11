@@ -43,7 +43,7 @@ void log_new_connection(struct selector_key *key) {
 
     bytesWritten += sprintf(buffer + bytesWritten, "%s\t", connection->connectionRequest.method);
     bytesWritten += sprintf(buffer + bytesWritten, "%s\t", connection->connectionRequest.target);
-    bytesWritten += sprintf(buffer + bytesWritten, "%d\t\n", 300);  //status_code connection->connectionRequest.originForm
+    bytesWritten += sprintf(buffer + bytesWritten, "%d\t\n", connection->connectionRequest.status_code);
 
     // fecha tipo de registro direccion IpOrigen puertoOrigen Metodo Target(scheme:host:port:origin) status.
     logger_log(buffer, bytesWritten);

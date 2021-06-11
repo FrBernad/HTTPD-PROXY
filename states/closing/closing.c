@@ -1,3 +1,4 @@
+
 #include "closing.h"
 
 #include <stdio.h>
@@ -57,14 +58,23 @@ set_closing_connection_interests(struct selector_key *key) {
             originInterest |= OP_WRITE;
         }
 
-        if (buffer_can_write(clientBuffer)) {
-            clientInterest |= OP_READ;
-        }
-
-        if (buffer_can_read(originBuffer)) {
-            clientInterest |= OP_WRITE;
+        if(connection->connectionRequest.connect){
+            if (buffer_can_read(originBuffer)) {
+                clientInterest |= OP_WRITE;
+            } else {
+                shutdown(connection->client_fd, SHUT_WR);
+                shutdown(connection->client_fd, SHUT_RD);
+            }
         } else {
-            shutdown(connection->client_fd, SHUT_WR);  
+            if (buffer_can_write(clientBuffer)) {
+                clientInterest |= OP_READ;
+            }
+
+            if (buffer_can_read(originBuffer)) {
+                clientInterest |= OP_WRITE;
+            } else {
+                shutdown(connection->client_fd, SHUT_WR);
+            }
         }
     }
 
