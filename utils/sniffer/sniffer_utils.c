@@ -23,8 +23,7 @@ sniff_data(struct selector_key *key) {
 
     size_t maxBytes;
     uint8_t *data = buffer_read_ptr(bufferToSniff, &maxBytes);
-    uint8_t *dataToParse = data + maxBytes - connection->sniffer.bytesToSniff;
-
+    uint8_t *dataToParse = data;
     unsigned state;
 
     for (int i = 0; i < connection->sniffer.bytesToSniff; i++) {

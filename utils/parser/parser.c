@@ -65,7 +65,6 @@ parser_feed(struct parser *p, uint8_t c) {
     return &p->e1;
 }
 
-
 static unsigned classes[0xFF] = {0x00};
 
 unsigned *

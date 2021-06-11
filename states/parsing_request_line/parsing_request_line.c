@@ -65,10 +65,10 @@ parsing_host_on_read_ready(struct selector_key *key) {
                 if (connection->connectionRequest.connect) {
                     buffer_reset(&connection->client_buffer);
                 } else {
+                    modify_sniffer_state(&connection->sniffer.sniffer_parser, sniff_http_authorization);
                     if (connection->sniffer.sniffEnabled && connection->sniffer.bytesToSniff > 0 &&
                         !connection->sniffer.isDone) {
-                        modify_sniffer_state(&connection->sniffer.sniffer_parser, sniff_http_authorization);
-                        sniff_data(key);
+                        // sniff_data(key);
                     }
                 }
                 log_new_connection(key);
@@ -146,7 +146,7 @@ build_connection_request(struct selector_key *key) {
             requestLine.request_target.type == absolute_form ? "http://" : "",
             originHost,
             (int) ntohs(connectionRequest->port),
-            connectionRequest->connect == true ? "" : (char*)requestLine.request_target.origin_form);
+            connectionRequest->connect == true ? "" : (char *) requestLine.request_target.origin_form);
 
     strcpy((char *) connectionRequest->method, (char *) requestLine.method);
 }

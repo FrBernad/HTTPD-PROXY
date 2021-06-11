@@ -38,7 +38,6 @@ write_request_line(struct selector_key *key) {
 
     buffer *buffer = &connection->origin_buffer;
     
-    
     size_t maxBytes;
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
     size_t requestLineSize = strlen((char*)connection->connectionRequest.requestLine);
