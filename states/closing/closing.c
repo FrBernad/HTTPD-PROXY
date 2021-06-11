@@ -58,14 +58,14 @@ set_closing_connection_interests(struct selector_key *key) {
             originInterest |= OP_WRITE;
         }
 
-        if(connection->connectionRequest.connect){
-            if (buffer_can_read(originBuffer)) {
-                clientInterest |= OP_WRITE;
-            } else {
-                shutdown(connection->client_fd, SHUT_WR);
-                shutdown(connection->client_fd, SHUT_RD);
-            }
-        } else {
+//        if (!connection->connectionRequest.connect) {
+//            if (buffer_can_read(originBuffer)) {
+//                clientInterest |= OP_WRITE;
+//            } else {
+//                shutdown(connection->client_fd, SHUT_RDWR);
+//                connection->client_status = CLOSING_STATUS;
+//            }
+//        } else {
             if (buffer_can_write(clientBuffer)) {
                 clientInterest |= OP_READ;
             }
@@ -75,7 +75,7 @@ set_closing_connection_interests(struct selector_key *key) {
             } else {
                 shutdown(connection->client_fd, SHUT_WR);
             }
-        }
+//        }
     }
 
     if (connection->client_status == CLOSING_STATUS) {
@@ -94,7 +94,7 @@ set_closing_connection_interests(struct selector_key *key) {
         if (buffer_can_read(clientBuffer)) {
             originInterest |= OP_WRITE;
         } else {
-            shutdown(connection->origin_fd, SHUT_WR); 
+            shutdown(connection->origin_fd, SHUT_WR);
         }
     }
 

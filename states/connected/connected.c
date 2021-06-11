@@ -39,7 +39,7 @@ connected_on_read_ready(struct selector_key *key) {
         for (int i = 0; i < connection->bytesToAnalize; i++) {
             state = status_line_parser_feed(&connection->http_response.statusLineParser, dataToParse[i]);
             if (state == status_line_done) {
-                connection->connectionRequest.status_code = state;
+                connection->connectionRequest.status_code = connection->http_response.statusLine.status_code;
                 connection->http_response.done = true;
                 log_new_connection(key);
                 break;

@@ -25,7 +25,7 @@ typedef struct connectionsManager_t {
 } connectionsManager_t;
 
 enum proxy_defaults {
-    MAX_CONNECTIONS = 1000,
+    MAX_CONNECTIONS = 1024,
     MAX_PENDING = 5,
     DEFAULT_CHECK_TIME = 8,
 };

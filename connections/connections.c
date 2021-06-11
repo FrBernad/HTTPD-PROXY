@@ -182,7 +182,7 @@ proxy_client_write(struct selector_key *key) {
 
     data = buffer_read_ptr(originBuffer, &maxBytes);
 
-    ssize_t totalBytes = send(key->fd, data, maxBytes, 0);
+    ssize_t totalBytes = send(key->fd, data, maxBytes,  MSG_NOSIGNAL);
 
     if (totalBytes > 0) {
         increase_bytes_received(totalBytes);
@@ -258,7 +258,7 @@ proxy_origin_write(struct selector_key *key) {
         // LEO DEL BUFFER DEL SERVER PORQUE ES DONDE CARGAMOS LA REQUEST
         data = buffer_read_ptr(originBuffer, &maxBytes);
 
-        if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
+        if ((totalBytes = send(key->fd, data, maxBytes, MSG_NOSIGNAL)) > 0) {
             increase_bytes_sent(totalBytes);
             buffer_read_adv(originBuffer, totalBytes);
             stm_handler_write(&connection->stm, key);

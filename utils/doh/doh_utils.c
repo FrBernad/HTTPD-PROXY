@@ -211,7 +211,10 @@ try_next_ipv4_connection(struct selector_key *key) {
         return TRY_CONNECTION_IP;
     }
 
-    return SEND_DOH_REQUEST;
+    doh_response_parser_destroy(&connection->dohConnection->dohParser);
+    connection->dohConnection->isActive = false;
+    connection->dohConnection->currentType = ipv6_try;
+    return handle_origin_doh_connection(key);
 }
 
 static unsigned
