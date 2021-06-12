@@ -19,52 +19,40 @@ Once the **httpd** file has been created, it can be executed to start the proxy 
 
 ## Proxy Options
 - **--doh-ip <dirección-doh>**
-  
-        establece la dirección del servidor DoH.  Por defecto 127.0.0.1.
+        establishes the DoH server's address. Default: 127.0.0.1.
 
 - **--doh-port <port>**
-  
-        establece el puerto del servidor DoH.  Por defecto 8053.
+        establishes the DoH server's port. Default: 8053.
 
 - **--doh-host <hostname>** 
-
-        establece el valor del header Host.  Por defecto localhost.
+        establishes the value of header Host. Default: localhost.
 
 - **--doh-path <path>** 
-
-        establece el path del request doh.  por defecto /getnsrecord.
+        establishes the DoH request path. Default: /getnsrecord.
 
 - **--doh-query <query>** 
-
-        establece el query string si el request DoH utiliza el método Doh por defecto ?dns=.
+        establishes the string query if the DoH request uses the DoH method. Default: ?dns=.
 
 - **-h** 
-
-        imprime la ayuda y termina.
+        prints help and finish
 
 - **-N** 
-
-        deshabilita los passwords disectors.
+        disables password disectors.
 
 - **-l <dirección-http>** 
-
-        establece la dirección donde servirá el proxy HTTP.  Por defecto escucha en todas las interfaces.
+        establishes the address where the HTTP proxy serves. Default: all interfaces.
 
 - **-L <dirección-de-management>** 
-
-        establece la dirección donde servirá el servicio de management. Por defecto escucha únicamente en loopback.
+        establishes the address where the management service serves. Default: loopback only.
 
 - **-o <puerto-de-management>** 
-
-        puerto donde se encuentra el servidor de management.  Por defecto el valor es 9090.
+        establishes the port where management service serves. Default: 9090.
 
 - **-p <puerto-local>** 
-
-        puerto TCP donde escuchará por conexiones entrantes HTTP.  Por defecto el valor es 8080.
+        tcp port which listens for incoming HTTP connections. Default: 8080.
 
 - **-v** 
-
-        imprime información sobre la versión versión y termina.
+        prints information about the version and finish.
 
 
 ## Management Service
@@ -82,9 +70,7 @@ usefull information. The provided functionalities are:
 - **Request the number of failed connections.**
 - **Set I/O buffer size.**
 - **Set selector timeout.**
-
-## Testing
-TODO
+- **Enable or disable disectors.**
 
 ## PERCY Protocol
 The **PERCY protocol** used to communicate with the proxy management service is defined in the **percy_protocol.txt**
