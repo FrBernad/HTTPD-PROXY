@@ -36,6 +36,7 @@ typedef enum connection_status {
     INACTIVE_STATUS,
     ACTIVE_STATUS,
     CLOSING_STATUS,
+    CLOSED_STATUS,
 } connection_status_t;
 
 typedef struct request_line_st {

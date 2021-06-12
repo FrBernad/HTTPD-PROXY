@@ -44,7 +44,8 @@ static struct modification_method modif_methods[MODIFICATION_METHODS_COUNT];
 
 
 typedef struct {
-    int socketFd;
+    int socketFd4;
+    int socketFd6;
     //FIXME:union
     struct in_addr ipv4addr;
     struct in6_addr ipv6addr;
@@ -60,10 +61,13 @@ typedef struct {
 } management_t;
 
 static int
-create_ipv4_listener_socket(struct sockaddr_in sockaddr);
+init_listener_socket();
 
 static int
-create_ipv6_listener_socket(struct sockaddr_in6 sockaddr);
+ipv4_listener_socket(struct sockaddr_in sockaddr);
+
+static int
+ipv6_listener_socket(struct sockaddr_in6 sockaddr);
 
 static int
 default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len);
@@ -78,7 +82,8 @@ static void
 management_read(struct selector_key *key);
 
 static void
-send_reply(struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value);
+send_reply(int fd, struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, uint8_t status, uint8_t resv,
+           uint64_t value);
 
 static void
 build_reply(uint8_t *reply, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value);
@@ -102,80 +107,120 @@ uint64_t set_sniffer_mode(uint16_t op);
 static management_t management;
 
 int init_management(fd_selector selector) {
-    struct http_args args = get_httpd_args();
 
-    bool isIpv4 = true;
-
-    management.port = htons(args.mng_port);
-    if (inet_pton(AF_INET, args.mng_addr, &management.ipv4addr) < 0) {
-        isIpv4 = false;
-    }
-    if (inet_pton(AF_INET6, args.mng_addr, &management.ipv6addr) < 0) {
-        return -1;
-    }
-
-    if (isIpv4) {
-        struct sockaddr_in sockaddr = {
-            .sin_addr = management.ipv4addr,
-            .sin_family = AF_INET,
-            .sin_port = management.port,
-        };
-        management.socketFd = create_ipv4_listener_socket(sockaddr);
-    } else {
-        struct sockaddr_in6 sockaddr = {
-            .sin6_addr = management.ipv6addr,
-            .sin6_family = AF_INET6,
-            .sin6_port = management.port,
-        };
-        management.socketFd = create_ipv6_listener_socket(sockaddr);
-    }
-
-    if (management.socketFd < 0) {
+    if (init_listener_socket() < 0) {
         return -1;
     }
 
     init_management_handlers();
     init_management_functions();
 
-    if (selector_register(selector, management.socketFd, &management.managementHandler, OP_READ, NULL) != SELECTOR_SUCCESS) {
-        return -1;
+    if (management.socketFd4 >= 0) {
+        if (selector_register(selector, management.socketFd4, &management.managementHandler, OP_READ, NULL) !=
+            SELECTOR_SUCCESS && management.socketFd6 < 0) {
+            return -1;
+        }
+    }
+
+    if (management.socketFd6 >= 0) {
+        if (selector_register(selector, management.socketFd6, &management.managementHandler, OP_READ, NULL) !=
+            SELECTOR_SUCCESS && management.socketFd4 < 0) {
+            return -1;
+        }
     }
 
     management.requestParser.request = &management.request;
-    management.passphrase = (uint8_t *)"123456";
+    management.passphrase = (uint8_t *) "123456";
 
     return 1;
 }
 
 
-
-
 // Socket creation
 static int
-create_ipv4_listener_socket(struct sockaddr_in sockaddr) {
+init_listener_socket() {
+    struct http_args args = get_httpd_args();
+
+    management.port = htons(args.mng_port);
+
+    management.socketFd6 = -1;
+    management.socketFd4 = -1;
+
+    if (args.mng_addr == NULL) {
+        //Try ipv6 default listening socket
+        struct sockaddr_in6 sockaddr6 = {
+                .sin6_addr = in6addr_loopback,
+                .sin6_family = AF_INET6,
+                .sin6_port = management.port};
+
+        management.socketFd6 = ipv6_listener_socket(sockaddr6);
+
+        //Try ipv4 default listening socket
+        struct sockaddr_in sockaddr4 = {
+                .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
+                .sin_family = AF_INET,
+                .sin_port = management.port,
+        };
+
+        if ((management.socketFd4 = ipv4_listener_socket(sockaddr4)) < 0 && management.socketFd6 < 0) {
+            return -1;
+        }
+
+    } else if (inet_pton(AF_INET, args.mng_addr, &management.ipv4addr)) {
+        struct sockaddr_in sockaddr = {
+                .sin_addr = management.ipv4addr,
+                .sin_family = AF_INET,
+                .sin_port = management.port,
+        };
+        if ((management.socketFd4 = ipv4_listener_socket(sockaddr)) < 0) {
+            return -1;
+        }
+    } else if (inet_pton(AF_INET6, args.mng_addr, &management.ipv6addr)) {
+        struct sockaddr_in6 sockaddr = {
+                .sin6_addr = management.ipv6addr,
+                .sin6_family = AF_INET6,
+                .sin6_port = management.port,
+        };
+        if ((management.socketFd6 = ipv6_listener_socket(sockaddr)) < 0) {
+            return -1;
+        }
+    } else {
+        return -1;
+    }
+
+    return 1;
+}
+
+static int
+ipv4_listener_socket(struct sockaddr_in sockaddr) {
     int socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (socketfd < 0) {
         fprintf(stderr, "Management socket creation\n");
         return -1;
     }
 
-    return default_management_socket_settings(socketfd,(struct sockaddr *)&sockaddr, sizeof(sockaddr));
+    return default_management_socket_settings(socketfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr));
 }
 
 static int
-create_ipv6_listener_socket(struct sockaddr_in6 sockaddr) {
+ipv6_listener_socket(struct sockaddr_in6 sockaddr) {
     int socketfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (socketfd < 0) {
         fprintf(stderr, "Management socket creation\n");
         return -1;
     }
 
-    return default_management_socket_settings(socketfd,(struct sockaddr *)&sockaddr, sizeof(sockaddr));
+    if (setsockopt(socketfd, IPPROTO_IPV6, IPV6_V6ONLY, &(int) {1}, sizeof(int)) < 0) {
+        fprintf(stderr, "Setsockopt opt: IPV6_ONLY\n");
+        return -1;
+    }
+
+    return default_management_socket_settings(socketfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr));
 }
 
 static int
 default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
-    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
+    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int)) < 0) {
         fprintf(stderr, "Setsockopt opt: SO_REUSEADDR\n");
         return -1;
     }
@@ -192,7 +237,6 @@ default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, sock
 
     return socketfd;
 }
-
 
 
 
@@ -224,6 +268,7 @@ static void init_management_functions() {
     modif_methods[0].modificationMethod = set_sniffer_mode;
 }
 
+
 // Management functions
 
 static void
@@ -234,14 +279,16 @@ management_read(struct selector_key *key) {
     struct sockaddr_storage clntAddr;
     socklen_t clntAddrLen = sizeof(clntAddr);
 
-    ssize_t bytesRcvd = recvfrom(management.socketFd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *)&clntAddr, &clntAddrLen);
+    ssize_t bytesRcvd = recvfrom(key->fd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *) &clntAddr,
+                                 &clntAddrLen);
     if (bytesRcvd < 0) {
         printf("Something went wrong(management)\n");
     }
 
     if (parse_request(bytesRcvd)) {
         if (!validate_passphrase()) {
-            send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV, 0);
+            send_reply(key->fd, (struct sockaddr *) &clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV,
+                       0);
         } else {
                 uint8_t method = management.request.method;
                 uint16_t value = management.request.value;
@@ -249,9 +296,10 @@ management_read(struct selector_key *key) {
             switch (management.request.type) {   
 
                 case RETRIEVAL:
-                    printf("received %d\n\n",method);
-                    if (method <= RETRIEVAL_METHODS_COUNT - 1) {
-                        send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS, PERCY_RESV, retrievalMethods[method]());
+                    printf("received %d\n\n", management.request.method);
+                    if (management.request.method <= RETRIEVAL_METHODS_COUNT - 1) {
+                        send_reply(key->fd, (struct sockaddr *) &clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS,
+                                   PERCY_RESV, retrievalMethods[management.request.method]());
                         return;
                     }
                     break;
@@ -274,14 +322,15 @@ management_read(struct selector_key *key) {
         }
     }
 
-    send_reply((struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, 0);
+    send_reply(key->fd, (struct sockaddr *) &clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, 0);
 }
 
 static void
-send_reply(struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, uint8_t status, uint8_t resv, uint64_t value) {
+send_reply(int fd, struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, uint8_t status, uint8_t resv,
+           uint64_t value) {
     uint8_t reply[PERCY_RESPONSE_SIZE] = {0};
     build_reply(reply, ver, status, resv, value);
-    ssize_t bytesSent = sendto(management.socketFd, reply, PERCY_RESPONSE_SIZE, 0, addr, clntAddrLen);
+    ssize_t bytesSent = sendto(fd, reply, PERCY_RESPONSE_SIZE, 0, addr, clntAddrLen);
     if (bytesSent < 0) {
         printf("Something went wrong(management)\n");
     }
@@ -341,9 +390,7 @@ parse_request(ssize_t bytesRcvd) {
 
 static void
 management_close(struct selector_key *key) {
-    if (management.socketFd >= 0) {
-        close(management.socketFd);
-    }
+    close(key->fd);
 }
 
 static int validate_input_value(uint8_t method,uint16_t value){

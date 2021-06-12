@@ -60,7 +60,7 @@ void parse_args(const int argc, char **argv, struct http_args *args) {
     args->http_addr = NULL;
     args->http_port = 8080;
 
-    args->mng_addr = "127.0.0.1";
+    args->mng_addr = NULL;
     args->mng_port = 9090;
 
     args->disectors_enabled = true;

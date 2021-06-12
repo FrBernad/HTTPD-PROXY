@@ -82,6 +82,7 @@ await_doh_response_on_read_ready(struct selector_key *key) {
     }
 
     if (connection->origin_status == CLOSING_STATUS) {
+        shutdown(connection->origin_fd,SHUT_WR);
         return try_next_dns_connection(key);
     }
 

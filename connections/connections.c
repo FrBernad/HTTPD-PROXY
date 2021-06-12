@@ -69,7 +69,7 @@ void accept_new_connection(struct selector_key *key) {
 
     int clientSocket;
 
-    if ((clientSocket = accept(key->fd, (struct sockaddr *)&addr, &addrlen)) < 0) {
+    if ((clientSocket = accept(key->fd, (struct sockaddr *) &addr, &addrlen)) < 0) {
         fprintf(stderr, "Error accept\n");
         return;
     }
@@ -149,11 +149,14 @@ proxy_client_read(struct selector_key *key) {
 
     if (totalBytes < 0) {
         close_proxy_connection(key);
-    }
-    /* Si el client no quiere mandar nada más, marco al client como que está cerrando y
-            que envie los bytes que quedan en su buffer */
-    else {
+    } else {
+        /* Si el client no quiere mandar nada más, marco al client como que está cerrando y
+                que envie los bytes que quedan en su buffer */
         if (totalBytes == 0) {
+            if (stm_state(&connection->stm) < CONNECTED) {
+                close_proxy_connection(key);
+                return;
+            }
             connection->client_status = CLOSING_STATUS;
             //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
         } else {
@@ -182,7 +185,7 @@ proxy_client_write(struct selector_key *key) {
 
     data = buffer_read_ptr(originBuffer, &maxBytes);
 
-    ssize_t totalBytes = send(key->fd, data, maxBytes,  MSG_NOSIGNAL);
+    ssize_t totalBytes = send(key->fd, data, maxBytes, MSG_NOSIGNAL);
 
     if (totalBytes > 0) {
         increase_bytes_received(totalBytes);
@@ -219,8 +222,8 @@ proxy_origin_read(struct selector_key *key) {
     if (totalBytes < 0) {
         close_proxy_connection(key);
     }
-    /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
-            que envie los bytes que quedan en su buffer */
+        /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
+                que envie los bytes que quedan en su buffer */
     else {
         if (totalBytes == 0) {
             connection->origin_status = CLOSING_STATUS;
@@ -271,7 +274,7 @@ proxy_origin_write(struct selector_key *key) {
 
     data = buffer_read_ptr(clientBuffer, &maxBytes);
 
-    if ((totalBytes = send(key->fd, data, maxBytes, 0)) > 0) {
+    if ((totalBytes = send(key->fd, data, maxBytes, MSG_NOSIGNAL)) > 0) {
         increase_bytes_sent(totalBytes);
         buffer_read_adv(clientBuffer, totalBytes);
         stm_handler_write(&connection->stm, key);
@@ -299,9 +302,9 @@ static void
 close_proxy_connection(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
     if (connection->origin_status != INACTIVE_STATUS) {
-        proxy_origin_close(key);
+        selector_unregister_fd(key->s, connection->origin_fd);
     }
-    proxy_client_close(key);
+    selector_unregister_fd(key->s, connection->client_fd);
 }
 
 static void
