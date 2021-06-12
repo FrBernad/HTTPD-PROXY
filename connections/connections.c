@@ -8,6 +8,8 @@
 #include "metrics/metrics.h"
 #include "state_machine/stm_initializer.h"
 #include "utils/selector/selector.h"
+#include "logger/logger_utils.h"
+#include "logger/logger.h"
 
 // STATIC FUNCTIONS
 static proxyConnection *

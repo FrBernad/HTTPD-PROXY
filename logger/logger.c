@@ -15,7 +15,6 @@ static fd_handler logger_handler;
 static buffer stdout_buffer;
 static buffer stderr_buffer;
 
-//httpd8
 static void
 logger_on_write_ready(struct selector_key *key);
 
@@ -54,8 +53,8 @@ void logger_log(char *log, uint64_t totalBytes) {
     int fd;
     buffer *buff;
 
-        fd = STDOUT_FILENO;
-        buff = &stdout_buffer;
+    fd = STDOUT_FILENO;
+    buff = &stdout_buffer;
 
     ssize_t bytesWritten = write(fd, log, totalBytes);
     if (bytesWritten > 0) {

@@ -5,6 +5,15 @@
 
 #include "utils/selector/selector.h"
 
+typedef enum {
+    LEVEL_TRACE=0,
+    LEVEL_DEBUG,
+    LEVEL_INFO,
+    LEVEL_WARN,
+    LEVEL_ERROR,
+    LEVEL_FATAL
+} log_level;
+
 int
 init_logger(fd_selector s);
 

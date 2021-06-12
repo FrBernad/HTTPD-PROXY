@@ -11,6 +11,12 @@
 #include "httpd.h"
 #include "metrics/metrics.h"
 #include "parsers/percy_request_parser/percy_request_parser.h"
+#include "connections/connections.h"
+#include "logger/logger.h"
+#include "logger/logger_utils.h"
+
+#define AUX_BUFFER_SIZE 128
+
 enum {
     MAX_MSG_LEN = 128,
     SUCCESS_STATUS = 0x00,
@@ -250,7 +256,7 @@ static void init_management_functions() {
     retrievalMethods[1] = get_concurrent_connections;
     retrievalMethods[2] = get_total_bytes_sent;
     retrievalMethods[3] = get_total_bytes_received;
-    retrievalMethods[4] = get_total_bytes_transfered;
+    retrievalMethods[4] = get_total_bytes_transferred;
     retrievalMethods[5] = get_buffer_size;
     retrievalMethods[6] = get_selector_timeout;
     retrievalMethods[7] = get_concurrent_connections;
@@ -274,7 +280,7 @@ management_read(struct selector_key *key) {
     ssize_t bytesRcvd = recvfrom(key->fd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *)&clntAddr,
                                  &clntAddrLen);
     if (bytesRcvd < 0) {
-        printf("Something went wrong(management)\n");
+        log_level_msg("Something went wrong(management)",LEVEL_DEBUG);
     }
 
     if (parse_request(bytesRcvd)) {
@@ -285,9 +291,13 @@ management_read(struct selector_key *key) {
             uint8_t method = management.request.method;
             uint16_t value = management.request.value;
 
-            switch (management.request.type) {
+                char auxBuffer[AUX_BUFFER_SIZE];
+            switch (management.request.type) {   
+
                 case RETRIEVAL:
-                    printf("received %d\n\n", method);
+
+                    sprintf(auxBuffer,"received %d",method);
+                    log_level_msg(auxBuffer,LEVEL_DEBUG);
                     if (method <= RETRIEVAL_METHODS_COUNT - 1) {
                         send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS,
                                    PERCY_RESV, retrievalMethods[method]());
@@ -295,10 +305,13 @@ management_read(struct selector_key *key) {
                     }
                     break;
                 case MODIFICATION:
-                    printf("Modification method : %d with entry: %d\n\n", method, value);
-                    if (method <= MODIFICATION_METHODS_COUNT - 1) {
-                        if (validate_input_value(method, value)) {
-                            send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS, PERCY_RESV, modificationMethods[method].modificationMethod(value));
+
+                    sprintf(auxBuffer,"Modification method : %d with entry: %d",method,value);
+                    log_level_msg(auxBuffer,LEVEL_DEBUG);
+
+                    if(method <= MODIFICATION_METHODS_COUNT -1){
+                        if(validate_input_value(method,value)){
+                            send_reply(key->fd,(struct sockaddr *)&clntAddr,clntAddrLen,PERCY_VERSION,SUCCESS_STATUS,PERCY_RESV,modificationMethods[method].modificationMethod(value));
                             return;
                         } else {
                             send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, modificationMethods[method].modificationMethod(value));
@@ -322,7 +335,9 @@ send_reply(int fd, struct sockaddr *addr, socklen_t clntAddrLen, uint8_t ver, ui
     build_reply(reply, ver, status, resv, value);
     ssize_t bytesSent = sendto(fd, reply, PERCY_RESPONSE_SIZE, 0, addr, clntAddrLen);
     if (bytesSent < 0) {
-        printf("Something went wrong(management)\n");
+        char auxBuffer[AUX_BUFFER_SIZE];
+        sprintf(auxBuffer,"Something went wrong(management)");
+        log_level_msg(auxBuffer,LEVEL_ERROR);
     }
 }
 

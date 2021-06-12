@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "connections/connections_def.h"
+#include "logger/logger_utils.h"
 
 static void
 write_error(struct selector_key *key, errors_t errorCode, char *reasonPhrase);

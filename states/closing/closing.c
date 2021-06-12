@@ -5,6 +5,7 @@
 
 #include "connections/connections_def.h"
 #include "metrics/metrics.h"
+#include "logger/logger_utils.h"
 
 static void
 set_closing_connection_interests(struct selector_key *key);

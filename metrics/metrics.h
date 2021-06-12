@@ -13,7 +13,7 @@ void unregister_connection();
 uint64_t get_historical_connections();
 uint64_t get_concurrent_connections();
 uint64_t get_failed_connections();
-uint64_t get_total_bytes_transfered();
+uint64_t get_total_bytes_transferred();
 uint64_t get_total_bytes_sent();
 uint64_t get_total_bytes_received();
 

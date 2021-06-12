@@ -1,6 +1,6 @@
 #include "done.h"
-#include <stdio.h>
 #include "connections/connections_def.h"
+#include "logger/logger_utils.h"
 
 void done_on_arrival(const unsigned state, struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);

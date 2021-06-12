@@ -11,7 +11,7 @@ static struct proxy_metrics {
 } proxy_metrics;
 
 void init_metrics() {
-    memset(&proxy_metrics, 0, sizeof(proxy_metrics));
+    memset(&proxy_metrics, 0, sizeof(struct proxy_metrics));
 }
 
 void increase_bytes_received(uint64_t bytes) {
@@ -59,7 +59,7 @@ uint64_t get_failed_connections(){
     return proxy_metrics.failed_connections;
 }
 
-uint64_t get_total_bytes_transfered(){
+uint64_t get_total_bytes_transferred(){
     return proxy_metrics.bytes_received + proxy_metrics.bytes_sent;
 }
 

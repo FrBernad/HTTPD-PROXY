@@ -11,6 +11,8 @@
 #include "utils/doh/doh_utils.h"
 #include "utils/net/net_utils.h"
 
+#define AUX_BUFFER_SIZE 128
+
 static int
 check_origin_connection(int socketfd);
 
@@ -70,12 +72,12 @@ check_origin_connection(int socketfd) {
     int opt;
     socklen_t optlen = sizeof(opt);
     if (getsockopt(socketfd, SOL_SOCKET, SO_ERROR, &opt, &optlen) < 0) {
-        printf("Error getsockopt.\n\n");
+        log_level_msg("Error getsockopt.",LEVEL_ERROR);
         return false;
     }
 
     if (opt != 0) {
-        printf("Connection could not be established, closing sockets.\n\n");
+        log_level_msg("Connection could not be established, closing sockets.",LEVEL_ERROR);
         return false;
     }
 
