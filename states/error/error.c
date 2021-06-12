@@ -7,10 +7,11 @@
 #include "logger/logger_utils.h"
 
 static void
-write_error(struct selector_key *key, errors_t errorCode, char *reasonPhrase);
+write_error(struct selector_key *key, errors_t errorCode, char *reason_phrase);
 
-void error_on_arrival(const unsigned state, struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+void
+error_on_arrival(unsigned state, struct selector_key *key) {
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     switch (connection->error) {
         case BAD_REQUEST:
@@ -62,7 +63,7 @@ void error_on_arrival(const unsigned state, struct selector_key *key) {
 
 unsigned
 error_on_write_ready(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     buffer *buffer = &connection->origin_buffer;
 
@@ -74,8 +75,8 @@ error_on_write_ready(struct selector_key *key) {
 }
 
 static void
-write_error(struct selector_key *key, errors_t errorCode, char *reasonPhrase) {
-    proxyConnection *connection = ATTACHMENT(key);
+write_error(struct selector_key *key, errors_t errorCode, char *reason_phrase) {
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     buffer *buffer = &connection->origin_buffer;
 
@@ -83,6 +84,6 @@ write_error(struct selector_key *key, errors_t errorCode, char *reasonPhrase) {
 
     size_t maxBytes;
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
-    int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", errorCode, reasonPhrase);
+    int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", errorCode, reason_phrase);
     buffer_write_adv(buffer, len);
 }

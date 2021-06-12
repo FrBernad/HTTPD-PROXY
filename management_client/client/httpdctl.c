@@ -62,7 +62,7 @@ int main(int argc, char const *argv[]) {
     } ip_addr;
 
     socklen_t servaddr_len;
-    int socketFd;
+    int socket_fd;
     int port = atoi(argv[2]);
     if (port <= 0 || port >= MAX_PORT) {
         perror("Invalid port. \n\n");
@@ -71,7 +71,7 @@ int main(int argc, char const *argv[]) {
 
     if (inet_pton(AF_INET, argv[1], &ip_addr.ipv4) > 0) {
         servaddr_len = sizeof(serv_addr);
-        if ((socketFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        if ((socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
             perror("Client socket creation failed");
             exit(1);
         }
@@ -81,7 +81,7 @@ int main(int argc, char const *argv[]) {
         ((struct sockaddr_in *)&serv_addr)->sin_addr = ip_addr.ipv4;
     } else if (inet_pton(AF_INET6, argv[1], &ip_addr.ipv6) > 0) {
         servaddr_len = sizeof(serv_addr);
-        if ((socketFd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+        if ((socket_fd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
             perror("Client socket creation failed");
             exit(1);
         }
@@ -117,7 +117,7 @@ int main(int argc, char const *argv[]) {
             reading = false;
         }
     }
-    close(socketFd);
+    close(socket_fd);
 
     return 0;
 }

@@ -38,34 +38,34 @@ typedef enum sniffer_state {
     sniff_error,
 } sniffer_state;
 
-struct sniffer_parser {
+typedef struct sniffer_parser {
     sniffer_state state;
-    
+
     uint8_t user[MAX_USER_LENGTH + 1];
     uint8_t password[MAX_PASSWORD_LENGTH + 1];
     uint8_t auth_value[MAX_AUTH_VALUE_LENGTH + 1];
 
-    enum protocol{
+    enum protocol {
         POP3,
         HTTP,
-    }sniffedProtocol;
+    } sniffed_protocol;
 
-    struct parser *stringParser;
-    bool parserIsSet;
+    struct parser *string_parser;
+    bool parser_is_set;
 
     int i;
-};
+} sniffer_parser_t;
 
 /** init parser */
-void sniffer_parser_init(struct sniffer_parser *p);
+void
+sniffer_parser_init(sniffer_parser_t *p);
 
 /** returns true if done */
 enum sniffer_state
-sniffer_parser_feed(uint8_t c, struct sniffer_parser *p, int dataOwner, uint16_t port);
+sniffer_parser_feed(uint8_t c, sniffer_parser_t *p, int data_owner, uint16_t port);
 
 void
-modify_sniffer_state(struct sniffer_parser *p, enum sniffer_state newState);
-
+modify_sniffer_state(sniffer_parser_t *p, enum sniffer_state new_state);
 
 
 #endif

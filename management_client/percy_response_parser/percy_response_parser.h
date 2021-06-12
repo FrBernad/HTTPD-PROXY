@@ -32,20 +32,20 @@ typedef enum percy_response_state {
     percy_response_error,
 } percy_response_state;
 
-struct percy_response_parser {
+typedef struct percy_response_parser {
     struct percy_response *response;
     percy_response_state state;
     int i;
     int n;
-};
+}percy_response_parser_t;
 
 /** init parser */
 void 
-percy_response_parser_init(struct percy_response_parser *p);
+percy_response_parser_init(percy_response_parser_t *p);
 
 /** returns true if done */
 enum percy_response_state 
-percy_response_parser_feed(struct percy_response_parser *p, const uint8_t c);
+percy_response_parser_feed(percy_response_parser_t *p, uint8_t c);
 
 
 

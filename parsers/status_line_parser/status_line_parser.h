@@ -70,19 +70,19 @@ typedef enum status_line_state {
     status_line_error_unsupported_version,
 } status_line_state;
 
-struct status_line_parser {
+typedef struct status_line_parser {
     struct status_line *status_line;
     status_line_state state;
 
     int i;
     int n;
-};
+}status_line_parser_t;
 
 /** init parser */
-void status_line_parser_init(struct status_line_parser *p);
+void status_line_parser_init(status_line_parser_t *p);
 
 /** returns true if done */
 enum status_line_state
-status_line_parser_feed(struct status_line_parser *p, const uint8_t c);
+status_line_parser_feed(status_line_parser_t *p, uint8_t c);
 
 #endif

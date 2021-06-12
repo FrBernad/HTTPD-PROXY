@@ -8,35 +8,35 @@
 void
 sniff_data(struct selector_key *key) {
 
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    int dataOwner;
-    buffer *bufferToSniff;
+    int data_owner;
+    buffer *buffer_to_sniff;
 
     if (key->fd == connection->client_fd) {
-        dataOwner = CLIENT_OWNED;
-        bufferToSniff = &connection->client_buffer;
+        data_owner = CLIENT_OWNED;
+        buffer_to_sniff = &connection->client_buffer;
     } else {
-        dataOwner = ORIGIN_OWNED;
-        bufferToSniff = &connection->origin_buffer;
+        data_owner = ORIGIN_OWNED;
+        buffer_to_sniff = &connection->origin_buffer;
     }
 
     size_t maxBytes;
-    uint8_t *data = buffer_read_ptr(bufferToSniff, &maxBytes);
+    uint8_t *data = buffer_read_ptr(buffer_to_sniff, &maxBytes);
     unsigned state;
 
-    for (int i = 0; i < connection->bytesToAnalize; i++) {
-        state = sniffer_parser_feed(data[i], &connection->sniffer.sniffer_parser, dataOwner,
-                                    connection->connectionRequest.port);
+    for (int i = 0; i < connection->bytes_to_analize; i++) {
+        state = sniffer_parser_feed(data[i], &connection->sniffer.sniffer_parser, data_owner,
+                                    connection->connection_request.port);
         if (state == sniff_done) {
-            connection->sniffer.isDone = true;
+            connection->sniffer.is_done = true;
             log_user_and_password(key);
             break;
         } else if (state == sniff_error) {
-            connection->sniffer.isDone = true;
+            connection->sniffer.is_done = true;
             break;
         }
     }
 
-    connection->bytesToAnalize = 0;
+    connection->bytes_to_analize = 0;
 }

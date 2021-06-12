@@ -13,8 +13,7 @@
 #include "state_machine/stm.h"
 #include "utils/buffer/buffer.h"
 
-#define ATTACHMENT(key) ((proxyConnection *)(key)->data)
-#define REQUEST_LINE_MAX 1200
+#define ATTACHMENT(key) ((proxy_connection_t *)(key)->data)
 
 enum connection_state {
     PARSING_REQUEST_LINE = 0,
@@ -40,34 +39,36 @@ typedef enum connection_status {
     CLOSED_STATUS,
 } connection_status_t;
 
-typedef struct request_line_st {
+typedef struct request_line_t {
     buffer *buffer;
     struct request_line request;
     struct request_parser request_parser;
 } request_line_st;
 
 typedef struct doh_connection {
-    bool isActive;
-    uint8_t currentTry;
+    bool is_active;
+    uint8_t current_try;
     enum {
         ipv4_try,
         ipv6_try
-    } currentType;
-    struct status_line statusLine;
-    struct status_line_parser statusLineParser;
-    struct headers_parser headersParser;
-    struct doh_response dohResponse;
-    struct doh_response_parser dohParser;
+    } current_type;
+    struct status_line status_line;
+    struct status_line_parser status_line_parser;
+    struct headers_parser headers_parser;
+    struct doh_response doh_response;
+    struct doh_response_parser doh_parser;
 } doh_connection_t;
 
-typedef struct http_response {
-    struct status_line statusLine;
-    struct status_line_parser statusLineParser;
+typedef struct status_line_t {
+    struct status_line status_line;
+    struct status_line_parser status_line_parser;
     bool done;
-} http_response_t;
+} status_line_t;
 
 typedef struct connection_request {
-    uint8_t requestLine[MAX_METHOD_LENGTH + SCHEME_LENGTH + MAX_FQDN_LENGTH + MAX_PORT_LENGTH + MAX_ORIGIN_FORM + VERSION_LENGTH + 16];
+    uint8_t request_line[
+            MAX_METHOD_LENGTH + SCHEME_LENGTH + MAX_FQDN_LENGTH + MAX_PORT_LENGTH + MAX_ORIGIN_FORM + VERSION_LENGTH +
+            16];
     uint8_t method[MAX_METHOD_LENGTH];
     uint8_t target[SCHEME_LENGTH + MAX_FQDN_LENGTH + MAX_PORT_LENGTH + MAX_ORIGIN_FORM + 16];
     uint16_t status_code;
@@ -83,6 +84,12 @@ typedef struct connection_request {
     in_port_t port;
 } connection_request_t;
 
+typedef struct sniffer_t {
+    struct sniffer_parser sniffer_parser;
+    bool sniff_enabled;
+    bool is_done;
+} sniffer_t;
+
 typedef enum {
     BAD_REQUEST = 400,
     UNAUTHORIZED = 401,
@@ -97,7 +104,12 @@ typedef enum {
     HTTP_VERSION_NOT_SUPPORTED = 505
 } errors_t;
 
-typedef struct proxyConnection {
+typedef struct proxy_connection {
+
+    /*Tipo de error de la conexion*/
+    errors_t error;
+
+    /*Timestamp de ultima interaccion en la conexion*/
     time_t last_action_time;
 
     /*Informacion del cliente*/
@@ -105,38 +117,30 @@ typedef struct proxyConnection {
     int client_fd;
     connection_status_t client_status;  //usado para determinar si quiere cerrar la conexión pero puede que todavia quede algo en el buffer
 
+    doh_connection_t *doh_connection;
+
     /*información del origin server*/
-    struct sockaddr_storage origin_addr;
     int origin_fd;
     connection_status_t origin_status;  //usado para determinar si quiere cerrar la conexión pero puede que todavia quede algo en el buffer
 
     /*maquinas de estados*/
     struct state_machine stm;
 
-    // estados para el cliente
+    ssize_t bytes_to_analize;
+
+    /*Parsers de la conexion*/
     union client_state {
-        struct request_line_st request_line;
-    } client;
+        struct request_line_t request_line;
+        headers_parser_t headers;
+        status_line_t status_line;
+    } connection_parsers;
 
-    struct {
-        struct sniffer_parser sniffer_parser;
-        bool sniffEnabled;
-        bool isDone;
-    } sniffer;
+    sniffer_t sniffer;
 
-    struct headers_parser response_header_parser;
-
-    http_response_t http_response;
-    doh_connection_t *dohConnection;
-
-    int bytesToAnalize;
-
-    connection_request_t connectionRequest;
-
-    errors_t error;
+    connection_request_t connection_request;
 
     buffer origin_buffer, client_buffer;
 
-} proxyConnection;
+} proxy_connection_t;
 
 #endif

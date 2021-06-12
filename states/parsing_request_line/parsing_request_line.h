@@ -4,7 +4,7 @@
 #include "utils/selector/selector.h"
 
 void 
-parsing_host_on_arrival(const unsigned state, struct selector_key *key);
+parsing_host_on_arrival(unsigned state, struct selector_key *key);
 
 unsigned
 parsing_host_on_read_ready(struct selector_key *key);

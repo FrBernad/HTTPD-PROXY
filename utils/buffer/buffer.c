@@ -13,7 +13,7 @@ buffer_reset(buffer *b) {
     b->write = b->data;
 }
 
-void buffer_init(buffer *b, const size_t n, uint8_t *data) {
+void buffer_init(buffer *b, size_t n, uint8_t *data) {
     b->data = data;
     buffer_reset(b);
     b->limit = b->data + n;
@@ -44,7 +44,7 @@ buffer_read_ptr(buffer *b, size_t *nbyte) {
 }
 
 inline void
-buffer_write_adv(buffer *b, const ssize_t bytes) {
+buffer_write_adv(buffer *b, ssize_t bytes) {
     if (bytes > -1) {
         b->write += (size_t)bytes;
         assert(b->write <= b->limit);
@@ -52,7 +52,7 @@ buffer_write_adv(buffer *b, const ssize_t bytes) {
 }
 
 inline void
-buffer_read_adv(buffer *b, const ssize_t bytes) {
+buffer_read_adv(buffer *b, ssize_t bytes) {
     if (bytes > -1) {
         b->read += (size_t)bytes;
         assert(b->read <= b->write);
@@ -91,7 +91,7 @@ void buffer_compact(buffer *b) {
         b->read = b->data;
         b->write = b->data;
     } else {
-        const size_t n = b->write - b->read;
+        size_t n = b->write - b->read;
         memmove(b->data, b->read, n);
         b->read = b->data;
         b->write = b->data + n;

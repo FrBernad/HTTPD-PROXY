@@ -3,27 +3,27 @@
 #include <string.h>
 
 static enum percy_response_state 
-p_response_ver(struct percy_response_parser *p, const uint8_t c);
+p_response_ver(percy_response_parser_t *p, uint8_t c);
 
 static enum percy_response_state 
-p_response_status(struct percy_response_parser *p, const uint8_t c);
+p_response_status(percy_response_parser_t *p, uint8_t c);
 
 static enum percy_response_state 
-p_response_resv(struct percy_response_parser *p, const uint8_t c);
+p_response_resv(percy_response_parser_t *p, uint8_t c);
 
 static enum percy_response_state 
-p_response_value(struct percy_response_parser *p, const uint8_t c);
+p_response_value(percy_response_parser_t *p, uint8_t c);
 
 
 /** init parser */
 void 
-percy_response_parser_init(struct percy_response_parser *p) {
+percy_response_parser_init(percy_response_parser_t *p) {
     p->state = percy_response_ver;
     memset(p->response, 0, sizeof(*(p->response)));
 }
 
 enum percy_response_state
-percy_response_parser_feed(struct percy_response_parser *p, const uint8_t c) {
+percy_response_parser_feed(percy_response_parser_t *p, uint8_t c) {
     enum percy_response_state next;
 
     switch (p->state) {
@@ -51,21 +51,21 @@ percy_response_parser_feed(struct percy_response_parser *p, const uint8_t c) {
 }
 
 static enum percy_response_state 
-p_response_ver(struct percy_response_parser *p, const uint8_t c) {
+p_response_ver(percy_response_parser_t *p, uint8_t c) {
 
     p->response->ver = c;
     return percy_response_status;
 }
 
 static enum percy_response_state 
-p_response_status(struct percy_response_parser *p, const uint8_t c) {
+p_response_status(percy_response_parser_t *p, uint8_t c) {
 
     p->response->status = c;
     return percy_response_resv;
 }
 
 static enum percy_response_state 
-p_response_resv(struct percy_response_parser *p, const uint8_t c) {
+p_response_resv(percy_response_parser_t *p, uint8_t c) {
 
     p->response->resv = c;
     p->i = 0;
@@ -74,7 +74,7 @@ p_response_resv(struct percy_response_parser *p, const uint8_t c) {
 }
 
 static enum percy_response_state 
-p_response_value(struct percy_response_parser *p, const uint8_t c) {
+p_response_value(percy_response_parser_t *p, uint8_t c) {
 
     enum percy_response_state next_state = percy_response_value;
 

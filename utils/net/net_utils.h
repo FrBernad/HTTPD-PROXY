@@ -3,6 +3,7 @@
 
 #include <arpa/inet.h>
 
-int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol);
+int
+establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol);
 
 #endif

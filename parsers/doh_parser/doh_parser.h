@@ -346,59 +346,58 @@ enum values {
 };
 
 
-
-struct answer{
+typedef struct answer {
 
     union {
         uint8_t *ptr;
         uint8_t name[MAX_ANSWER_NAME_LENGTH];
-    } aname;
-    uint8_t namelength;
-    uint16_t aoffset;
-    uint16_t atype;
-    uint16_t aclass;
-    uint32_t attl;
-    uint16_t ardlength;
-    uint16_t ardatalength;
-    uint8_t ardata[INET6_ADDRSTRLEN];
+    } a_name;
+    uint8_t name_length;
+    uint16_t a_offset;
+    uint16_t a_type;
+    uint16_t a_class;
+    uint32_t a_ttl;
+    uint16_t a_rd_length;
+    uint16_t a_rdata_length;
+    uint8_t ar_data[INET6_ADDRSTRLEN];
     union {
         struct in6_addr ipv6;
         struct in_addr ipv4;
     } aip;
 
-};
+} answer_t;
 
-struct doh_response {
+typedef struct doh_response {
 
-   struct {
-       uint16_t id;
-       struct __packed {
-           unsigned qr : 1;
-           unsigned opcode : 4;
-           unsigned aa : 1;
-           unsigned tc : 1;
-           unsigned rd : 1;
-           unsigned ra : 1;
-           unsigned z : 3;
-           unsigned rcode : 4;
-       } flags;
-       uint16_t qdcount;
-       uint16_t ancount;
-       uint16_t nscount;
-       uint16_t arcount;
-   } header;
+    struct {
+        uint16_t id;
+        struct __packed {
+            unsigned qr: 1;
+            unsigned opcode: 4;
+            unsigned aa: 1;
+            unsigned tc: 1;
+            unsigned rd: 1;
+            unsigned ra: 1;
+            unsigned z: 3;
+            unsigned rcode: 4;
+        } flags;
+        uint16_t qdcount;
+        uint16_t ancount;
+        uint16_t nscount;
+        uint16_t arcount;
+    } header;
 
-   struct {
-       uint8_t qnameSize;
-       uint8_t qname[MAX_QUESTION_QNAME_LENGTH];
-       uint16_t qtype;
-       uint16_t qclass;
-   } question;
+    struct {
+        uint8_t qname_size;
+        uint8_t qname[MAX_QUESTION_QNAME_LENGTH];
+        uint16_t qtype;
+        uint16_t qclass;
+    } question;
 
-  struct answer * answers;
-  uint16_t answerIndex;
+    answer_t *answers;
+    uint16_t answer_index;
 
-};
+} doh_response_t;
 
 typedef enum doh_response_state {
     //Header
@@ -438,21 +437,24 @@ typedef enum doh_response_state {
     doh_response_error,
 } doh_response_state;
 
-struct doh_response_parser {
-   struct doh_response *response;
-   doh_response_state state;
-   int i;
-   int n;
-};
+typedef struct doh_response_parser {
+    doh_response_t *response;
+    doh_response_state state;
+    int i;
+    int n;
+} doh_response_parser_t;
 
 /** init parser */
-void doh_response_parser_init(struct doh_response_parser *p);
+void
+doh_response_parser_init(doh_response_parser_t *p);
 
 /** returns true if done */
-enum doh_response_state doh_response_parser_feed(struct doh_response_parser *p, const uint8_t c);
+enum doh_response_state
+doh_response_parser_feed(doh_response_parser_t *p, uint8_t c);
 
 /*Libera el espacio allocado para guardar las respuestas de la consulta dns/ Debe llamarse luego de haber obtenido la respuesta*/
-void doh_response_parser_destroy(struct doh_response_parser *p);
+void
+doh_response_parser_destroy(doh_response_parser_t *p);
 
 #endif
 

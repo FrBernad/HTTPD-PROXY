@@ -4,7 +4,7 @@
 #include "utils/selector/selector.h"
 
 void 
-send_request_line_on_arrival(const unsigned state, struct selector_key *key);
+send_request_line_on_arrival(unsigned state, struct selector_key *key);
 
 unsigned
 send_request_line_on_write_ready(struct selector_key *key);

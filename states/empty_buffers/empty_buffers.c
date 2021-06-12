@@ -1,14 +1,12 @@
 #include "empty_buffers.h"
 
-#include <stdio.h>
-
 #include "connections/connections_def.h"
 #include "metrics/metrics.h"
 
 static void
 set_empty_buffers_interests(struct selector_key *key);
 
-void empty_buffers_on_arrival(const unsigned state, struct selector_key *key) {
+void empty_buffers_on_arrival(unsigned state, struct selector_key *key) {
     set_empty_buffers_interests(key);
 }
 
@@ -16,7 +14,7 @@ unsigned
 empty_buffers_on_write_ready(struct selector_key *key) {
     set_empty_buffers_interests(key);
 
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
     if(connection->client_status==CLOSED_STATUS && connection->origin_status==CLOSED_STATUS){
         unregister_connection();
         return DONE;
@@ -27,16 +25,16 @@ empty_buffers_on_write_ready(struct selector_key *key) {
 
 static void
 set_empty_buffers_interests(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    buffer *originBuffer = &connection->origin_buffer;
-    buffer *clientBuffer = &connection->client_buffer;
+    buffer *origin_buffer = &connection->origin_buffer;
+    buffer *client_buffer = &connection->client_buffer;
 
-    fd_interest clientInterest = OP_NOOP;
-    fd_interest originInterest = OP_NOOP;
+    fd_interest client_interest = OP_NOOP;
+    fd_interest origin_interest = OP_NOOP;
 
-    if (buffer_can_read(clientBuffer)) {
-        originInterest |= OP_WRITE;
+    if (buffer_can_read(client_buffer)) {
+        origin_interest |= OP_WRITE;
     } else {
         if (connection->client_status == CLOSING_STATUS) {
             shutdown(connection->origin_fd,SHUT_WR);
@@ -44,8 +42,8 @@ set_empty_buffers_interests(struct selector_key *key) {
         }
     }
 
-    if (buffer_can_read(originBuffer)) {
-        clientInterest |= OP_WRITE;
+    if (buffer_can_read(origin_buffer)) {
+        client_interest |= OP_WRITE;
     }else {
         if (connection->origin_status == CLOSING_STATUS) {
             shutdown(connection->client_fd,SHUT_WR);
@@ -53,6 +51,6 @@ set_empty_buffers_interests(struct selector_key *key) {
         }
     }
 
-    selector_set_interest(key->s, connection->client_fd, clientInterest);
-    selector_set_interest(key->s, connection->origin_fd, originInterest);
+    selector_set_interest(key->s, connection->client_fd, client_interest);
+    selector_set_interest(key->s, connection->origin_fd, origin_interest);
 }

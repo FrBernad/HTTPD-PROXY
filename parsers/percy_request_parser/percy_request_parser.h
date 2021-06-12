@@ -18,14 +18,14 @@ enum {
     PERCY_REQUEST_SIZE = 12
 };
 
-struct request_percy {
+typedef struct request_percy {
     uint8_t ver;
     uint8_t type;
     uint8_t passphrase[PASS_PHRASE_LEN];
     uint8_t method;
     uint8_t resv;
     uint16_t value;
-};
+}request_percy_t;
 
 
 
@@ -44,20 +44,19 @@ typedef enum percy_request_state {
     percy_request_error,
 } percy_request_state;
 
-struct percy_request_parser {
-    struct request_percy *request;
+typedef struct percy_request_parser {
+    request_percy_t *request;
     percy_request_state state;
     int i;
     int n;
-};
+}percy_request_parser_t;
 
 /** init parser */
 void 
-percy_request_parser_init(struct percy_request_parser *p);
+percy_request_parser_init(percy_request_parser_t *p);
 
 /** returns true if done */
 enum percy_request_state 
-percy_request_parser_feed(struct percy_request_parser *p, const uint8_t c);
-
+percy_request_parser_feed(percy_request_parser_t *p, uint8_t c);
 
 #endif

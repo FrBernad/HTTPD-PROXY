@@ -49,30 +49,30 @@ int init_logger(fd_selector s) {
     return 1;
 }
 
-void logger_log(char *log, uint64_t totalBytes) {
+void logger_log(char *log, uint64_t total_bytes) {
     int fd;
     buffer *buff;
 
     fd = STDOUT_FILENO;
     buff = &stdout_buffer;
 
-    ssize_t bytesWritten = write(fd, log, totalBytes);
-    if (bytesWritten > 0) {
-        totalBytes -= bytesWritten;
-        log += bytesWritten;
+    ssize_t bytes_written = write(fd, log, total_bytes);
+    if (bytes_written > 0) {
+        total_bytes -= bytes_written;
+        log += bytes_written;
     }
 
-    if (bytesWritten == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
-        size_t maxBytes;
-        uint8_t *data = buffer_write_ptr(buff, &maxBytes);
+    if (bytes_written == -1 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+        size_t max_bytes;
+        uint8_t *data = buffer_write_ptr(buff, &max_bytes);
 
-        if (maxBytes < totalBytes) {
+        if (max_bytes < total_bytes) {
             return;
         }
 
-        memcpy(data, log, totalBytes);
+        memcpy(data, log, total_bytes);
 
-        buffer_write_adv(buff, totalBytes);
+        buffer_write_adv(buff, total_bytes);
 
         selector_set_interest(selector, fd, OP_WRITE);
     }
@@ -82,18 +82,18 @@ static void
 logger_on_write_ready(struct selector_key *key) {
     buffer *buff = (buffer *)key->data;
 
-    size_t maxBytes;
-    ssize_t totalBytes;
-    uint8_t *data = buffer_read_ptr(buff, &maxBytes);
+    size_t max_bytes;
+    ssize_t total_bytes;
+    uint8_t *data = buffer_read_ptr(buff, &max_bytes);
 
-    totalBytes = write(key->fd, data, maxBytes);
+    total_bytes = write(key->fd, data, max_bytes);
 
-    if (totalBytes < 0) {
+    if (total_bytes < 0) {
         selector_set_interest_key(key, OP_NOOP);
         return;
     }
 
-    buffer_read_adv(buff, totalBytes);
+    buffer_read_adv(buff, total_bytes);
 
     if (!buffer_can_read(buff)) {
         selector_set_interest_key(key, OP_NOOP);

@@ -6,29 +6,29 @@
 #include "utils/selector/selector.h"
 
 int establish_origin_connection(struct sockaddr *addr, socklen_t addrlen, int protocol) {
-    int originSocket = socket(protocol, SOCK_STREAM, IPPROTO_TCP);
+    int origin_socket = socket(protocol, SOCK_STREAM, IPPROTO_TCP);
 
-    if (originSocket < 0)
+    if (origin_socket < 0)
         return -1;
 
     int opt = 1;
 
-    if (selector_fd_set_nio(originSocket) < 0) {
-        close(originSocket);
+    if (selector_fd_set_nio(origin_socket) < 0) {
+        close(origin_socket);
         return -1;
     }
 
-    if (setsockopt(originSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        close(originSocket);
+    if (setsockopt(origin_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        close(origin_socket);
         return -1;
     }
 
-    if (connect(originSocket, addr, addrlen) < 0) {
+    if (connect(origin_socket, addr, addrlen) < 0) {
         if (errno != EINPROGRESS) {
-            close(originSocket);
+            close(origin_socket);
             return -1; 
         }
     }
 
-    return originSocket;
+    return origin_socket;
 }

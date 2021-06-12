@@ -115,8 +115,6 @@
  *       
  */
 
-#define AUTHORIZATION_HEADER "Authorization"
-
 enum {
     /**  max length for HTTP field */
     MAX_HEADER_FIELD_NAME_LENGTH = 128,
@@ -154,21 +152,21 @@ typedef struct{
     char * password;
 }authorization_t;
 
-struct headers_parser {
+typedef struct headers_parser {
     headers_state state;
     unsigned headersCount;
     current_header_t current_header;
     authorization_t authorization;
     int i;
     int n;
-};
+}headers_parser_t;
 
 /** init parser */
 void 
-headers_parser_init(struct headers_parser *p);
+headers_parser_init(headers_parser_t *p);
 
 /** returns true if done */
 enum headers_state
-headers_parser_feed(struct headers_parser *p, const uint8_t c);
+headers_parser_feed(headers_parser_t *p, uint8_t c);
 
 #endif

@@ -9,12 +9,12 @@
 #include "utils/net/net_utils.h"
 
 static void
-initDohState(struct selector_key *key);
+init_doh_state(struct selector_key *key);
 
-void await_doh_response_on_arrival(const unsigned state, struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+void await_doh_response_on_arrival(unsigned state, struct selector_key *key) {
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    initDohState(key);
+    init_doh_state(key);
 
     selector_set_interest(key->s, connection->client_fd, OP_NOOP);
     selector_set_interest(key->s, connection->origin_fd, OP_READ);
@@ -22,7 +22,7 @@ void await_doh_response_on_arrival(const unsigned state, struct selector_key *ke
 
 unsigned
 await_doh_response_on_read_ready(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     /*Significa que la función initDoh que se invoca en await_doh_response_on_arrival falló al intentar allocar memoria*/
     if (connection->error == INTERNAL_SERVER_ERROR) {
@@ -32,49 +32,49 @@ await_doh_response_on_read_ready(struct selector_key *key) {
     buffer *origin_buffer = &connection->origin_buffer;
 
     while (buffer_can_read(origin_buffer)) {
-        if (connection->dohConnection->statusLineParser.state != status_line_done) {
-            status_line_state statusLineState = status_line_parser_feed(&connection->dohConnection->statusLineParser,
-                                                                        buffer_read(origin_buffer));
-            if (statusLineState == status_line_error) {
+        if (connection->doh_connection->status_line_parser.state != status_line_done) {
+            status_line_state status_line_state = status_line_parser_feed(&connection->doh_connection->status_line_parser,
+                                                                          buffer_read(origin_buffer));
+            if (status_line_state == status_line_error) {
                 connection->error = BAD_GATEWAY;
                 return ERROR;
             }
             continue;
         }
 
-        if (connection->dohConnection->headersParser.state != headers_done) {
-            headers_state headersState = headers_parser_feed(&connection->dohConnection->headersParser,
+        if (connection->doh_connection->headers_parser.state != headers_done) {
+            headers_state headers_state = headers_parser_feed(&connection->doh_connection->headers_parser,
                                                              buffer_read(origin_buffer));
-            if (headersState == headers_error) {
+            if (headers_state == headers_error) {
                 connection->error = BAD_GATEWAY;
                 return ERROR;
             }
             continue;
         }
 
-        if (connection->dohConnection->dohParser.state != doh_response_done) {
-            doh_response_state dohResponseState = doh_response_parser_feed(&connection->dohConnection->dohParser,
+        if (connection->doh_connection->doh_parser.state != doh_response_done) {
+            doh_response_state doh_response_state = doh_response_parser_feed(&connection->doh_connection->doh_parser,
                                                                            buffer_read(origin_buffer));
-            if (dohResponseState == doh_response_error) {
+            if (doh_response_state == doh_response_error) {
                 connection->error = BAD_GATEWAY;
                 return ERROR;
-            } else if (dohResponseState == response_mem_alloc_error) {
+            } else if (doh_response_state == response_mem_alloc_error) {
                 connection->error = INTERNAL_SERVER_ERROR;
                 return ERROR;
-            } else if (dohResponseState == doh_no_answers) {
-                if (connection->dohConnection->currentType == ipv6_try) {
+            } else if (doh_response_state == doh_no_answers) {
+                if (connection->doh_connection->current_type == ipv6_try) {
                     connection->error = INTERNAL_SERVER_ERROR;
                     return ERROR;
                 } else {
                     //try ipv6
                     buffer_reset(origin_buffer);
                     selector_unregister_fd(key->s, connection->origin_fd);
-                    doh_response_parser_destroy(&connection->dohConnection->dohParser);
-                    connection->dohConnection->isActive = false;
-                    connection->dohConnection->currentType = ipv6_try;
+                    doh_response_parser_destroy(&connection->doh_connection->doh_parser);
+                    connection->doh_connection->is_active = false;
+                    connection->doh_connection->current_type = ipv6_try;
                     return handle_origin_doh_connection(key);
                 }
-            } else if (connection->dohConnection->dohParser.state == doh_response_done) {
+            } else if (connection->doh_connection->doh_parser.state == doh_response_done) {
                 buffer_reset(origin_buffer);
                 break;
             }
@@ -89,27 +89,27 @@ await_doh_response_on_read_ready(struct selector_key *key) {
     return stm_state(&connection->stm);
 }
 
-static void initDohState(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
-    doh_connection_t *doh = connection->dohConnection;
+static void init_doh_state(struct selector_key *key) {
+    proxy_connection_t *connection = ATTACHMENT(key);
+    doh_connection_t *doh = connection->doh_connection;
 
     if (doh == NULL) {
-        connection->dohConnection = calloc(sizeof(doh_connection_t), 1);
+        connection->doh_connection = calloc(sizeof(doh_connection_t), 1);
 
-        if (connection->dohConnection == NULL) {
+        if (connection->doh_connection == NULL) {
             connection->error = INTERNAL_SERVER_ERROR;
             return;
         }
 
-        doh = connection->dohConnection;
-        doh->dohParser.response = &doh->dohResponse;
-        doh->statusLineParser.status_line = &doh->statusLine;
-        doh->currentType = ipv4_try;
+        doh = connection->doh_connection;
+        doh->doh_parser.response = &doh->doh_response;
+        doh->status_line_parser.status_line = &doh->status_line;
+        doh->current_type = ipv4_try;
     }
 
-    connection->dohConnection->isActive = true;
-    doh->currentTry = 0;
-    headers_parser_init(&doh->headersParser);
-    status_line_parser_init(&doh->statusLineParser);
-    doh_response_parser_init(&doh->dohParser);
+    connection->doh_connection->is_active = true;
+    doh->current_try = 0;
+    headers_parser_init(&doh->headers_parser);
+    status_line_parser_init(&doh->status_line_parser);
+    doh_response_parser_init(&doh->doh_parser);
 }

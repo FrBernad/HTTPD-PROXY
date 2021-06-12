@@ -8,8 +8,8 @@ static void
 write_request_line(struct selector_key *key);
 
 void 
-send_request_line_on_arrival(const unsigned state, struct selector_key *key){
-    proxyConnection *connection = ATTACHMENT(key);
+send_request_line_on_arrival(unsigned state, struct selector_key *key){
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     write_request_line(key);
 
@@ -20,7 +20,7 @@ send_request_line_on_arrival(const unsigned state, struct selector_key *key){
 
 unsigned
 send_request_line_on_write_ready(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     buffer *buffer = &connection->origin_buffer;
 
@@ -34,14 +34,14 @@ send_request_line_on_write_ready(struct selector_key *key) {
 static void 
 write_request_line(struct selector_key *key) {
 
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     buffer *buffer = &connection->origin_buffer;
     
-    size_t maxBytes;
-    uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
-    size_t requestLineSize = strlen((char*)connection->connectionRequest.requestLine);
-    memcpy(data, connection->connectionRequest.requestLine, requestLineSize);
-    buffer_write_adv(buffer, requestLineSize);
+    size_t max_bytes;
+    uint8_t *data = buffer_write_ptr(buffer, &max_bytes);
+    size_t request_line_size = strlen((char*)connection->connection_request.request_line);
+    memcpy(data, connection->connection_request.request_line, request_line_size);
+    buffer_write_adv(buffer, request_line_size);
 
 }

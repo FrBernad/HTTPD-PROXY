@@ -9,79 +9,79 @@
 #include "utils/parser/parser_utils.h"
 
 static enum doh_response_state
-r_header_id(struct doh_response_parser *p, const uint8_t c);
+r_header_id(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_header_flags(struct doh_response_parser *p, const uint8_t c);
+r_header_flags(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_header_qdcount(struct doh_response_parser *p, const uint8_t c);
+r_header_qdcount(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_header_ancount(struct doh_response_parser *p, const uint8_t c);
+r_header_ancount(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_header_nscount(struct doh_response_parser *p, const uint8_t c);
+r_header_nscount(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_header_arcount(struct doh_response_parser *p, const uint8_t c);
+r_header_arcount(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_question_qname_label_length(struct doh_response_parser *p, const uint8_t c);
+r_question_qname_label_length(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_question_qname_label(struct doh_response_parser *p, const uint8_t c);
+r_question_qname_label(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_question_qtype(struct doh_response_parser *p, const uint8_t c);
+r_question_qtype(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_question_qclass(struct doh_response_parser *p, const uint8_t c);
+r_question_qclass(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_name_pointer(struct doh_response_parser *p, const uint8_t c);
+r_answer_name_pointer(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_name_label_length(struct doh_response_parser *p, const uint8_t c);
+r_answer_name_label_length(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_name_label(struct doh_response_parser *p, const uint8_t c);
+r_answer_name_label(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_type(struct doh_response_parser *p, const uint8_t c);
+r_answer_type(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_class(struct doh_response_parser *p, const uint8_t c);
+r_answer_class(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_ttl(struct doh_response_parser *p, const uint8_t c);
+r_answer_ttl(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_rdlength(struct doh_response_parser *p, const uint8_t c);
+r_answer_rdlength(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c);
+r_answer_ipv4_rdata(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_ipv6_rdata(struct doh_response_parser *p, const uint8_t c);
+r_answer_ipv6_rdata(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_cname_label_length_rdata(struct doh_response_parser *p, const uint8_t c);
+r_answer_cname_label_length_rdata(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_cname_label_rdata(struct doh_response_parser *p, const uint8_t c);
+r_answer_cname_label_rdata(doh_response_parser_t *p, uint8_t c);
 
 static enum doh_response_state
-r_answer_cname_pointer_rdata(struct doh_response_parser *p, const uint8_t c);
+r_answer_cname_pointer_rdata(doh_response_parser_t *p, uint8_t c);
 
-void doh_response_parser_init(struct doh_response_parser *p) {
+void doh_response_parser_init(doh_response_parser_t *p) {
     p->state = response_header_id;
     p->i = 0;
     p->n = HEADER_ID_LENGTH;
     memset(p->response, 0, sizeof(*(p->response)));
 }
 
-void doh_response_parser_destroy(struct doh_response_parser *p) {
+void doh_response_parser_destroy(doh_response_parser_t *p) {
     /*Chequeo que para hacer el free haya sido inicializado previamente*/
     if (p->response->answers != NULL) {
         free(p->response->answers);
@@ -90,7 +90,7 @@ void doh_response_parser_destroy(struct doh_response_parser *p) {
 }
 
 enum doh_response_state
-doh_response_parser_feed(struct doh_response_parser *p, const uint8_t c) {
+doh_response_parser_feed(doh_response_parser_t *p, uint8_t c) {
     enum doh_response_state next;
 
     switch (p->state) {
@@ -179,7 +179,7 @@ doh_response_parser_feed(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_header_id(struct doh_response_parser *p, const uint8_t c) {
+r_header_id(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -204,7 +204,7 @@ r_header_id(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_header_flags(struct doh_response_parser *p, const uint8_t c) {
+r_header_flags(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -234,7 +234,7 @@ r_header_flags(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_header_qdcount(struct doh_response_parser *p, const uint8_t c) {
+r_header_qdcount(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -259,7 +259,7 @@ r_header_qdcount(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_header_ancount(struct doh_response_parser *p, const uint8_t c) {
+r_header_ancount(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -293,7 +293,7 @@ r_header_ancount(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_header_nscount(struct doh_response_parser *p, const uint8_t c) {
+r_header_nscount(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -318,7 +318,7 @@ r_header_nscount(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_header_arcount(struct doh_response_parser *p, const uint8_t c) {
+r_header_arcount(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -341,7 +341,7 @@ r_header_arcount(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_question_qname_label_length(struct doh_response_parser *p, const uint8_t c) {
+r_question_qname_label_length(doh_response_parser_t *p, uint8_t c) {
     if (c == 0x00) {
         p->i = 0;
         p->n = QUESTION_QTYPE_LENGTH;
@@ -355,15 +355,15 @@ r_question_qname_label_length(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_question_qname_label(struct doh_response_parser *p, const uint8_t c) {
+r_question_qname_label(doh_response_parser_t *p, uint8_t c) {
     if (p->i >= p->n)
         return doh_response_error;
 
     p->i++;
-    p->response->question.qname[p->response->question.qnameSize++] = c;
+    p->response->question.qname[p->response->question.qname_size++] = c;
 
     if (p->i == p->n) {
-        p->response->question.qname[p->response->question.qnameSize++] = '.';
+        p->response->question.qname[p->response->question.qname_size++] = '.';
         return response_question_qname_label_length;
     }
 
@@ -371,7 +371,7 @@ r_question_qname_label(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_question_qtype(struct doh_response_parser *p, const uint8_t c) {
+r_question_qtype(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -396,7 +396,7 @@ r_question_qtype(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_question_qclass(struct doh_response_parser *p, const uint8_t c) {
+r_question_qclass(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
@@ -420,7 +420,7 @@ r_question_qclass(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_name_label_length(struct doh_response_parser *p, const uint8_t c) {
+r_answer_name_label_length(doh_response_parser_t *p, uint8_t c) {
     if (c == 0x00) {
         p->i = 0;
         p->n = QUESTION_QTYPE_LENGTH;
@@ -431,7 +431,7 @@ r_answer_name_label_length(struct doh_response_parser *p, const uint8_t c) {
         p->i = 0;
         p->n = ANSWER_NAME_PTR_LENGTH;
         p->i++;
-        p->response->answers[p->response->answerIndex].aoffset = (((uint16_t) c) & 0x3F) << 8;
+        p->response->answers[p->response->answer_index].a_offset = (((uint16_t) c) & 0x3F) << 8;
         return response_answer_name_pointer;
     }
 
@@ -442,15 +442,15 @@ r_answer_name_label_length(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_name_label(struct doh_response_parser *p, const uint8_t c) {
+r_answer_name_label(doh_response_parser_t *p, uint8_t c) {
     if (p->i >= p->n)
         return doh_response_error;
 
     p->i++;
-    p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = c;
+    p->response->answers[p->response->answer_index].a_name.name[p->response->answers[p->response->answer_index].name_length++] = c;
 
     if (p->i == p->n) {
-        p->response->answers[p->response->answerIndex].aname.name[p->response->answers[p->response->answerIndex].namelength++] = '.';
+        p->response->answers[p->response->answer_index].a_name.name[p->response->answers[p->response->answer_index].name_length++] = '.';
         return response_answer_name_label_length;
     }
 
@@ -458,13 +458,13 @@ r_answer_name_label(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_name_pointer(struct doh_response_parser *p, const uint8_t c) {
+r_answer_name_pointer(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
         case 1:
-            p->response->answers[p->response->answerIndex].aoffset += (uint16_t) c;
-            p->response->answers[p->response->answerIndex].aname.ptr = p->response->question.qname;
+            p->response->answers[p->response->answer_index].a_offset += (uint16_t) c;
+            p->response->answers[p->response->answer_index].a_name.ptr = p->response->question.qname;
             p->i = 0;
             p->n = ANSWER_TYPE_LENGTH;
             next = response_answer_type;
@@ -478,18 +478,18 @@ r_answer_name_pointer(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_type(struct doh_response_parser *p, const uint8_t c) {
+r_answer_type(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->answers[p->response->answerIndex].atype = ((uint16_t) c) << 8;
+            p->response->answers[p->response->answer_index].a_type = ((uint16_t) c) << 8;
             next = response_answer_type;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].atype += (uint16_t) c;
+            p->response->answers[p->response->answer_index].a_type += (uint16_t) c;
             p->i = 0;
             p->n = ANSWER_CLASS_LENGTH;
             next = response_answer_class;
@@ -503,18 +503,18 @@ r_answer_type(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_class(struct doh_response_parser *p, const uint8_t c) {
+r_answer_class(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->answers[p->response->answerIndex].aclass = ((uint16_t) c) << 8;
+            p->response->answers[p->response->answer_index].a_class = ((uint16_t) c) << 8;
             next = response_answer_class;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].aclass += (uint16_t) c;
+            p->response->answers[p->response->answer_index].a_class += (uint16_t) c;
             p->i = 0;
             p->n = ANSWER_TTL_LENGTH;
             next = response_answer_ttl;
@@ -528,30 +528,30 @@ r_answer_class(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_ttl(struct doh_response_parser *p, const uint8_t c) {
+r_answer_ttl(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
         case 0:
-            p->response->answers[p->response->answerIndex].attl = ((uint32_t) c) << 24;
+            p->response->answers[p->response->answer_index].a_ttl = ((uint32_t) c) << 24;
             p->i++;
             next = response_answer_ttl;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].attl += ((uint32_t) c) << 16;
+            p->response->answers[p->response->answer_index].a_ttl += ((uint32_t) c) << 16;
             p->i++;
             next = response_answer_ttl;
             break;
 
         case 2:
-            p->response->answers[p->response->answerIndex].attl += ((uint32_t) c) << 8;
+            p->response->answers[p->response->answer_index].a_ttl += ((uint32_t) c) << 8;
             p->i++;
             next = response_answer_ttl;
             break;
 
         case 3:
-            p->response->answers[p->response->answerIndex].attl += (uint32_t) c;
+            p->response->answers[p->response->answer_index].a_ttl += (uint32_t) c;
             p->i = 0;
             p->n = ANSWER_RD_LENGTH;
             next = response_answer_rdlength;
@@ -565,20 +565,20 @@ r_answer_ttl(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_rdlength(struct doh_response_parser *p, const uint8_t c) {
+r_answer_rdlength(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
         case 0:
             p->i++;
-            p->response->answers[p->response->answerIndex].ardlength = ((uint16_t) c) << 8;
+            p->response->answers[p->response->answer_index].a_rd_length = ((uint16_t) c) << 8;
             next = response_answer_rdlength;
             break;
 
         case 1:
-            p->response->answers[p->response->answerIndex].ardlength += (uint16_t) c;
+            p->response->answers[p->response->answer_index].a_rd_length += (uint16_t) c;
             p->i = 0;
-            switch (p->response->answers[p->response->answerIndex].atype) {
+            switch (p->response->answers[p->response->answer_index].a_type) {
                 case IPV4_TYPE:
                     p->n = MAX_IPV4;
                     next = response_answer_ipv4_rdata;
@@ -604,24 +604,24 @@ r_answer_rdlength(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
+r_answer_ipv4_rdata(doh_response_parser_t *p, uint8_t c) {
     if (p->i >= p->n)
         return doh_response_error;
 
-    int total = sprintf((char *) p->response->answers[p->response->answerIndex].ardata +
-                        p->response->answers[p->response->answerIndex].ardatalength,
+    int total = sprintf((char *) p->response->answers[p->response->answer_index].ar_data +
+                        p->response->answers[p->response->answer_index].a_rdata_length,
                         "%u", c);
 
-    p->response->answers[p->response->answerIndex].ardatalength += total;
-    p->response->answers[p->response->answerIndex].ardata[p->response->answers[p->response->answerIndex].ardatalength++] = '.';
+    p->response->answers[p->response->answer_index].a_rdata_length += total;
+    p->response->answers[p->response->answer_index].ar_data[p->response->answers[p->response->answer_index].a_rdata_length++] = '.';
     p->i++;
     if (p->i == p->n) {
-        p->response->answers[p->response->answerIndex].ardata[--p->response->answers[p->response->answerIndex].ardatalength] = 0;
-        inet_pton(AF_INET, (char *) p->response->answers[p->response->answerIndex].ardata,
-                  &p->response->answers[p->response->answerIndex].aip.ipv4);
+        p->response->answers[p->response->answer_index].ar_data[--p->response->answers[p->response->answer_index].a_rdata_length] = 0;
+        inet_pton(AF_INET, (char *) p->response->answers[p->response->answer_index].ar_data,
+                  &p->response->answers[p->response->answer_index].aip.ipv4);
 
         /*No hay otra respuesta para analizar*/
-        if (++p->response->answerIndex == p->response->header.ancount)
+        if (++p->response->answer_index == p->response->header.ancount)
             return doh_response_done;
 
         return response_answer_name_label_length;
@@ -631,19 +631,19 @@ r_answer_ipv4_rdata(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_ipv6_rdata(struct doh_response_parser *p, const uint8_t c) {
+r_answer_ipv6_rdata(doh_response_parser_t *p, uint8_t c) {
     if (p->i >= p->n)
         return doh_response_error;
 
-    p->response->answers[p->response->answerIndex].aip.ipv6.__in6_u.__u6_addr8[p->i++] = c;
+    p->response->answers[p->response->answer_index].aip.ipv6.__in6_u.__u6_addr8[p->i++] = c;
     if (p->i == p->n) {
-        p->response->answers[p->response->answerIndex].ardatalength = INET6_ADDRSTRLEN - 1;
-        inet_ntop(AF_INET6, &p->response->answers[p->response->answerIndex].aip.ipv6,
-                  (char *) p->response->answers[p->response->answerIndex].ardata,
-                  p->response->answers[p->response->answerIndex].ardatalength);
+        p->response->answers[p->response->answer_index].a_rdata_length = INET6_ADDRSTRLEN - 1;
+        inet_ntop(AF_INET6, &p->response->answers[p->response->answer_index].aip.ipv6,
+                  (char *) p->response->answers[p->response->answer_index].ar_data,
+                  p->response->answers[p->response->answer_index].a_rdata_length);
 
         /*No hay otra respuesta para analizar*/
-        if (++p->response->answerIndex == p->response->header.ancount)
+        if (++p->response->answer_index == p->response->header.ancount)
             return doh_response_done;
 
         return response_answer_name_label_length;
@@ -654,9 +654,9 @@ r_answer_ipv6_rdata(struct doh_response_parser *p, const uint8_t c) {
 
 /*No se guarda la data del CNAME*/
 static enum doh_response_state
-r_answer_cname_label_length_rdata(struct doh_response_parser *p, const uint8_t c) {
+r_answer_cname_label_length_rdata(doh_response_parser_t *p, uint8_t c) {
     if (c == 0x00) {
-        if (++p->response->answerIndex == p->response->header.ancount)
+        if (++p->response->answer_index == p->response->header.ancount)
             return doh_response_done;
 
         //Hay que leer otra respuesta
@@ -679,7 +679,7 @@ r_answer_cname_label_length_rdata(struct doh_response_parser *p, const uint8_t c
 
 /*No se guarda la data del CNAME*/
 static enum doh_response_state
-r_answer_cname_label_rdata(struct doh_response_parser *p, const uint8_t c) {
+r_answer_cname_label_rdata(doh_response_parser_t *p, uint8_t c) {
     if (p->i >= p->n)
         return doh_response_error;
 
@@ -693,14 +693,15 @@ r_answer_cname_label_rdata(struct doh_response_parser *p, const uint8_t c) {
 }
 
 static enum doh_response_state
-r_answer_cname_pointer_rdata(struct doh_response_parser *p, const uint8_t c) {
+r_answer_cname_pointer_rdata(doh_response_parser_t *p, uint8_t c) {
     doh_response_state next;
 
     switch (p->i) {
         case 1:
             p->i = 0;
-            if (++p->response->answerIndex == p->response->header.ancount)
+            if (++p->response->answer_index == p->response->header.ancount){
                 next = doh_response_done;
+            }
 
             next = response_answer_name_label_length;
             break;

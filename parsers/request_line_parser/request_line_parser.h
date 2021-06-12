@@ -124,21 +124,21 @@ typedef enum request_state {
     request_error_unsupported_method,
 } request_state;
 
-struct request_parser {
+typedef struct request_parser {
     struct request_line *request;
     request_state state;
 
     int i;
     int n;
-};
+}request_parser_t;
 
 
 /** init parser */
 void 
-request_parser_init(struct request_parser *p);
+request_parser_init(request_parser_t *p);
 
 /** returns true if done */
 enum request_state 
-request_parser_feed(struct request_parser *p, const uint8_t c);
+request_parser_feed(request_parser_t *p, uint8_t c);
 
 #endif

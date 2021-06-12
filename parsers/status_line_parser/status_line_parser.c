@@ -7,31 +7,31 @@
 #include "utils/parser/parser_utils.h"
 
 static enum status_line_state
-sl_version(const uint8_t c, struct status_line_parser *p);
+sl_version(uint8_t c, status_line_parser_t *p);
 
 static enum status_line_state
-sl_version_major(const uint8_t c, struct status_line_parser *p);
+sl_version_major(uint8_t c, status_line_parser_t *p);
 
 static enum status_line_state
-sl_version_minor(const uint8_t c, struct status_line_parser *p);
+sl_version_minor(uint8_t c, status_line_parser_t *p);
 
 static enum status_line_state
-sl_status_code(const uint8_t c, struct status_line_parser *p);
+sl_status_code(uint8_t c, status_line_parser_t *p);
 
 static enum status_line_state
-sl_reason_phrase(const uint8_t c, struct status_line_parser *p);
+sl_reason_phrase(uint8_t c, status_line_parser_t *p);
 
 static enum status_line_state
-sl_end(const uint8_t c, struct status_line_parser *p);
+sl_end(uint8_t c, status_line_parser_t *p);
 
-void status_line_parser_init(struct status_line_parser *p) {
+void status_line_parser_init(status_line_parser_t *p) {
     p->state = status_line_version;
     p->i = 0;
     p->n = STATUS_VERSION_LENGTH;
     memset(p->status_line, 0, sizeof(*(p->status_line)));
 }
 
-enum status_line_state status_line_parser_feed(struct status_line_parser *p, const uint8_t c) {
+enum status_line_state status_line_parser_feed(status_line_parser_t *p, uint8_t c) {
     enum status_line_state next;
 
     switch (p->state) {
@@ -67,7 +67,7 @@ enum status_line_state status_line_parser_feed(struct status_line_parser *p, con
 }
 
 static enum status_line_state
-sl_version(const uint8_t c, struct status_line_parser *p) {
+sl_version(uint8_t c, status_line_parser_t *p) {
     char *version = "HTTP/";
 
     if (p->i >= p->n || version[p->i] != c)
@@ -77,7 +77,7 @@ sl_version(const uint8_t c, struct status_line_parser *p) {
 
     if (c == '/') {
         p->i = 0;
-        p->n = 2;  //FIXME: CREAR ENUM
+        p->n = 2;
         return status_line_version_major;
     }
 
@@ -85,13 +85,13 @@ sl_version(const uint8_t c, struct status_line_parser *p) {
 }
 
 static enum status_line_state
-sl_version_major(const uint8_t c, struct status_line_parser *p) {
+sl_version_major(uint8_t c, status_line_parser_t *p) {
     if (p->i >= p->n)
         return status_line_error;
 
     if (c == '.') {
         p->i = 0;
-        p->n = 2;  //FIXME: CREAR ENUM
+        p->n = 2;
         return status_line_version_minor;
     }
 
@@ -115,7 +115,7 @@ sl_version_major(const uint8_t c, struct status_line_parser *p) {
 }
 
 static enum status_line_state
-sl_version_minor(const uint8_t c, struct status_line_parser *p) {
+sl_version_minor(uint8_t c, status_line_parser_t *p) {
     if (p->i >= p->n)
         return status_line_error;
 
@@ -144,7 +144,7 @@ sl_version_minor(const uint8_t c, struct status_line_parser *p) {
 }
 /*HTTP/1.1 200 OK */
 static enum status_line_state
-sl_status_code(const uint8_t c, struct status_line_parser *p) {
+sl_status_code(uint8_t c, status_line_parser_t *p) {
     if (p->i > p->n) {
         return status_line_error;
     }
@@ -174,7 +174,7 @@ sl_status_code(const uint8_t c, struct status_line_parser *p) {
 }
 
 static enum status_line_state
-sl_reason_phrase(const uint8_t c, struct status_line_parser *p) {
+sl_reason_phrase(uint8_t c, status_line_parser_t *p) {
     if (p->i >= p->n) {
         return status_line_error;
     }
@@ -193,7 +193,7 @@ sl_reason_phrase(const uint8_t c, struct status_line_parser *p) {
     return status_line_reason_phrase;
 }
 static enum status_line_state
-sl_end(const uint8_t c, struct status_line_parser *p) {
+sl_end(uint8_t c, status_line_parser_t *p) {
     if (c != '\n')
         return status_line_error;
 

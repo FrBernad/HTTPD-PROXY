@@ -10,8 +10,8 @@ static void
 write_doh_request(struct selector_key *key);
 
 void 
-send_doh_request_on_arrival(const unsigned state, struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+send_doh_request_on_arrival(unsigned state, struct selector_key *key) {
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     write_doh_request(key);
 
@@ -21,7 +21,7 @@ send_doh_request_on_arrival(const unsigned state, struct selector_key *key) {
 
 unsigned
 send_doh_request_on_write_ready(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     if (!buffer_can_read(&connection->origin_buffer)) {
         return AWAIT_DOH_RESPONSE;
@@ -32,19 +32,19 @@ send_doh_request_on_write_ready(struct selector_key *key) {
 
 static void
 write_doh_request(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     buffer *buffer = &connection->origin_buffer;
-    size_t maxBytes;
-    uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
-    uint8_t queryType;
-    if (connection->dohConnection == NULL) {
-        queryType = IPV4_TYPE;
+    size_t max_bytes;
+    uint8_t *data = buffer_write_ptr(buffer, &max_bytes);
+    uint8_t query_type;
+    if (connection->doh_connection == NULL) {
+        query_type = IPV4_TYPE;
     } else {
-        queryType = connection->dohConnection->currentType == ipv4_try ? IPV4_TYPE : IPV6_TYPE;
+        query_type = connection->doh_connection->current_type == ipv4_try ? IPV4_TYPE : IPV6_TYPE;
     }
 
-    int requestDohSize = build_doh_request(data, (uint8_t *)connection->connectionRequest.host.domain, queryType);
+    int request_doh_size = build_doh_request(data, (uint8_t *)connection->connection_request.host.domain, query_type);
 
-    buffer_write_adv(buffer, requestDohSize);
+    buffer_write_adv(buffer, request_doh_size);
 }

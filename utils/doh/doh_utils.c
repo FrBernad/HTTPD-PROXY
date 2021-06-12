@@ -34,27 +34,27 @@ static struct doh_utils {
     } ip;
     bool isipv4;
     in_port_t port;
-} dohUtils;
+} doh_utils;
 
 void init_doh() {
-    struct doh argsDoh = get_httpd_args().doh;
+    struct doh args_doh = get_httpd_args().doh;
 
-    dohUtils.doh = argsDoh;
-    dohUtils.port = htons(argsDoh.port);
+    doh_utils.doh = args_doh;
+    doh_utils.port = htons(args_doh.port);
 
-    if (inet_pton(AF_INET, argsDoh.ip, &dohUtils.ip.ipv4addr)) {
-        dohUtils.isipv4 = true;
-    } else if (inet_pton(AF_INET6, argsDoh.ip, &dohUtils.ip.ipv6addr)) {
-        dohUtils.isipv4 = false;
+    if (inet_pton(AF_INET, args_doh.ip, &doh_utils.ip.ipv4addr)) {
+        doh_utils.isipv4 = true;
+    } else if (inet_pton(AF_INET6, args_doh.ip, &doh_utils.ip.ipv6addr)) {
+        doh_utils.isipv4 = false;
     }
 }
 
-int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
-    struct dns_request_header dnsHeader;
-    size_t dnsHeaderLength = sizeof(dnsHeader);
-    memset(&dnsHeader, 0, dnsHeaderLength);
-    dnsHeader.flags[0] = 0x01;
-    dnsHeader.qdcount[1] = 0x01;
+size_t build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t query_type) {
+    struct dns_request_header dns_header;
+    size_t dns_header_length = sizeof(dns_header);
+    memset(&dns_header, 0, dns_header_length);
+    dns_header.flags[0] = 0x01;
+    dns_header.qdcount[1] = 0x01;
 
     uint8_t query[MAX_QUERY_LENGTH];
     uint8_t *label = query;
@@ -75,9 +75,9 @@ int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
     }
     label[0] = count;
     query[j] = 0;
-    uint8_t qtype[2] = {0x00, queryType};
+    uint8_t qtype[2] = {0x00, query_type};
     uint8_t qclass[2] = {0x00, 0x01};
-    uint8_t content_length = dnsHeaderLength + j + sizeof(uint16_t) * 2;
+    uint8_t content_length = dns_header_length + j + sizeof(uint16_t) * 2;
 
     int len = sprintf((char *) dst,
                       "POST %s HTTP/1.0\r\n"
@@ -85,13 +85,13 @@ int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
                       "accept: application/dns-message\r\n"
                       "content-type: application/dns-message\r\n"
                       "content-length: %d\r\n\r\n",
-                      dohUtils.doh.path, dohUtils.doh.host, content_length);
+                      doh_utils.doh.path, doh_utils.doh.host, content_length);
 
     size_t size = len;
 
-    memcpy(dst + size, &dnsHeader, dnsHeaderLength);
+    memcpy(dst + size, &dns_header, dns_header_length);
 
-    size += dnsHeaderLength;
+    size += dns_header_length;
     memcpy(dst + size, &query, j);
     size += j;
     memcpy(dst + size, &qtype, sizeof(qtype));
@@ -104,13 +104,13 @@ int build_doh_request(uint8_t *dst, uint8_t *domain, uint8_t queryType) {
 
 unsigned
 handle_origin_doh_connection(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    if (dohUtils.isipv4) {
+    if (doh_utils.isipv4) {
         struct sockaddr_in sockaddr = {
-                .sin_addr = dohUtils.ip.ipv4addr,
+                .sin_addr = doh_utils.ip.ipv4addr,
                 .sin_family = AF_INET,
-                .sin_port = dohUtils.port,
+                .sin_port = doh_utils.port,
         };
         connection->origin_fd = establish_origin_connection(
                 (struct sockaddr *) &sockaddr,
@@ -118,9 +118,9 @@ handle_origin_doh_connection(struct selector_key *key) {
                 AF_INET);
     } else {
         struct sockaddr_in6 sockaddr = {
-                .sin6_addr = dohUtils.ip.ipv6addr,
+                .sin6_addr = doh_utils.ip.ipv6addr,
                 .sin6_family = AF_INET6,
-                .sin6_port = dohUtils.port,
+                .sin6_port = doh_utils.port,
         };
         connection->origin_fd = establish_origin_connection(
                 (struct sockaddr *) &sockaddr,
@@ -143,7 +143,7 @@ handle_origin_doh_connection(struct selector_key *key) {
 
 unsigned
 try_next_dns_connection(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
     // la primera vez se borra del selector el doh y las proximas veces los sockets con conexiones fallidas mediante una ip
     if (selector_unregister_fd(key->s, connection->origin_fd) != SELECTOR_SUCCESS) {
@@ -151,17 +151,17 @@ try_next_dns_connection(struct selector_key *key) {
         return ERROR;
     }
 
-    doh_connection_t *doh = connection->dohConnection;
+    doh_connection_t *doh = connection->doh_connection;
 
-    bool responseError = doh->dohResponse.header.flags.rcode != 0;
+    bool responseError = doh->doh_response.header.flags.rcode != 0;
 
-    if (doh->currentType == ipv4_try) {
+    if (doh->current_type == ipv4_try) {
         if (!responseError) {
             return try_next_ipv4_connection(key);
         }
-        doh_response_parser_destroy(&connection->dohConnection->dohParser);
-        connection->dohConnection->isActive = false;
-        connection->dohConnection->currentType = ipv6_try;
+        doh_response_parser_destroy(&connection->doh_connection->doh_parser);
+        connection->doh_connection->is_active = false;
+        connection->doh_connection->current_type = ipv6_try;
         return handle_origin_doh_connection(key);
     }
 
@@ -175,27 +175,27 @@ try_next_dns_connection(struct selector_key *key) {
 
 static unsigned
 try_next_ipv4_connection(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    doh_connection_t *doh = connection->dohConnection;
+    doh_connection_t *doh = connection->doh_connection;
     struct answer currentAnswer;
     struct sockaddr_in ipv4;
 
     /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->currentTry != 0) {
+    if (doh->current_try != 0) {
         increase_failed_connections();
     }
 
-    while (doh->currentTry < doh->dohResponse.header.ancount) {
-        currentAnswer = doh->dohResponse.answers[doh->currentTry++];
-        if (currentAnswer.atype != IPV4_TYPE) {
+    while (doh->current_try < doh->doh_response.header.ancount) {
+        currentAnswer = doh->doh_response.answers[doh->current_try++];
+        if (currentAnswer.a_type != IPV4_TYPE) {
             continue;
         }
 
         memset(&ipv4, 0, sizeof(ipv4));
         ipv4.sin_addr = currentAnswer.aip.ipv4;
         ipv4.sin_family = AF_INET;
-        ipv4.sin_port = connection->client.request_line.request.request_target.port;
+        ipv4.sin_port = connection->connection_parsers.request_line.request.request_target.port;
 
         connection->origin_fd = establish_origin_connection((struct sockaddr *) &ipv4, sizeof(ipv4),
                                                             ipv4.sin_family);
@@ -211,35 +211,35 @@ try_next_ipv4_connection(struct selector_key *key) {
         return TRY_CONNECTION_IP;
     }
 
-    doh_response_parser_destroy(&connection->dohConnection->dohParser);
-    connection->dohConnection->isActive = false;
-    connection->dohConnection->currentType = ipv6_try;
+    doh_response_parser_destroy(&connection->doh_connection->doh_parser);
+    connection->doh_connection->is_active = false;
+    connection->doh_connection->current_type = ipv6_try;
     return handle_origin_doh_connection(key);
 }
 
 static unsigned
 try_next_ipv6_connection(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    doh_connection_t *doh = connection->dohConnection;
+    doh_connection_t *doh = connection->doh_connection;
     struct answer currentAnswer;
     struct sockaddr_in6 ipv6;
 
     /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->currentTry != 0) {
+    if (doh->current_try != 0) {
         increase_failed_connections();
     }
 
-    while (doh->currentTry < doh->dohResponse.header.ancount) {
-        currentAnswer = doh->dohResponse.answers[doh->currentTry++];
-        if (currentAnswer.atype != IPV6_TYPE) {
+    while (doh->current_try < doh->doh_response.header.ancount) {
+        currentAnswer = doh->doh_response.answers[doh->current_try++];
+        if (currentAnswer.a_type != IPV6_TYPE) {
             continue;
         }
 
         memset(&ipv6, 0, sizeof(ipv6));
         ipv6.sin6_addr = currentAnswer.aip.ipv6;
         ipv6.sin6_family = AF_INET6;
-        ipv6.sin6_port = connection->client.request_line.request.request_target.port;
+        ipv6.sin6_port = connection->connection_parsers.request_line.request.request_target.port;
 
         connection->origin_fd = establish_origin_connection((struct sockaddr *) &ipv6, sizeof(ipv6), ipv6.sin6_family);
         if (connection->origin_fd == -1) {

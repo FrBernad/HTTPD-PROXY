@@ -7,51 +7,53 @@
 #include "utils/parser/parser_utils.h"
 
 static enum request_state
-r_method(uint8_t c, struct request_parser *p);
+r_method(uint8_t c, request_parser_t *p);
 
 static enum request_state
-r_target_scheme(const uint8_t c, struct request_parser *p);
+r_target_scheme(uint8_t c, request_parser_t *p);
 
 static enum request_state
-r_target_host(const uint8_t c, struct request_parser *p);
+r_target_host(uint8_t c, request_parser_t *p);
 
 static enum request_state
-getMethodState(struct request_parser *p);
+get_method_state(request_parser_t *p);
 
 static enum request_state
-r_target_port(const uint8_t c, struct request_parser *p);
+r_target_port(uint8_t c, request_parser_t *p);
 
 static enum request_state
-r_target_ogform(const uint8_t c, struct request_parser *p);
+r_target_ogform(uint8_t c, request_parser_t *p);
 
 static enum request_state
-r_version(const uint8_t c, struct request_parser *p);
+r_version(uint8_t c, request_parser_t *p);
 
 static enum request_state
-r_version_major(const uint8_t c, struct request_parser *p);
+r_version_major(uint8_t c, request_parser_t *p);
 
 static enum request_state
-r_version_minor(const uint8_t c, struct request_parser *p);
+r_version_minor(uint8_t c, request_parser_t *p);
 
 static enum request_state
-r_end(const uint8_t c, struct request_parser *p);
+r_end(uint8_t c, request_parser_t *p);
 
 static bool
-parseIpv6(struct request_parser *p);
+parse_ipv6(request_parser_t *p);
 
 static bool
-parseIpv4(struct request_parser *p);
+parse_ipv4(request_parser_t *p);
 
-static void assign_port(struct request_parser *p);
+static void
+assign_port(request_parser_t *p);
 
-void request_parser_init(struct request_parser *p) {
+void request_parser_init(request_parser_t *p) {
     p->state = request_method;
     p->i = 0;
     p->n = MAX_METHOD_LENGTH;
     memset(p->request, 0, sizeof(*(p->request)));
 }
 
-enum request_state request_parser_feed(struct request_parser *p, const uint8_t c) {
+enum request_state
+request_parser_feed(request_parser_t *p, uint8_t c) {
     enum request_state next;
 
     switch (p->state) {
@@ -97,7 +99,7 @@ enum request_state request_parser_feed(struct request_parser *p, const uint8_t c
 }
 
 static enum request_state
-r_method(const uint8_t c, struct request_parser *p) {
+r_method(uint8_t c, request_parser_t *p) {
     if (p->i < p->n) {
         if (IS_TOKEN(c)) {
             p->request->method[p->i++] = c;
@@ -105,15 +107,15 @@ r_method(const uint8_t c, struct request_parser *p) {
         } else if (c == ' ') {
             p->request->method[p->i] = 0;
             p->i = 0;
-            return getMethodState(p);
+            return get_method_state(p);
         }
     }
     return request_error_unsupported_method;
 }
 
 static enum request_state
-getMethodState(struct request_parser *p) {
-    char *method = (char *)p->request->method;
+get_method_state(request_parser_t *p) {
+    char *method = (char *) p->request->method;
 
     if (strcmp(method, "CONNECT") != 0) {  //FIXME:
         p->request->request_target.type = absolute_form;
@@ -127,7 +129,7 @@ getMethodState(struct request_parser *p) {
 }
 
 static enum request_state
-r_target_scheme(const uint8_t c, struct request_parser *p) {
+r_target_scheme(uint8_t c, request_parser_t *p) {
     char *scheme = "http://";
 
     if (p->i >= p->n || scheme[p->i] != c)
@@ -153,7 +155,7 @@ r_target_scheme(const uint8_t c, struct request_parser *p) {
     sign ("#") character, or by the end of the URI.
 */
 static enum request_state
-r_target_host(const uint8_t c, struct request_parser *p) {
+r_target_host(uint8_t c, request_parser_t *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -170,7 +172,7 @@ r_target_host(const uint8_t c, struct request_parser *p) {
 
         if (c == ':' && p->request->request_target.host.domain[p->i - 1] == ']') {
             p->request->request_target.host.domain[p->i - 1] = 0;
-            if (!parseIpv6(p))
+            if (!parse_ipv6(p))
                 return request_error;
             p->i = 0;
             p->n = MAX_PORT_LENGTH;
@@ -179,7 +181,7 @@ r_target_host(const uint8_t c, struct request_parser *p) {
 
         if (END_OF_AUTHORITY(c)) {
             p->request->request_target.host.domain[p->i - 1] = 0;
-            if (!parseIpv6(p))
+            if (!parse_ipv6(p))
                 return request_error;
             p->i = 0;
             p->n = MAX_ORIGIN_FORM;
@@ -189,9 +191,9 @@ r_target_host(const uint8_t c, struct request_parser *p) {
 
         if (c == ' ') {
             p->request->request_target.host.domain[p->i - 1] = 0;
-            if (!parseIpv6(p))
+            if (!parse_ipv6(p))
                 return request_error;
-            if (strcmp((char*)p->request->method, "OPTIONS") != 0) {
+            if (strcmp((char *) p->request->method, "OPTIONS") != 0) {
                 p->request->request_target.origin_form[0] = '/';
             }
             p->i = 0;
@@ -203,14 +205,14 @@ r_target_host(const uint8_t c, struct request_parser *p) {
     }
 
     if (c == ':') {
-        parseIpv4(p);
+        parse_ipv4(p);
         p->i = 0;
         p->n = MAX_PORT_LENGTH;
         return request_target_port;
     }
 
     if (END_OF_AUTHORITY(c)) {
-        parseIpv4(p);
+        parse_ipv4(p);
         p->i = 0;
         p->n = MAX_ORIGIN_FORM;
         p->request->request_target.origin_form[p->i++] = c;
@@ -218,8 +220,8 @@ r_target_host(const uint8_t c, struct request_parser *p) {
     }
 
     if (c == ' ') {
-        parseIpv4(p);
-        if (strcmp((char*)p->request->method, "OPTIONS") != 0) {
+        parse_ipv4(p);
+        if (strcmp((char *) p->request->method, "OPTIONS") != 0) {
             p->request->request_target.origin_form[0] = '/';
         }
         p->i = 0;
@@ -232,7 +234,8 @@ r_target_host(const uint8_t c, struct request_parser *p) {
     return request_target_host;
 }
 
-static bool parseIpv6(struct request_parser *p) {
+static bool
+parse_ipv6(request_parser_t *p) {
     struct sockaddr_in6 ipv6addr;
     int addrlen = sizeof(ipv6addr);
 
@@ -252,7 +255,8 @@ static bool parseIpv6(struct request_parser *p) {
     return true;
 }
 
-static bool parseIpv4(struct request_parser *p) {
+static bool
+parse_ipv4(request_parser_t *p) {
     struct sockaddr_in ipv4addr;
     int addrlen = sizeof(ipv4addr);
 
@@ -273,7 +277,8 @@ static bool parseIpv4(struct request_parser *p) {
     return true;
 }
 
-static void assign_port(struct request_parser *p) {
+static void
+assign_port(request_parser_t *p) {
     switch (p->request->request_target.host_type) {
         case ipv4:
             p->request->request_target.host.ipv4.sin_port = p->request->request_target.port;
@@ -287,7 +292,7 @@ static void assign_port(struct request_parser *p) {
 }
 
 static enum request_state
-r_target_port(const uint8_t c, struct request_parser *p) {
+r_target_port(uint8_t c, request_parser_t *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -307,15 +312,15 @@ r_target_port(const uint8_t c, struct request_parser *p) {
         return request_target_ogform;
     }
 
-        if (c == ' ') {
+    if (c == ' ') {
         p->request->request_target.port = htons(p->request->request_target.port);
         assign_port(p);
-        if (strcmp((char*)p->request->method, "OPTIONS") != 0) {
+        if (strcmp((char *) p->request->method, "OPTIONS") != 0) {
             p->request->request_target.origin_form[0] = '/';
         }
         p->i = 0;
         p->n = VERSION_LENGTH;
-        
+
         return request_version;
     }
 
@@ -338,7 +343,7 @@ r_target_port(const uint8_t c, struct request_parser *p) {
 }
 
 static enum request_state
-r_target_ogform(const uint8_t c, struct request_parser *p) {
+r_target_ogform(uint8_t c, request_parser_t *p) {
     if (p->i >= p->n)
         return request_error;
 
@@ -354,7 +359,7 @@ r_target_ogform(const uint8_t c, struct request_parser *p) {
 }
 
 static enum request_state
-r_version(const uint8_t c, struct request_parser *p) {
+r_version(uint8_t c, request_parser_t *p) {
     char *version = "HTTP/";
 
     if (p->i >= p->n || version[p->i] != c)
@@ -368,13 +373,12 @@ r_version(const uint8_t c, struct request_parser *p) {
         return request_version_major;
     }
 
-    return request_version;
-    ;
+    return request_version;;
 }
 
 static enum request_state
-r_version_major(const uint8_t c, struct request_parser *p) {
-    if (p->i >= p->n){
+r_version_major(uint8_t c, request_parser_t *p) {
+    if (p->i >= p->n) {
         return request_error_unsupported_version;
     }
 
@@ -404,8 +408,8 @@ r_version_major(const uint8_t c, struct request_parser *p) {
 }
 
 static enum request_state
-r_version_minor(const uint8_t c, struct request_parser *p) {
-    if (p->i >= p->n){
+r_version_minor(uint8_t c, request_parser_t *p) {
+    if (p->i >= p->n) {
         return request_error_unsupported_version;
     }
 
@@ -433,7 +437,7 @@ r_version_minor(const uint8_t c, struct request_parser *p) {
 }
 
 static enum request_state
-r_end(const uint8_t c, struct request_parser *p) {
+r_end(uint8_t c, request_parser_t *p) {
     if (c != '\n')
         return request_error;
 

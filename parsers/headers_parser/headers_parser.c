@@ -1,21 +1,24 @@
 #include "headers_parser.h"
 
-#include <stdlib.h>
-#include <string.h>
-
 #include "utils/parser/parser_utils.h"
 
-static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p);
+static enum headers_state
+h_field_name(uint8_t c, headers_parser_t *p);
 
-static enum headers_state h_field_value(const uint8_t c, struct headers_parser *p);
+static enum headers_state
+h_field_value(uint8_t c, headers_parser_t *p);
 
-static enum headers_state h_end(const uint8_t c, struct headers_parser *p);
+static enum headers_state
+h_end(uint8_t c, headers_parser_t *p);
 
-static enum headers_state h_may_be_end(const uint8_t c, struct headers_parser *p);
+static enum headers_state
+h_may_be_end(uint8_t c, headers_parser_t *p);
 
-static enum headers_state h_field_value_end(const uint8_t c, struct headers_parser *p);
+static enum headers_state
+h_field_value_end(uint8_t c, headers_parser_t *p);
 
-void headers_parser_init(struct headers_parser *p) {
+void
+headers_parser_init(headers_parser_t *p) {
     p->state = headers_field_name;
     p->headersCount = 0;
     p->i = 0;
@@ -23,7 +26,7 @@ void headers_parser_init(struct headers_parser *p) {
 }
 
 enum headers_state
-headers_parser_feed(struct headers_parser *p, const uint8_t c) {
+headers_parser_feed(headers_parser_t *p, uint8_t c) {
     enum headers_state next;
 
     switch (p->state) {
@@ -56,7 +59,8 @@ headers_parser_feed(struct headers_parser *p, const uint8_t c) {
     return p->state = next;
 }
 
-static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p) {
+static enum headers_state
+h_field_name(uint8_t c, headers_parser_t *p) {
     if (p->i >= p->n) {
         return headers_error;
     }
@@ -75,7 +79,8 @@ static enum headers_state h_field_name(const uint8_t c, struct headers_parser *p
     return headers_field_name;
 }
 
-static enum headers_state h_field_value(const uint8_t c, struct headers_parser *p) {
+static enum headers_state
+h_field_value(uint8_t c, headers_parser_t *p) {
     if (p->i >= p->n)
         return headers_error;
 
@@ -90,7 +95,8 @@ static enum headers_state h_field_value(const uint8_t c, struct headers_parser *
     return headers_error;
 }
 
-static enum headers_state h_field_value_end(const uint8_t c, struct headers_parser *p) {
+static enum headers_state
+h_field_value_end(uint8_t c, headers_parser_t *p) {
     if (c != '\n') {
         return headers_error;
     }
@@ -98,7 +104,8 @@ static enum headers_state h_field_value_end(const uint8_t c, struct headers_pars
     return headers_may_be_end;
 }
 
-static enum headers_state h_may_be_end(const uint8_t c, struct headers_parser *p) {
+static enum headers_state
+h_may_be_end(uint8_t c, headers_parser_t *p) {
     if (c == '\r') {
         return headers_end;
     }
@@ -112,7 +119,8 @@ static enum headers_state h_may_be_end(const uint8_t c, struct headers_parser *p
     return headers_field_name;
 }
 
-static enum headers_state h_end(const uint8_t c, struct headers_parser *p) {
+static enum headers_state
+h_end(uint8_t c, headers_parser_t *p) {
     if (c != '\n') {
         return headers_error;
     }

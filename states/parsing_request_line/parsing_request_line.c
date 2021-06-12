@@ -21,60 +21,60 @@ static void
 build_connection_request(struct selector_key *key);
 
 static int
-check_request_line_error(proxyConnection *connection, request_state state);
+check_request_line_error(proxy_connection_t *connection, request_state state);
 
-void parsing_host_on_arrival(const unsigned state, struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
-    struct request_line_st *requestLine = &connection->client.request_line;
+void parsing_host_on_arrival(unsigned state, struct selector_key *key) {
+    proxy_connection_t *connection = ATTACHMENT(key);
+    struct request_line_t *request_line = &connection->connection_parsers.request_line;
 
     // Init request line parser
-    requestLine->request_parser.request = &requestLine->request;
-    requestLine->buffer = &connection->client_buffer;
-    request_parser_init(&requestLine->request_parser);
+    request_line->request_parser.request = &request_line->request;
+    request_line->buffer = &connection->client_buffer;
+    request_parser_init(&request_line->request_parser);
 
     // Init sniffer settings
     struct http_args args = get_httpd_args();
-    connection->sniffer.sniffEnabled = args.disectors_enabled;
-    connection->sniffer.isDone = false;
+    connection->sniffer.sniff_enabled = args.disectors_enabled;
+    connection->sniffer.is_done = false;
     sniffer_parser_init(&connection->sniffer.sniffer_parser);
 }
 
 unsigned
 parsing_host_on_read_ready(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    struct request_line_st *requestLine = &connection->client.request_line;
+    struct request_line_t *request_line = &connection->connection_parsers.request_line;
 
-    while (buffer_can_read(requestLine->buffer)) {
-        request_state state = request_parser_feed(&requestLine->request_parser, buffer_read(requestLine->buffer));
-        connection->bytesToAnalize--;
+    while (buffer_can_read(request_line->buffer)) {
+        request_state state = request_parser_feed(&request_line->request_parser, buffer_read(request_line->buffer));
+        connection->bytes_to_analize--;
 
         if (check_request_line_error(connection, state)) {
             return ERROR;
         } else if (state == request_done) {
-            unsigned nextState;
+            unsigned next_state;
 
-            if (requestLine->request.request_target.host_type == domain) {
-                nextState = handle_origin_doh_connection(key);
+            if (request_line->request.request_target.host_type == domain) {
+                next_state = handle_origin_doh_connection(key);
             } else {
-                nextState = handle_origin_ip_connection(key);
+                next_state = handle_origin_ip_connection(key);
             }
 
-            if (nextState != ERROR) {
+            if (next_state != ERROR) {
                 build_connection_request(key);
-                if (connection->connectionRequest.connect) {
+                if (connection->connection_request.connect) {
                     buffer_reset(&connection->client_buffer);
                 } else {
                     // already an http request, look directely for the authorization header
                     modify_sniffer_state(&connection->sniffer.sniffer_parser, sniff_http_authorization);
-                    if (connection->sniffer.sniffEnabled && connection->bytesToAnalize > 0 &&
-                        !connection->sniffer.isDone) {
+                    if (connection->sniffer.sniff_enabled && connection->bytes_to_analize > 0 &&
+                        !connection->sniffer.is_done) {
                         sniff_data(key);
                     }
                 }
             }
 
-            return nextState;
+            return next_state;
         }
     }
 
@@ -82,7 +82,7 @@ parsing_host_on_read_ready(struct selector_key *key) {
 }
 
 static int
-check_request_line_error(proxyConnection *connection, request_state state) {
+check_request_line_error(proxy_connection_t *connection, request_state state) {
     int error;
     switch (state) {
         case request_error_unsupported_method:
@@ -109,53 +109,53 @@ check_request_line_error(proxyConnection *connection, request_state state) {
 
 static void
 build_connection_request(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    connection_request_t *connectionRequest = &connection->connectionRequest;
+    connection_request_t *connection_request = &connection->connection_request;
 
-    struct request_line requestLine = connection->client.request_line.request;
+    struct request_line request_line = connection->connection_parsers.request_line.request;
 
-    if (strcmp((char *) requestLine.method, "OPTIONS") == 0 && requestLine.request_target.origin_form[0] == 0) {
-        sprintf((char *) connectionRequest->requestLine, "%s * HTTP/1.0\r\n", requestLine.method);
+    if (strcmp((char *) request_line.method, "OPTIONS") == 0 && request_line.request_target.origin_form[0] == 0) {
+        sprintf((char *) connection_request->request_line, "%s * HTTP/1.0\r\n", request_line.method);
     } else {
-        if (strcmp((char *) connection->client.request_line.request.method, "CONNECT") == 0) {
-            connectionRequest->connect = true;
+        if (strcmp((char *) connection->connection_parsers.request_line.request.method, "CONNECT") == 0) {
+            connection_request->connect = true;
         }
-        sprintf((char *) connectionRequest->requestLine, "%s %s HTTP/1.0\r\n", requestLine.method,
-                requestLine.request_target.origin_form);
+        sprintf((char *) connection_request->request_line, "%s %s HTTP/1.0\r\n", request_line.method,
+                request_line.request_target.origin_form);
     }
 
-    connectionRequest->host_type = requestLine.request_target.host_type;
-    connectionRequest->port = ntohs(requestLine.request_target.port);
-    memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
+    connection_request->host_type = request_line.request_target.host_type;
+    connection_request->port = ntohs(request_line.request_target.port);
+    memcpy(&connection_request->host, &request_line.request_target.host, sizeof(request_line.request_target.host));
 
-    char originHost[MAX_FQDN_LENGTH + 1] = {0};
-    switch (connectionRequest->host_type) {
+    char origin_host[MAX_FQDN_LENGTH + 1] = {0};
+    switch (connection_request->host_type) {
         case ipv4:
-            inet_ntop(AF_INET, &requestLine.request_target.host.ipv4, originHost, MAX_FQDN_LENGTH + 1);
+            inet_ntop(AF_INET, &request_line.request_target.host.ipv4, origin_host, MAX_FQDN_LENGTH + 1);
             break;
         case ipv6:
-            inet_ntop(AF_INET6, &requestLine.request_target.host.ipv6, originHost, MAX_FQDN_LENGTH + 1);
+            inet_ntop(AF_INET6, &request_line.request_target.host.ipv6, origin_host, MAX_FQDN_LENGTH + 1);
             break;
         default:
-            strcpy(originHost, requestLine.request_target.host.domain);
+            strcpy(origin_host, request_line.request_target.host.domain);
             break;
     }
 
-    sprintf((char *) connectionRequest->target, "%s%s:%d%s",
-            requestLine.request_target.type == absolute_form ? "http://" : "",
-            originHost,
-            (int) connectionRequest->port,
-            connectionRequest->connect == true ? "" : (char *) requestLine.request_target.origin_form);
+    sprintf((char *) connection_request->target, "%s%s:%d%s",
+            request_line.request_target.type == absolute_form ? "http://" : "",
+            origin_host,
+            (int) connection_request->port,
+            connection_request->connect == true ? "" : (char *) request_line.request_target.origin_form);
 
-    strcpy((char *) connectionRequest->method, (char *) requestLine.method);
+    strcpy((char *) connection_request->method, (char *) request_line.method);
 }
 
 static unsigned
 handle_origin_ip_connection(struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+    proxy_connection_t *connection = ATTACHMENT(key);
 
-    struct request_target *request_target = &connection->client.request_line.request.request_target;
+    struct request_target *request_target = &connection->connection_parsers.request_line.request.request_target;
 
     if (request_target->host_type == ipv4) {
         connection->origin_fd = establish_origin_connection(

@@ -3,6 +3,7 @@
 
 #include "utils/selector/selector.h"
 
-void done_on_arrival(const unsigned state, struct selector_key *key);
+void
+done_on_arrival(unsigned state, struct selector_key *key);
 
 #endif

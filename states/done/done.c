@@ -2,8 +2,9 @@
 #include "connections/connections_def.h"
 #include "logger/logger_utils.h"
 
-void done_on_arrival(const unsigned state, struct selector_key *key) {
-    proxyConnection *connection = ATTACHMENT(key);
+void
+done_on_arrival(unsigned state, struct selector_key *key) {
+    proxy_connection_t *connection = ATTACHMENT(key);
     if (connection->origin_status != INACTIVE_STATUS) {
         selector_unregister_fd(key->s, connection->origin_fd);
     }

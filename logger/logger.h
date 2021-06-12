@@ -18,6 +18,6 @@ int
 init_logger(fd_selector s);
 
 void 
-logger_log(char *log, uint64_t totalBytes);
+logger_log(char *log, uint64_t total_bytes);
 
 #endif

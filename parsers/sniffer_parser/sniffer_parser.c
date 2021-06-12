@@ -7,56 +7,56 @@
 
 // SNIFFER INTI
 static unsigned
-s_start(const uint8_t c, struct sniffer_parser *p, int dataOwner, uint16_t port);
+s_start(uint8_t c, sniffer_parser_t *p, int data_owner, uint16_t port);
 
 // HTTP SNIFFING
 static unsigned
-s_http_version(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_http_version(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_http_authorization(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_http_authorization(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_http_authorization_basic(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_http_authorization_basic(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_http_authorization_value(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_http_authorization_value(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 // HTTP SNIFFING UTILS
 static unsigned
-decode_and_parse_auth(struct sniffer_parser *p);
+decode_and_parse_auth(sniffer_parser_t *p);
 
 static void
-parse_user_and_password(uint8_t *authorization, int len, struct sniffer_parser *p);
+parse_user_and_password(uint8_t *authorization, size_t len, sniffer_parser_t *p);
 
 static void
-set_string_parser(struct sniffer_parser *p, char *string);
+set_string_parser(sniffer_parser_t *p, char *string);
 
 // POP3 SNIFFING
 
 static unsigned
-s_pop3_origin_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_pop3_origin_ack(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_pop3_user_username(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_pop3_user_username(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_pop3_user_username_value(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_pop3_user_username_value(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_pop3_origin_user_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_pop3_origin_user_ack(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_pop3_user_pass(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_pop3_user_pass(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_pop3_user_pass_value(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_pop3_user_pass_value(uint8_t c, sniffer_parser_t *p, int data_owner);
 
 static unsigned
-s_pop3_origin_pass_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner);
+s_pop3_origin_pass_ack(uint8_t c, sniffer_parser_t *p, int data_owner);
 
-void sniffer_parser_init(struct sniffer_parser *p) {
-    p->parserIsSet = false;
+void sniffer_parser_init(sniffer_parser_t *p) {
+    p->parser_is_set = false;
     p->state = sniff_start;
     memset(p->auth_value, 0, MAX_AUTH_VALUE_LENGTH + 1);
     memset(p->user, 0, MAX_USER_LENGTH + 1);
@@ -64,53 +64,53 @@ void sniffer_parser_init(struct sniffer_parser *p) {
     p->i = 0;
 }
 
-void modify_sniffer_state(struct sniffer_parser *p, enum sniffer_state newState) {
-    p->state = newState;
+void modify_sniffer_state(sniffer_parser_t *p, enum sniffer_state new_state) {
+    p->state = new_state;
     set_string_parser(p, "AUTHORIZATION:");
 }
 
 enum sniffer_state
-sniffer_parser_feed(uint8_t c, struct sniffer_parser *p, int dataOwner, uint16_t port) {
+sniffer_parser_feed(uint8_t c, sniffer_parser_t *p, int data_owner, uint16_t port) {
     enum sniffer_state next;
 
     switch (p->state) {
         case sniff_start:
-            next = s_start(c, p, dataOwner, port);
+            next = s_start(c, p, data_owner, port);
             break;
 
         case sniff_http_version:
-            next = s_http_version(c, p, dataOwner);
+            next = s_http_version(c, p, data_owner);
             break;
         case sniff_http_authorization:
-            next = s_http_authorization(c, p, dataOwner);
+            next = s_http_authorization(c, p, data_owner);
             break;
         case sniff_http_authorization_basic:
-            next = s_http_authorization_basic(c, p, dataOwner);
+            next = s_http_authorization_basic(c, p, data_owner);
             break;
         case sniff_http_authorization_value:
-            next = s_http_authorization_value(c, p, dataOwner);
+            next = s_http_authorization_value(c, p, data_owner);
             break;
 
         case sniff_pop3_origin_ack:
-            next = s_pop3_origin_ack(c, p, dataOwner);
+            next = s_pop3_origin_ack(c, p, data_owner);
             break;
         case sniff_pop3_user_username:
-            next = s_pop3_user_username(c, p, dataOwner);
+            next = s_pop3_user_username(c, p, data_owner);
             break;
         case sniff_pop3_user_username_value:
-            next = s_pop3_user_username_value(c, p, dataOwner);
+            next = s_pop3_user_username_value(c, p, data_owner);
             break;
         case sniff_pop3_origin_user_ack:
-            next = s_pop3_origin_user_ack(c, p, dataOwner);
+            next = s_pop3_origin_user_ack(c, p, data_owner);
             break;
         case sniff_pop3_user_pass:
-            next = s_pop3_user_pass(c, p, dataOwner);
+            next = s_pop3_user_pass(c, p, data_owner);
             break;
         case sniff_pop3_user_pass_value:
-            next = s_pop3_user_pass_value(c, p, dataOwner);
+            next = s_pop3_user_pass_value(c, p, data_owner);
             break;
         case sniff_pop3_origin_pass_ack:
-            next = s_pop3_origin_pass_ack(c, p, dataOwner);
+            next = s_pop3_origin_pass_ack(c, p, data_owner);
             break;
 
         case sniff_done:
@@ -126,20 +126,20 @@ sniffer_parser_feed(uint8_t c, struct sniffer_parser *p, int dataOwner, uint16_t
 }
 
 static unsigned
-s_start(const uint8_t c, struct sniffer_parser *p, int dataOwner, uint16_t port) {
+s_start(uint8_t c, sniffer_parser_t *p, int data_owner, uint16_t port) {
     if (port == 110) {
         set_string_parser(p, "+OK");
-        return s_pop3_origin_ack(c, p, dataOwner);
+        return s_pop3_origin_ack(c, p, data_owner);
     } else if (port == 80) {
         set_string_parser(p, "HTTP/1");
-        return s_http_version(c, p, dataOwner);
+        return s_http_version(c, p, data_owner);
     }
     return sniff_start;
 }
 
 static unsigned
-s_http_version(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_http_version(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_error;
     }
 
@@ -147,8 +147,8 @@ s_http_version(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
         return sniff_error;
     }
 
-    struct parser *stringParser = p->stringParser;
-    unsigned state = parser_feed(stringParser, c)->type;
+    struct parser *string_parser = p->string_parser;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (state == STRING_CMP_EQ) {
         set_string_parser(p, "AUTHORIZATION:");
@@ -156,20 +156,20 @@ s_http_version(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_http_version;
 }
 
 static unsigned
-s_http_authorization(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_http_authorization(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_error;
     }
 
-    struct parser *stringParser = p->stringParser;
-    unsigned state = parser_feed(stringParser, c)->type;
+    struct parser *string_parser = p->string_parser;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (state == STRING_CMP_EQ) {
         set_string_parser(p, "BASIC");
@@ -177,15 +177,15 @@ s_http_authorization(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_http_authorization;
 }
 
 static unsigned
-s_http_authorization_basic(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_http_authorization_basic(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_error;
     }
 
@@ -193,8 +193,8 @@ s_http_authorization_basic(const uint8_t c, struct sniffer_parser *p, int dataOw
         return sniff_error;
     }
 
-    struct parser *stringParser = p->stringParser;
-    unsigned state = parser_feed(stringParser, c)->type;
+    struct parser *string_parser = p->string_parser;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (state == STRING_CMP_EQ) {
         p->i = 0;
@@ -202,15 +202,15 @@ s_http_authorization_basic(const uint8_t c, struct sniffer_parser *p, int dataOw
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_http_authorization_basic;
 }
 
 static unsigned
-s_http_authorization_value(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_http_authorization_value(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_error;
     }
 
@@ -236,14 +236,14 @@ s_http_authorization_value(const uint8_t c, struct sniffer_parser *p, int dataOw
 }
 
 static unsigned
-s_pop3_origin_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == CLIENT_OWNED) {
+s_pop3_origin_ack(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == CLIENT_OWNED) {
         return sniff_error;
     }
 
-    struct parser *stringParser = p->stringParser;
+    struct parser *string_parser = p->string_parser;
 
-    unsigned state = parser_feed(stringParser, c)->type;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (state == STRING_CMP_EQ) {
         set_string_parser(p, "USER");
@@ -251,21 +251,21 @@ s_pop3_origin_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_pop3_origin_ack;
 }
 
 static unsigned
-s_pop3_user_username(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_pop3_user_username(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_pop3_user_username;
     }
 
-    struct parser *stringParser = p->stringParser;
+    struct parser *string_parser = p->string_parser;
 
-    unsigned state = parser_feed(stringParser, c)->type;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (state == STRING_CMP_EQ) {
         p->i = 0;
@@ -273,15 +273,15 @@ s_pop3_user_username(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_pop3_user_username;
 }
 
 static unsigned
-s_pop3_user_username_value(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_pop3_user_username_value(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_pop3_user_username_value;
     }
 
@@ -308,14 +308,14 @@ s_pop3_user_username_value(const uint8_t c, struct sniffer_parser *p, int dataOw
 }
 
 static unsigned
-s_pop3_origin_user_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == CLIENT_OWNED) {
+s_pop3_origin_user_ack(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == CLIENT_OWNED) {
         return sniff_pop3_origin_user_ack;
     }
 
-    struct parser *stringParser = p->stringParser;
+    struct parser *string_parser = p->string_parser;
 
-    unsigned state = parser_feed(stringParser, c)->type;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (c == '-') {
         return sniff_error;
@@ -328,21 +328,21 @@ s_pop3_origin_user_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner)
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_pop3_origin_user_ack;
 }
 
 static unsigned
-s_pop3_user_pass(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_pop3_user_pass(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_pop3_user_pass;
     }
 
-    struct parser *stringParser = p->stringParser;
+    struct parser *string_parser = p->string_parser;
 
-    unsigned state = parser_feed(stringParser, c)->type;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (state == STRING_CMP_EQ) {
         p->i = 0;
@@ -350,15 +350,15 @@ s_pop3_user_pass(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_pop3_user_pass;
 }
 
 static unsigned
-s_pop3_user_pass_value(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == ORIGIN_OWNED) {
+s_pop3_user_pass_value(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == ORIGIN_OWNED) {
         return sniff_error;
     }
 
@@ -385,14 +385,14 @@ s_pop3_user_pass_value(const uint8_t c, struct sniffer_parser *p, int dataOwner)
 }
 
 static unsigned
-s_pop3_origin_pass_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner) {
-    if (dataOwner == CLIENT_OWNED) {
+s_pop3_origin_pass_ack(uint8_t c, sniffer_parser_t *p, int data_owner) {
+    if (data_owner == CLIENT_OWNED) {
         return sniff_pop3_origin_pass_ack;
     }
 
-    struct parser *stringParser = p->stringParser;
+    struct parser *string_parser = p->string_parser;
 
-    unsigned state = parser_feed(stringParser, c)->type;
+    unsigned state = parser_feed(string_parser, c)->type;
 
     if (c == '-') {
         return sniff_error;
@@ -400,19 +400,19 @@ s_pop3_origin_pass_ack(const uint8_t c, struct sniffer_parser *p, int dataOwner)
 
     if (state == STRING_CMP_EQ) {
         p->i = 0;
-        p->sniffedProtocol = POP3;
+        p->sniffed_protocol = POP3;
         return sniff_done;
     }
 
     if (state == STRING_CMP_NEQ) {
-        parser_reset(stringParser);
+        parser_reset(string_parser);
     }
 
     return sniff_pop3_origin_pass_ack;
 }
 
 static unsigned
-decode_and_parse_auth(struct sniffer_parser *p) {
+decode_and_parse_auth(sniffer_parser_t *p) {
     size_t len;
     uint8_t *authorization = base64_decode(p->auth_value, (size_t) p->i, &len);
     if (authorization == NULL) {
@@ -421,18 +421,18 @@ decode_and_parse_auth(struct sniffer_parser *p) {
 
     parse_user_and_password(authorization, len, p);
     free(authorization);
-    p->sniffedProtocol = HTTP;
+    p->sniffed_protocol = HTTP;
 
     return sniff_done;
 }
 
 static void
-parse_user_and_password(uint8_t *authorization, int len, struct sniffer_parser *p) {
-    int i = 0;
+parse_user_and_password(uint8_t *authorization, size_t len, sniffer_parser_t *p) {
+    size_t i = 0;
     while (i < len && authorization[i] != ':') {
         i++;
     }
-    int size = i > MAX_USER_LENGTH ? MAX_USER_LENGTH : i;
+    size_t size = i > MAX_USER_LENGTH ? MAX_USER_LENGTH : i;
     if (i < len) {
         memcpy(p->user, authorization, size);
         p->user[size] = 0;
@@ -446,14 +446,14 @@ parse_user_and_password(uint8_t *authorization, int len, struct sniffer_parser *
 }
 
 static void
-set_string_parser(struct sniffer_parser *p, char *string) {
-    struct parser_definition parserDef;
-    parser_utils_strcmpi(string, &parserDef);
+set_string_parser(sniffer_parser_t *p, char *string) {
+    struct parser_definition parser_def;
+    parser_utils_strcmpi(string, &parser_def);
 
-    if (p->parserIsSet) {
-        parser_destroy(p->stringParser);
+    if (p->parser_is_set) {
+        parser_destroy(p->string_parser);
     }
 
-    p->parserIsSet = true;
-    p->stringParser = parser_init(parser_no_classes(), parserDef);
+    p->parser_is_set = true;
+    p->string_parser = parser_init(parser_no_classes(), parser_def);
 }
