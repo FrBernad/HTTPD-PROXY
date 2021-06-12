@@ -47,7 +47,7 @@ parsing_host_on_read_ready(struct selector_key *key) {
 
     while (buffer_can_read(requestLine->buffer)) {
         request_state state = request_parser_feed(&requestLine->request_parser, buffer_read(requestLine->buffer));
-        connection->sniffer.bytesToSniff--;
+        connection->bytesToAnalize--;
 
         if (check_request_line_error(connection, state)) {
             return ERROR;
@@ -65,10 +65,11 @@ parsing_host_on_read_ready(struct selector_key *key) {
                 if (connection->connectionRequest.connect) {
                     buffer_reset(&connection->client_buffer);
                 } else {
+                    // already an http request, look directely for the authorization header
                     modify_sniffer_state(&connection->sniffer.sniffer_parser, sniff_http_authorization);
-                    if (connection->sniffer.sniffEnabled && connection->sniffer.bytesToSniff > 0 &&
+                    if (connection->sniffer.sniffEnabled && connection->bytesToAnalize > 0 &&
                         !connection->sniffer.isDone) {
-                        // sniff_data(key);
+                        sniff_data(key);
                     }
                 }
             }
@@ -125,7 +126,7 @@ build_connection_request(struct selector_key *key) {
     }
 
     connectionRequest->host_type = requestLine.request_target.host_type;
-    connectionRequest->port = requestLine.request_target.port;
+    connectionRequest->port = ntohs(requestLine.request_target.port);
     memcpy(&connectionRequest->host, &requestLine.request_target.host, sizeof(requestLine.request_target.host));
 
     char originHost[MAX_FQDN_LENGTH + 1] = {0};
@@ -144,7 +145,7 @@ build_connection_request(struct selector_key *key) {
     sprintf((char *) connectionRequest->target, "%s%s:%d%s",
             requestLine.request_target.type == absolute_form ? "http://" : "",
             originHost,
-            (int) ntohs(connectionRequest->port),
+            (int) connectionRequest->port,
             connectionRequest->connect == true ? "" : (char *) requestLine.request_target.origin_form);
 
     strcpy((char *) connectionRequest->method, (char *) requestLine.method);

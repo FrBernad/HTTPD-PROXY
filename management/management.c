@@ -2,14 +2,15 @@
 
 #include <arpa/inet.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <stdint.h>
+
+#include "connections/connections.h"
 #include "httpd.h"
 #include "metrics/metrics.h"
 #include "parsers/percy_request_parser/percy_request_parser.h"
-#include "connections/connections.h"
 enum {
     MAX_MSG_LEN = 128,
     SUCCESS_STATUS = 0x00,
@@ -24,24 +25,20 @@ enum {
     MODIFICATION_METHODS_COUNT = 1,
 };
 
-typedef struct values_range{
-
+typedef struct values_range {
     uint16_t min;
     uint16_t max;
+} values_range;
 
-}values_range;
-
-typedef struct modification_method{
-
+typedef struct modification_method {
     values_range range_of_value;
     uint64_t (*modificationMethod)(uint16_t);
 
-}modification_method;
+} modification_method;
 
 static uint64_t (*retrievalMethods[RETRIEVAL_METHODS_COUNT])(void);
 
-static struct modification_method modif_methods[MODIFICATION_METHODS_COUNT];
-
+static struct modification_method modificationMethods[MODIFICATION_METHODS_COUNT];
 
 typedef struct {
     int socketFd4;
@@ -100,14 +97,13 @@ parse_request(ssize_t bytesRcvd);
 static void
 management_close(struct selector_key *key);
 
-static int validate_input_value(uint8_t method,uint16_t value);
+static int validate_input_value(uint8_t method, uint16_t value);
 
 uint64_t set_sniffer_mode(uint16_t op);
 
 static management_t management;
 
 int init_management(fd_selector selector) {
-
     if (init_listener_socket() < 0) {
         return -1;
     }
@@ -117,24 +113,25 @@ int init_management(fd_selector selector) {
 
     if (management.socketFd4 >= 0) {
         if (selector_register(selector, management.socketFd4, &management.managementHandler, OP_READ, NULL) !=
-            SELECTOR_SUCCESS && management.socketFd6 < 0) {
+                SELECTOR_SUCCESS &&
+            management.socketFd6 < 0) {
             return -1;
         }
     }
 
     if (management.socketFd6 >= 0) {
         if (selector_register(selector, management.socketFd6, &management.managementHandler, OP_READ, NULL) !=
-            SELECTOR_SUCCESS && management.socketFd4 < 0) {
+                SELECTOR_SUCCESS &&
+            management.socketFd4 < 0) {
             return -1;
         }
     }
 
     management.requestParser.request = &management.request;
-    management.passphrase = (uint8_t *) "123456";
+    management.passphrase = (uint8_t *)"123456";
 
     return 1;
 }
-
 
 // Socket creation
 static int
@@ -149,17 +146,17 @@ init_listener_socket() {
     if (args.mng_addr == NULL) {
         //Try ipv6 default listening socket
         struct sockaddr_in6 sockaddr6 = {
-                .sin6_addr = in6addr_loopback,
-                .sin6_family = AF_INET6,
-                .sin6_port = management.port};
+            .sin6_addr = in6addr_loopback,
+            .sin6_family = AF_INET6,
+            .sin6_port = management.port};
 
         management.socketFd6 = ipv6_listener_socket(sockaddr6);
 
         //Try ipv4 default listening socket
         struct sockaddr_in sockaddr4 = {
-                .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
-                .sin_family = AF_INET,
-                .sin_port = management.port,
+            .sin_addr.s_addr = htonl(INADDR_LOOPBACK),
+            .sin_family = AF_INET,
+            .sin_port = management.port,
         };
 
         if ((management.socketFd4 = ipv4_listener_socket(sockaddr4)) < 0 && management.socketFd6 < 0) {
@@ -168,18 +165,18 @@ init_listener_socket() {
 
     } else if (inet_pton(AF_INET, args.mng_addr, &management.ipv4addr)) {
         struct sockaddr_in sockaddr = {
-                .sin_addr = management.ipv4addr,
-                .sin_family = AF_INET,
-                .sin_port = management.port,
+            .sin_addr = management.ipv4addr,
+            .sin_family = AF_INET,
+            .sin_port = management.port,
         };
         if ((management.socketFd4 = ipv4_listener_socket(sockaddr)) < 0) {
             return -1;
         }
     } else if (inet_pton(AF_INET6, args.mng_addr, &management.ipv6addr)) {
         struct sockaddr_in6 sockaddr = {
-                .sin6_addr = management.ipv6addr,
-                .sin6_family = AF_INET6,
-                .sin6_port = management.port,
+            .sin6_addr = management.ipv6addr,
+            .sin6_family = AF_INET6,
+            .sin6_port = management.port,
         };
         if ((management.socketFd6 = ipv6_listener_socket(sockaddr)) < 0) {
             return -1;
@@ -199,7 +196,7 @@ ipv4_listener_socket(struct sockaddr_in sockaddr) {
         return -1;
     }
 
-    return default_management_socket_settings(socketfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr));
+    return default_management_socket_settings(socketfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
 }
 
 static int
@@ -210,17 +207,17 @@ ipv6_listener_socket(struct sockaddr_in6 sockaddr) {
         return -1;
     }
 
-    if (setsockopt(socketfd, IPPROTO_IPV6, IPV6_V6ONLY, &(int) {1}, sizeof(int)) < 0) {
+    if (setsockopt(socketfd, IPPROTO_IPV6, IPV6_V6ONLY, &(int){1}, sizeof(int)) < 0) {
         fprintf(stderr, "Setsockopt opt: IPV6_ONLY\n");
         return -1;
     }
 
-    return default_management_socket_settings(socketfd, (struct sockaddr *) &sockaddr, sizeof(sockaddr));
+    return default_management_socket_settings(socketfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
 }
 
 static int
 default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
-    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int)) < 0) {
+    if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) {
         fprintf(stderr, "Setsockopt opt: SO_REUSEADDR\n");
         return -1;
     }
@@ -238,9 +235,6 @@ default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, sock
     return socketfd;
 }
 
-
-
-
 // Management initialization
 
 static void
@@ -252,7 +246,6 @@ init_management_handlers() {
 }
 
 static void init_management_functions() {
-
     retrievalMethods[0] = get_historical_connections;
     retrievalMethods[1] = get_concurrent_connections;
     retrievalMethods[2] = get_total_bytes_sent;
@@ -263,11 +256,10 @@ static void init_management_functions() {
     retrievalMethods[7] = get_concurrent_connections;
     retrievalMethods[8] = get_failed_connections;
 
-    modif_methods[0].range_of_value.min = 0;
-    modif_methods[0].range_of_value.max = 1;
-    modif_methods[0].modificationMethod = set_sniffer_mode;
+    modificationMethods[0].range_of_value.min = 0;
+    modificationMethods[0].range_of_value.max = 1;
+    modificationMethods[0].modificationMethod = set_sniffer_mode;
 }
-
 
 // Management functions
 
@@ -279,7 +271,7 @@ management_read(struct selector_key *key) {
     struct sockaddr_storage clntAddr;
     socklen_t clntAddrLen = sizeof(clntAddr);
 
-    ssize_t bytesRcvd = recvfrom(key->fd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *) &clntAddr,
+    ssize_t bytesRcvd = recvfrom(key->fd, management.buffer, MAX_MSG_LEN, 0, (struct sockaddr *)&clntAddr,
                                  &clntAddrLen);
     if (bytesRcvd < 0) {
         printf("Something went wrong(management)\n");
@@ -287,42 +279,40 @@ management_read(struct selector_key *key) {
 
     if (parse_request(bytesRcvd)) {
         if (!validate_passphrase()) {
-            send_reply(key->fd, (struct sockaddr *) &clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV,
+            send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV,
                        0);
         } else {
-                uint8_t method = management.request.method;
-                uint16_t value = management.request.value;
+            uint8_t method = management.request.method;
+            uint16_t value = management.request.value;
 
-            switch (management.request.type) {   
-
+            switch (management.request.type) {
                 case RETRIEVAL:
-                    printf("received %d\n\n", management.request.method);
-                    if (management.request.method <= RETRIEVAL_METHODS_COUNT - 1) {
-                        send_reply(key->fd, (struct sockaddr *) &clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS,
-                                   PERCY_RESV, retrievalMethods[management.request.method]());
+                    printf("received %d\n\n", method);
+                    if (method <= RETRIEVAL_METHODS_COUNT - 1) {
+                        send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS,
+                                   PERCY_RESV, retrievalMethods[method]());
                         return;
                     }
                     break;
                 case MODIFICATION:
-            
-                    printf("Modification method : %d with entry: %d\n\n",method,value);
-                    if(method <= MODIFICATION_METHODS_COUNT -1){
-                        if(validate_input_value(method,value)){
-                            send_reply((struct sockaddr *)&clntAddr,clntAddrLen,PERCY_VERSION,SUCCESS_STATUS,PERCY_RESV,modif_methods[method].modificationMethod(value));
+                    printf("Modification method : %d with entry: %d\n\n", method, value);
+                    if (method <= MODIFICATION_METHODS_COUNT - 1) {
+                        if (validate_input_value(method, value)) {
+                            send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, SUCCESS_STATUS, PERCY_RESV, modificationMethods[method].modificationMethod(value));
                             return;
-                        }else{
-                            send_reply((struct sockaddr *)&clntAddr,clntAddrLen,PERCY_VERSION,UNSUCCESFUL_STATUS,PERCY_RESV,modif_methods[method].modificationMethod(value));
+                        } else {
+                            send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, modificationMethods[method].modificationMethod(value));
                             return;
                         }
                     }
-                    
+
                 default:
                     break;
             }
         }
     }
 
-    send_reply(key->fd, (struct sockaddr *) &clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, 0);
+    send_reply(key->fd, (struct sockaddr *)&clntAddr, clntAddrLen, PERCY_VERSION, UNSUCCESFUL_STATUS, PERCY_RESV, 0);
 }
 
 static void
@@ -393,23 +383,20 @@ management_close(struct selector_key *key) {
     close(key->fd);
 }
 
-static int validate_input_value(uint8_t method,uint16_t value){
-
-    if( value <= modif_methods[method].range_of_value.max && value >= modif_methods[method].range_of_value.min){
+static int validate_input_value(uint8_t method, uint16_t value) {
+    if (value <= modificationMethods[method].range_of_value.max && value >= modificationMethods[method].range_of_value.min) {
         return true;
     }
 
     return false;
 }
 
-
-uint64_t set_sniffer_mode(uint16_t op){
-
-    if(op == 0 ){
+uint64_t set_sniffer_mode(uint16_t op) {
+    if (op == 0) {
         set_disectors_disabled();
         return 0;
     }
-    if(op == 1){
+    if (op == 1) {
         set_disectors_enabled();
         return 0;
     }

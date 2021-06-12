@@ -117,7 +117,6 @@ typedef struct proxyConnection {
 
     struct {
         struct sniffer_parser sniffer_parser;
-        int bytesToSniff;
         bool sniffEnabled;
         bool isDone;
     } sniffer;

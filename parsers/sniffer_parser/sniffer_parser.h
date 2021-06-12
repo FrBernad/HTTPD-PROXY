@@ -61,7 +61,7 @@ void sniffer_parser_init(struct sniffer_parser *p);
 
 /** returns true if done */
 enum sniffer_state
-sniffer_parser_feed(uint8_t c, struct sniffer_parser *p, int dataOwner);
+sniffer_parser_feed(uint8_t c, struct sniffer_parser *p, int dataOwner, uint16_t port);
 
 void
 modify_sniffer_state(struct sniffer_parser *p, enum sniffer_state newState);

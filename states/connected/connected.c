@@ -29,6 +29,7 @@ unsigned
 connected_on_read_ready(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
+    // Parse http response
     if (!connection->connectionRequest.connect && key->fd == connection->origin_fd && !connection->http_response.done) {
         status_line_state state;
 
@@ -50,13 +51,14 @@ connected_on_read_ready(struct selector_key *key) {
         }
     }
 
+    if (connection->sniffer.sniffEnabled && !connection->sniffer.isDone) {
+        sniff_data(key);
+    }
+
     if (connection->client_status == CLOSING_STATUS || connection->origin_status == CLOSING_STATUS) {
         return CLOSING;
     }
 
-    //    if (connection->sniffer.sniffEnabled && !connection->sniffer.isDone) {
-    //        sniff_data(key);
-    //    }
 
     set_connection_interests(key);
     return stm_state(&connection->stm);

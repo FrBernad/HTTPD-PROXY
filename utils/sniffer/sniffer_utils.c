@@ -23,11 +23,11 @@ sniff_data(struct selector_key *key) {
 
     size_t maxBytes;
     uint8_t *data = buffer_read_ptr(bufferToSniff, &maxBytes);
-    uint8_t *dataToParse = data;
+    uint8_t *dataToParse = data + maxBytes - connection->bytesToAnalize;
     unsigned state;
 
-    for (int i = 0; i < connection->sniffer.bytesToSniff; i++) {
-        state = sniffer_parser_feed(dataToParse[i], &connection->sniffer.sniffer_parser, dataOwner);
+    for (int i = 0; i < connection->bytesToAnalize; i++) {
+        state = sniffer_parser_feed(dataToParse[i], &connection->sniffer.sniffer_parser, dataOwner, connection->connectionRequest.port);
         if (state == sniff_done) {
             connection->sniffer.isDone = true;
             log_user_and_password(key);
@@ -38,5 +38,5 @@ sniff_data(struct selector_key *key) {
         }
     }
 
-    connection->sniffer.bytesToSniff = 0;
+    connection->bytesToAnalize = 0;
 }

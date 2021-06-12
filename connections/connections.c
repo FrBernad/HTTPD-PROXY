@@ -158,7 +158,6 @@ proxy_client_read(struct selector_key *key) {
                 return;
             }
             connection->client_status = CLOSING_STATUS;
-            //FIXME: cerrar la conexion (tener en cuenta lo que dijo Juan del CTRL+C)
         } else {
             unsigned currentState = stm_state(&connection->stm);
             if (currentState == PARSING_REQUEST_LINE || currentState == CONNECTED) {
