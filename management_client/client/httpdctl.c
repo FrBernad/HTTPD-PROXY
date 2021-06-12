@@ -10,7 +10,6 @@
 
 #include "management_client/percy_response_parser/percy_response_parser.h"
 
-#define PORT 9090
 #define MAX_BUFF 1024
 #define PASS_PHRASE_LEN 6
 #define IS_DIGIT(x) (x >= '0' && x <= '9')
@@ -48,22 +47,53 @@ processValue(char *buff, int bytesToRead, int *value);
 static void
 parseAnswer(uint8_t *buff, int len);
 
+#define ARGS_QUANTITY 3
+
 int main(int argc, char const *argv[]) {
-    int socketFd;
-
-    struct sockaddr_in servaddr;
-    socklen_t servaddr_len = sizeof(servaddr);
-
-    if ((socketFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("Client socket creation failed");
+    if (argc != 3) {
+        perror("Wrong number of arguments. Use ./http <ip> <port>\n\n");
         exit(1);
     }
 
-    memset(&servaddr, 0, servaddr_len);
+    struct sockaddr_storage serv_addr;
+    union {
+        struct in_addr ipv4;
+        struct in6_addr ipv6;
+    } ip_addr;
 
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(PORT);
-    servaddr.sin_addr.s_addr = INADDR_ANY;
+    socklen_t servaddr_len;
+    int socketFd;
+    int port = atoi(argv[2]);
+    if (port <= 0 || port >= 65535) {
+        perror("Invalid port. \n\n");
+        exit(1);
+    }
+
+
+    if (inet_pton(AF_INET, argv[1], &ip_addr.ipv4) > 0) {
+        servaddr_len = sizeof(serv_addr);
+        if ((socketFd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+            perror("Client socket creation failed");
+            exit(1);
+        }
+        memset(&serv_addr, 0, servaddr_len);
+        serv_addr.ss_family = AF_INET;
+        ((struct sockaddr_in *)&serv_addr)->sin_port = htons(port);
+        ((struct sockaddr_in *)&serv_addr)->sin_addr = ip_addr.ipv4;
+    } else if (inet_pton(AF_INET6, argv[1], &ip_addr.ipv6) > 0) {
+        servaddr_len = sizeof(serv_addr);
+        if ((socketFd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
+            perror("Client socket creation failed");
+            exit(1);
+        }
+        memset(&serv_addr, 0, servaddr_len);
+        serv_addr.ss_family = AF_INET6;
+        ((struct sockaddr_in6 *)&serv_addr)->sin6_port = htons(port);
+        ((struct sockaddr_in6 *)&serv_addr)->sin6_addr = ip_addr.ipv6;
+    } else {
+        perror("Invalid ip address");
+        exit(1);
+    }
 
     int bytesToRead;
     uint8_t buff[MAX_BUFF];
@@ -80,8 +110,8 @@ int main(int argc, char const *argv[]) {
             else {
                 int len = 0;
                 buildRequest(buff, &len, option, value);
-                sendto(socketFd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&servaddr, servaddr_len);
-                int n = recvfrom(socketFd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&servaddr, &servaddr_len);
+                sendto(socketFd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&serv_addr, servaddr_len);
+                int n = recvfrom(socketFd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&serv_addr, &servaddr_len);
                 parseAnswer(buff, n);
             }
         } else {
@@ -102,7 +132,7 @@ processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
             break;
         if (IS_DIGIT(buff[i]))
             aux = i == 0 ? buff[i] - '0' : aux * 10 + buff[i] - '0';
-        else{
+        else {
             return -1;
         }
         i++;
@@ -113,7 +143,7 @@ processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
     if (*option >= 1 && *option <= 8) {
         *value = 0;
         return 0;
-    } else if (*option == 9 ) {
+    } else if (*option == 9) {
         return getValue(option, value);
     } else {
         return -1;
@@ -291,3 +321,4 @@ parseAnswer(uint8_t *buff, int len) {
 
     clearScreen();
 }
+

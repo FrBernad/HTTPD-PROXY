@@ -27,18 +27,16 @@ void log_new_connection(struct selector_key *key) {
     char clientAddr[IP_MAX] = {0};
 
     if (connection->client_addr.ss_family == AF_INET) {
-        inet_ntop(AF_INET,&((struct sockaddr_in *)&connection->client_addr)->sin_addr, clientAddr, IP_MAX);
+        inet_ntop(AF_INET, &((struct sockaddr_in *)&connection->client_addr)->sin_addr, clientAddr, IP_MAX);
         bytesWritten += sprintf(buffer + bytesWritten, "%s\t", clientAddr);
         bytesWritten += sprintf(buffer + bytesWritten, "%d\t",
-                                (int)ntohs((((struct sockaddr_in *)&connection->client_addr)->sin_port))
-                                        );
+                                (int)ntohs((((struct sockaddr_in *)&connection->client_addr)->sin_port)));
 
     } else {
         inet_ntop(AF_INET6, &((struct sockaddr_in6 *)&connection->client_addr)->sin6_addr, clientAddr, IP_MAX);
         bytesWritten += sprintf(buffer + bytesWritten, "%s\t", clientAddr);
         bytesWritten += sprintf(buffer + bytesWritten, "%d\t",
-                                (int)ntohs((((struct sockaddr_in6 *)&connection->client_addr)->sin6_port))
-                                        );
+                                (int)ntohs((((struct sockaddr_in6 *)&connection->client_addr)->sin6_port)));
     }
 
     bytesWritten += sprintf(buffer + bytesWritten, "%s\t", connection->connectionRequest.method);
@@ -58,9 +56,9 @@ void log_user_and_password(struct selector_key *key) {
     info = localtime(&rawtime);
     int bytesWritten = strftime(buffer, 80, "%Y-%m-%dT%H:%M:%SZ\tP\t", info);
 
-    if(connection->sniffer.sniffer_parser.sniffedProtocol == HTTP){
+    if (connection->sniffer.sniffer_parser.sniffedProtocol == HTTP) {
         bytesWritten += sprintf(buffer + bytesWritten, "%s\t", "HTTP");
-    }else{
+    } else {
         bytesWritten += sprintf(buffer + bytesWritten, "%s\t", "POP3");
     }
     bytesWritten += sprintf(buffer + bytesWritten, "%s\t", connection->connectionRequest.target);
