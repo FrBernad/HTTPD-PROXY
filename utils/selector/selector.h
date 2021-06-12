@@ -136,6 +136,10 @@ typedef struct fd_handler {
 
 } fd_handler;
 
+/* Agrega la funcion de collection de basura y el tiempo maximo en segundos para recoletar un elemento*/
+int 
+selector_set_garbage_collector(fd_selector s, void (*garbage_collect)(struct selector_key *key), double collection_interval);
+
 /**
  * registra en el selector `s' un nuevo file descriptor `fd'.
  *
@@ -189,5 +193,6 @@ selector_fd_set_nio(const int fd);
 selector_status
 selector_notify_block(fd_selector s,
                  const int   fd);
+
 
 #endif

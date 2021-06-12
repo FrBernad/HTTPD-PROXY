@@ -13,19 +13,20 @@
 #include "utils/doh/doh_utils.h"
 #include "utils/selector/selector.h"
 
-typedef struct connectionsManager_t {
+typedef struct httpd_t {
     struct in6_addr ipv6addr;
     struct in_addr ipv4addr;
     in_port_t port;
     fd_handler proxyHandler;
     int proxyFd6;
     int proxyFd4;
-} connectionsManager_t;
+} httpd_t;
 
 enum proxy_defaults {
     MAX_CONNECTIONS = 1024,
     MAX_PENDING = 5,
-    DEFAULT_CHECK_TIME = 8,
+    DEFAULT_SELECTOR_TIMEOUT = 8,
+    MAX_INACTIVE_TIME = 12,
 };
 
 static int
@@ -49,7 +50,7 @@ signal_handler(int signum);
 static void
 init_signal_handler(int signum);
 
-static connectionsManager_t connectionsManager;
+static httpd_t connectionsManager;
 static struct http_args args;
 static bool finished = false;
 
@@ -67,7 +68,8 @@ int main(int argc, char *argv[]) {
     int returnVal = 0;
     selector_status status;
 
-    init_selector_handlers();
+    init_connections_manager(MAX_INACTIVE_TIME);
+
     fd_selector selector = init_selector();
     if (selector == NULL) {
         goto finally;
@@ -145,7 +147,7 @@ init_selector() {
     const struct selector_init initConfig = {
             .signal = SIGALRM,
             .select_timeout = {
-                    .tv_sec = DEFAULT_CHECK_TIME,
+                    .tv_sec = DEFAULT_SELECTOR_TIMEOUT,
                     .tv_nsec = 0,
             }};
 
@@ -158,6 +160,11 @@ init_selector() {
 
     if (selector == NULL) {
         fprintf(stderr, "selector_new\n");
+        return NULL;
+    }
+
+    if (selector_set_garbage_collector(selector, connection_garbage_collect, DEFAULT_SELECTOR_TIMEOUT) < 0) {
+        fprintf(stderr, "gelector garbage collector\n");
         return NULL;
     }
 
@@ -288,8 +295,8 @@ default_proxy_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
     return socketfd;
 }
 
-uint64_t get_selector_timeout(){
-    return DEFAULT_CHECK_TIME;
+uint64_t get_selector_timeout() {
+    return DEFAULT_SELECTOR_TIMEOUT;
 }
 
 struct http_args
@@ -297,10 +304,10 @@ get_httpd_args() {
     return args;
 }
 
-void set_disectors_enabled(){
+void set_disectors_enabled() {
     args.disectors_enabled = true;
 }
 
-void set_disectors_disabled(){
+void set_disectors_disabled() {
     args.disectors_enabled = false;
 }

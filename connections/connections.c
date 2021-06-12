@@ -47,7 +47,9 @@ enum conections_defaults {
 static fd_handler clientHandler;
 static fd_handler originHandler;
 
-void init_selector_handlers() {
+static double inactive_threshold;
+
+void init_connections_manager(double threshold) {
     clientHandler.handle_read = proxy_client_read;
     clientHandler.handle_write = proxy_client_write;
     clientHandler.handle_close = proxy_client_close;  //DEFINE
@@ -57,6 +59,8 @@ void init_selector_handlers() {
     originHandler.handle_write = proxy_origin_write;
     originHandler.handle_close = proxy_origin_close;
     originHandler.handle_block = NULL;
+
+    inactive_threshold = threshold;
 }
 
 /*
@@ -126,6 +130,8 @@ create_new_connection(int clientFd) {
 
     init_connection_stm(&newConnection->stm);
 
+    newConnection->last_action_time = time(NULL);
+
     newConnection->client_fd = clientFd;
     newConnection->client_status = ACTIVE_STATUS;
     newConnection->origin_status = INACTIVE_STATUS;
@@ -139,6 +145,8 @@ create_new_connection(int clientFd) {
 static void
 proxy_client_read(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
+
+    connection->last_action_time = time(NULL);
 
     buffer *buffer = &connection->client_buffer;
 
@@ -173,11 +181,9 @@ static void
 proxy_client_write(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
-    buffer *originBuffer = &connection->origin_buffer;
+    connection->last_action_time = time(NULL);
 
-    if (!buffer_can_read(originBuffer)) {
-        printf("Algo malo paso\n");
-    }
+    buffer *originBuffer = &connection->origin_buffer;
 
     size_t maxBytes;
     uint8_t *data;
@@ -211,6 +217,8 @@ static void
 proxy_origin_read(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
 
+    connection->last_action_time = time(NULL);
+
     buffer *buffer = &connection->origin_buffer;
 
     size_t maxBytes;
@@ -222,7 +230,7 @@ proxy_origin_read(struct selector_key *key) {
         close_proxy_connection(key);
     }
         /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
-                que envie los bytes que quedan en su buffer */
+                    que envie los bytes que quedan en su buffer */
     else {
         if (totalBytes == 0) {
             connection->origin_status = CLOSING_STATUS;
@@ -240,6 +248,8 @@ proxy_origin_read(struct selector_key *key) {
 static void
 proxy_origin_write(struct selector_key *key) {
     proxyConnection *connection = ATTACHMENT(key);
+
+    connection->last_action_time = time(NULL);
 
     buffer *originBuffer = &connection->origin_buffer;
     buffer *clientBuffer = &connection->client_buffer;
@@ -327,6 +337,25 @@ free_connection_data(proxyConnection *connection) {
     free(connection);
 }
 
-uint64_t get_buffer_size(){
+uint64_t get_buffer_size() {
     return BUFFER_SIZE;
+}
+
+/*
+**     PROXY GARBAGE COLLECTOR FUNCTION
+*/
+void
+connection_garbage_collect(struct selector_key *key) {
+
+    // proxy/management listenting socket or logger fd
+    if (key->data == NULL || key->fd == STDERR_FILENO || key->fd == STDOUT_FILENO) {
+        return;
+    }
+
+    proxyConnection *connection = ATTACHMENT(key);
+
+    // if inactive close connection
+    if (connection->client_fd == key->fd && difftime(time(NULL), connection->last_action_time) >= inactive_threshold) {
+        close_proxy_connection(key);
+    }
 }

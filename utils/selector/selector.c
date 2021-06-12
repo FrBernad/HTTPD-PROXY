@@ -66,7 +66,7 @@ selector_init(const struct selector_init *c) {
     //  March 24, 2006
     selector_status ret = SELECTOR_SUCCESS;
     struct sigaction act = {
-        .sa_handler = wake_handler,
+            .sa_handler = wake_handler,
     };
 
     // 0. calculamos mascara para evitar que se interrumpa antes de llegar al
@@ -88,7 +88,7 @@ selector_init(const struct selector_init *c) {
     }
     sigemptyset(&emptyset);
 
-finally:
+    finally:
     return ret;
 }
 
@@ -156,6 +156,14 @@ struct fdselector {
      * notificados.
      */
     struct blocking_job *resolution_jobs;
+
+    struct garbage_collector {
+        void (*collect)(struct selector_key *key);
+
+        double collection_interval;
+        time_t last_collection;
+    } garbage_collector;
+
 };
 
 /** cantidad máxima de file descriptors que la plataforma puede manejar */
@@ -283,6 +291,27 @@ ensure_capacity(fd_selector s, const size_t n) {
     return ret;
 }
 
+/**
+ * ejecuta el garbage collector.
+ */
+
+static void
+run_garbage_collector(fd_selector s) {
+    int n = s->max_fd;
+    struct selector_key key = {
+            .s = s,
+    };
+
+    for (int i = 0; i <= n; i++) {
+        struct item *item = s->fds + i;
+        if (ITEM_USED(item)) {
+            key.fd = item->fd;
+            key.data = item->data;
+            s->garbage_collector.collect(&key);
+        }
+    }
+}
+
 fd_selector
 selector_new(const size_t initial_elements) {
     size_t size = sizeof(struct fdselector);
@@ -300,6 +329,20 @@ selector_new(const size_t initial_elements) {
         }
     }
     return ret;
+}
+
+int
+selector_set_garbage_collector(fd_selector s, void (*garbage_collect)(struct selector_key *key),
+                               double collection_interval) {
+    if (collection_interval < 0) {
+        return -1;
+    }
+
+    s->garbage_collector.collection_interval = collection_interval;
+    s->garbage_collector.collect = garbage_collect;
+    s->garbage_collector.last_collection = time(NULL);
+
+    return 1;
 }
 
 void selector_destroy(fd_selector s) {
@@ -339,7 +382,7 @@ selector_register(fd_selector s,
         goto finally;
     }
     // 1. tenemos espacio?
-    size_t ufd = (size_t)fd;
+    size_t ufd = (size_t) fd;
     if (ufd > s->fd_size) {
         ret = ensure_capacity(s, ufd);
         if (SELECTOR_SUCCESS != ret) {
@@ -365,7 +408,7 @@ selector_register(fd_selector s,
         items_update_fdset_for_fd(s, item);
     }
 
-finally:
+    finally:
     return ret;
 }
 
@@ -387,9 +430,9 @@ selector_unregister_fd(fd_selector s,
 
     if (item->handler->handle_close != NULL) {
         struct selector_key key = {
-            .s = s,
-            .fd = item->fd,
-            .data = item->data,
+                .s = s,
+                .fd = item->fd,
+                .data = item->data,
         };
         item->handler->handle_close(&key);
     }
@@ -401,7 +444,7 @@ selector_unregister_fd(fd_selector s,
     item_init(item);
     s->max_fd = items_max_fd(s);
 
-finally:
+    finally:
     return ret;
 }
 
@@ -420,7 +463,7 @@ selector_set_interest(fd_selector s, int fd, fd_interest i) {
     }
     item->interest = i;
     items_update_fdset_for_fd(s, item);
-finally:
+    finally:
     return ret;
 }
 
@@ -445,7 +488,7 @@ static void
 handle_iteration(fd_selector s) {
     int n = s->max_fd;
     struct selector_key key = {
-        .s = s,
+            .s = s,
     };
 
     for (int i = 0; i <= n; i++) {
@@ -478,7 +521,7 @@ handle_iteration(fd_selector s) {
 static void
 handle_block_notifications(fd_selector s) {
     struct selector_key key = {
-        .s = s,
+            .s = s,
     };
     pthread_mutex_lock(&s->resolution_mutex);
     for (struct blocking_job *j = s->resolution_jobs;
@@ -520,7 +563,7 @@ selector_notify_block(fd_selector s,
     // notificamos al hilo principal
     pthread_kill(s->selector_thread, conf.signal);
 
-finally:
+    finally:
     return ret;
 }
 
@@ -563,8 +606,16 @@ selector_select(fd_selector s) {
     }
     if (ret == SELECTOR_SUCCESS) {
         handle_block_notifications(s);
+
+        // run garbage collector
+        struct garbage_collector *garbage_collector = &s->garbage_collector;
+        if (garbage_collector->collect != NULL &&
+            difftime(time(NULL), garbage_collector->last_collection) >= garbage_collector->collection_interval) {
+            garbage_collector->last_collection = time(NULL);
+            run_garbage_collector(s);
+        }
     }
-finally:
+    finally:
     return ret;
 }
 

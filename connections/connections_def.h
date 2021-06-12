@@ -3,6 +3,7 @@
 
 #include <netdb.h>
 #include <sys/types.h>
+#include <time.h>
 
 #include "parsers/doh_parser/doh_parser.h"
 #include "parsers/headers_parser/headers_parser.h"
@@ -97,6 +98,8 @@ typedef enum {
 } errors_t;
 
 typedef struct proxyConnection {
+    time_t last_action_time;
+
     /*Informacion del cliente*/
     struct sockaddr_storage client_addr;
     int client_fd;

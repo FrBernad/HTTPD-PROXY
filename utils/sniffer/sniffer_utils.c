@@ -5,13 +5,13 @@
 
 #include "connections/connections_def.h"
 
-void 
+void
 sniff_data(struct selector_key *key) {
 
     proxyConnection *connection = ATTACHMENT(key);
 
     int dataOwner;
-    buffer * bufferToSniff;
+    buffer *bufferToSniff;
 
     if (key->fd == connection->client_fd) {
         dataOwner = CLIENT_OWNED;
@@ -23,11 +23,11 @@ sniff_data(struct selector_key *key) {
 
     size_t maxBytes;
     uint8_t *data = buffer_read_ptr(bufferToSniff, &maxBytes);
-    uint8_t *dataToParse = data + maxBytes - connection->bytesToAnalize;
     unsigned state;
 
     for (int i = 0; i < connection->bytesToAnalize; i++) {
-        state = sniffer_parser_feed(dataToParse[i], &connection->sniffer.sniffer_parser, dataOwner, connection->connectionRequest.port);
+        state = sniffer_parser_feed(data[i], &connection->sniffer.sniffer_parser, dataOwner,
+                                    connection->connectionRequest.port);
         if (state == sniff_done) {
             connection->sniffer.isDone = true;
             log_user_and_password(key);

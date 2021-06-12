@@ -8,7 +8,10 @@ void
 accept_new_connection(struct selector_key *key);
 
 void 
-init_selector_handlers();
+init_connections_manager(double threshold);
+
+void
+connection_garbage_collect(struct selector_key *key);
 
 int 
 register_origin_socket(struct selector_key *key);
