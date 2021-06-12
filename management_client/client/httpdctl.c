@@ -11,8 +11,10 @@
 #include "management_client/percy_response_parser/percy_response_parser.h"
 
 #define MAX_BUFF 1024
+#define MAX_PORT 65535
 #define PASS_PHRASE_LEN 6
 #define IS_DIGIT(x) (x >= '0' && x <= '9')
+#define ARGS_QUANTITY 3
 
 struct request_percy {
     uint8_t ver;
@@ -24,30 +26,28 @@ struct request_percy {
 };
 
 static void
-buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value);
+build_request(uint8_t *buffer, int *size_of_buffer, int option, uint16_t value);
 
 static void
-clearScreen();
+clear_screen();
 
 static void
-showOptions();
+show_options();
 
 static void
 error();
 
 static int
-processInput(uint8_t *buff, int bytesToRead, int *option, int *value);
+process_input(uint8_t *buff, int bytes_to_read, int *option, int *value);
 
 static int
-getValue(int *option, int *value);
+get_value(int *option, int *value);
 
 static int
-processValue(char *buff, int bytesToRead, int *value);
+process_value(char *buff, int bytes_to_read, int *value);
 
 static void
-parseAnswer(uint8_t *buff, int len);
-
-#define ARGS_QUANTITY 3
+parse_answer(uint8_t *buff, int len);
 
 int main(int argc, char const *argv[]) {
     if (argc != 3) {
@@ -64,11 +64,10 @@ int main(int argc, char const *argv[]) {
     socklen_t servaddr_len;
     int socketFd;
     int port = atoi(argv[2]);
-    if (port <= 0 || port >= 65535) {
+    if (port <= 0 || port >= MAX_PORT) {
         perror("Invalid port. \n\n");
         exit(1);
     }
-
 
     if (inet_pton(AF_INET, argv[1], &ip_addr.ipv4) > 0) {
         servaddr_len = sizeof(serv_addr);
@@ -95,24 +94,24 @@ int main(int argc, char const *argv[]) {
         exit(1);
     }
 
-    int bytesToRead;
+    int bytes_to_read;
     uint8_t buff[MAX_BUFF];
 
     bool reading = true;
     int option = 0, value = 0;
 
     while (reading) {
-        showOptions();
-        bytesToRead = read(STDIN_FILENO, (char *)buff, MAX_BUFF);
-        if (bytesToRead > 0) {
-            if (processInput(buff, bytesToRead, &option, &value) < 0)
+        show_options();
+        bytes_to_read = read(STDIN_FILENO, (char *)buff, MAX_BUFF);
+        if (bytes_to_read > 0) {
+            if (process_input(buff, bytes_to_read, &option, &value) < 0)
                 error();
             else {
                 int len = 0;
-                buildRequest(buff, &len, option, value);
+                build_request(buff, &len, option, value);
                 sendto(socketFd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&serv_addr, servaddr_len);
                 int n = recvfrom(socketFd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&serv_addr, &servaddr_len);
-                parseAnswer(buff, n);
+                parse_answer(buff, n);
             }
         } else {
             reading = false;
@@ -124,10 +123,10 @@ int main(int argc, char const *argv[]) {
 }
 
 static int
-processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
+process_input(uint8_t *buff, int bytes_to_read, int *option, int *value) {
     int i = 0;
     int aux = 0;
-    while (i < bytesToRead) {
+    while (i < bytes_to_read) {
         if (buff[i] == '\n')
             break;
         if (IS_DIGIT(buff[i]))
@@ -143,30 +142,30 @@ processInput(uint8_t *buff, int bytesToRead, int *option, int *value) {
     if (*option >= 1 && *option <= 8) {
         *value = 0;
         return 0;
-    } else if (*option == 9) {
-        return getValue(option, value);
+    } else if (*option >= 9 && *option <= 11) {
+        return get_value(option, value);
     } else {
         return -1;
     }
 }
 
 static int
-getValue(int *option, int *value) {
+get_value(int *option, int *value) {
     printf("\n\n1 to set on the sniffer and 0 to set off:   \n\n");
 
     printf("Value: ");
     fflush(stdout);
 
     char buff[MAX_BUFF];
-    int bytesToRead = read(STDIN_FILENO, buff, MAX_BUFF);
-    return processValue(buff, bytesToRead, value);
+    int bytes_to_read = read(STDIN_FILENO, buff, MAX_BUFF);
+    return process_value(buff, bytes_to_read, value);
 }
 
 static int
-processValue(char *buff, int bytesToRead, int *value) {
+process_value(char *buff, int bytes_to_read, int *value) {
     int i = 0;
     int aux = 0;
-    while (i < bytesToRead) {
+    while (i < bytes_to_read) {
         if (buff[i] == '\n')
             break;
         if (IS_DIGIT(buff[i])) {
@@ -182,7 +181,7 @@ processValue(char *buff, int bytesToRead, int *value) {
 }
 
 static void
-buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value) {
+build_request(uint8_t *buffer, int *size_of_buffer, int option, uint16_t value) {
     struct request_percy request;
     //VERSION
     buffer[0] = 1;
@@ -254,19 +253,31 @@ buildRequest(uint8_t *buffer, int *sizeOfBuffer, int option, uint16_t value) {
             buffer[10] = value >> 8;  //VALUE
             buffer[11] = value;       //VALUE
             break;
+        case 10:
+            buffer[7] = 1;            //TYPE
+            buffer[8] = 1;            //METHOD
+            buffer[10] = value >> 8;  //VALUE
+            buffer[11] = value;       //VALUE
+            break;
+        case 11:
+            buffer[7] = 1;            //TYPE
+            buffer[8] = 2;            //METHOD
+            buffer[10] = value >> 8;  //VALUE
+            buffer[11] = value;       //VALUE
+            break;
         default:
             error();
     }
-    *sizeOfBuffer = sizeof(request);
+    *size_of_buffer = sizeof(request);
 }
 
 static void
-clearScreen() {
+clear_screen() {
     printf("\033{1;1H\033[2J\n");
 }
 
 static void
-showOptions() {
+show_options() {
     printf("Select an option\n\n");
 
     printf("Request methods:\n\n");
@@ -282,7 +293,9 @@ showOptions() {
 
     printf("Modification methods:\n\n");
 
-    printf("-9  Change sniffer mode.  \n\n");
+    printf("-9  Enable or disable sniffer mode.  \n");
+    printf("-10 Set I/O buffer size.  \n");
+    printf("-11 Set selector timeout.  \n\n");
 
     printf("Option: ");
     fflush(stdout);
@@ -294,31 +307,30 @@ error() {
 }
 
 static void
-parseAnswer(uint8_t *buff, int len) {
-    struct percy_response_parser response;
+parse_answer(uint8_t *buff, int len) {
+    struct percy_response_parser percy_response_parser;
     struct percy_response percy_response;
-    response.response = &percy_response;
+    percy_response_parser.response = &percy_response;
 
-    percy_response_parser_init(&response);
+    percy_response_parser_init(&percy_response_parser);
     int i = 0;
     while (i < len) {
-        percy_response_parser_feed(&response, buff[i++]);
+        percy_response_parser_feed(&percy_response_parser, buff[i++]);
     }
 
-    clearScreen();
+    clear_screen();
 
     printf("\n\nRESPONSE: \n\n");
 
-    printf("Version %d\n", response.response->ver);
-    printf("Status  %d\n", response.response->status);
-    printf("Resv    %d\n", response.response->resv);
-    printf("Value   %ld\n", response.response->value);
+    printf("Version %d\n", percy_response_parser.response->ver);
+    printf("Status  %d\n", percy_response_parser.response->status);
+    printf("Resv    %d\n", percy_response_parser.response->resv);
+    printf("Value   %ld\n", percy_response_parser.response->value);
 
     printf("\n\npress enter to continue\n");
 
     while (getchar() != '\n')
         ;
 
-    clearScreen();
+    clear_screen();
 }
-

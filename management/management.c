@@ -28,7 +28,7 @@ enum {
     RETRIEVAL = 0,
     RETRIEVAL_METHODS_COUNT = 9,
     MODIFICATION = 1,
-    MODIFICATION_METHODS_COUNT = 1,
+    MODIFICATION_METHODS_COUNT = 3,
 };
 
 typedef struct values_range {
@@ -105,7 +105,11 @@ management_close(struct selector_key *key);
 
 static int validate_input_value(uint8_t method, uint16_t value);
 
-uint64_t set_sniffer_mode(uint16_t op);
+static uint64_t set_sniffer_mode(uint16_t op);
+
+static uint64_t set_buffer_size(uint16_t value);
+
+static uint64_t set_selector_timeout(uint16_t value);
 
 static management_t management;
 
@@ -262,9 +266,20 @@ static void init_management_functions() {
     retrievalMethods[7] = get_concurrent_connections;
     retrievalMethods[8] = get_failed_connections;
 
+
+    //max and min values for modification methods are specified in the documentation of the protocol
+
     modificationMethods[0].range_of_value.min = 0;
     modificationMethods[0].range_of_value.max = 1;
     modificationMethods[0].modificationMethod = set_sniffer_mode;
+
+    modificationMethods[1].range_of_value.min = 1024;
+    modificationMethods[1].range_of_value.max = 8192;
+    modificationMethods[1].modificationMethod = set_buffer_size;
+
+    modificationMethods[2].range_of_value.min = 4;
+    modificationMethods[2].range_of_value.max = 12;
+    modificationMethods[2].modificationMethod = set_selector_timeout;
 }
 
 // Management functions
@@ -417,4 +432,14 @@ uint64_t set_sniffer_mode(uint16_t op) {
     }
 
     return 1;
+}
+
+static uint64_t set_buffer_size(uint16_t value){
+
+    return 0;
+
+}
+
+static uint64_tset_selector_timeout(uint16_t value){
+    return 0;
 }
