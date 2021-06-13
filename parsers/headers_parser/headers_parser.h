@@ -154,7 +154,7 @@ typedef struct{
 
 typedef struct headers_parser {
     headers_state state;
-    unsigned headersCount;
+    unsigned headers_count;
     current_header_t current_header;
     authorization_t authorization;
     int i;

@@ -7,29 +7,28 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "connections/connections.h"
+#include "connections_manager/connections_manager.h"
 #include "httpd.h"
 #include "metrics/metrics.h"
 #include "parsers/percy_request_parser/percy_request_parser.h"
-#include "connections/connections.h"
 #include "logger/logger.h"
 #include "logger/logger_utils.h"
 
-#define AUX_BUFFER_SIZE 128
+#define LOG_BUFFER 128
 
-enum {
-    MAX_MSG_LEN = 128,
-    SUCCESS_STATUS = 0x00,
-    UNAUTH_STATUS = 0x01,
-    UNSUCCESFUL_STATUS = 0x02,
-    PERCY_RESPONSE_SIZE = 11,
-    PERCY_VERSION = 0x01,
-    PERCY_RESV = 0x00,
-    RETRIEVAL = 0,
-    RETRIEVAL_METHODS_COUNT = 9,
-    MODIFICATION = 1,
-    MODIFICATION_METHODS_COUNT = 3,
-};
+    enum {
+        MAX_MSG_LEN = 128,
+        SUCCESS_STATUS = 0x00,
+        UNAUTH_STATUS = 0x01,
+        UNSUCCESFUL_STATUS = 0x02,
+        PERCY_RESPONSE_SIZE = 11,
+        PERCY_VERSION = 0x01,
+        PERCY_RESV = 0x00,
+        RETRIEVAL = 0,
+        RETRIEVAL_METHODS_COUNT = 9,
+        MODIFICATION = 1,
+        MODIFICATION_METHODS_COUNT = 3,
+    };
 
 typedef struct values_range {
     uint16_t min;
@@ -44,8 +43,8 @@ typedef struct modification_method {
 } modification_method;
 
 static uint64_t (*retrieval_methods[RETRIEVAL_METHODS_COUNT])(void);
-
 static struct modification_method modification_methods[MODIFICATION_METHODS_COUNT];
+static char log_buffer[LOG_BUFFER];
 
 typedef struct {
     fd_selector selector;
@@ -116,7 +115,6 @@ get_select_timeout();
 
 static void
 set_select_timeout(uint16_t value);
-
 
 static management_t management;
 
@@ -210,7 +208,7 @@ static int
 ipv4_listener_socket(struct sockaddr_in sockaddr) {
     int socketfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (socketfd < 0) {
-        fprintf(stderr, "Management socket creation\n");
+        log_level_msg("Management socket creation", LEVEL_ERROR);
         return -1;
     }
 
@@ -221,12 +219,12 @@ static int
 ipv6_listener_socket(struct sockaddr_in6 sockaddr) {
     int socketfd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
     if (socketfd < 0) {
-        fprintf(stderr, "Management socket creation\n");
+        log_level_msg("Management socket creation", LEVEL_ERROR);
         return -1;
     }
 
     if (setsockopt(socketfd, IPPROTO_IPV6, IPV6_V6ONLY, &(int) {1}, sizeof(int)) < 0) {
-        fprintf(stderr, "Setsockopt opt: IPV6_ONLY\n");
+        log_level_msg("Management Setsockopt opt: IPV6_ONLY", LEVEL_ERROR);
         return -1;
     }
 
@@ -236,17 +234,17 @@ ipv6_listener_socket(struct sockaddr_in6 sockaddr) {
 static int
 default_management_socket_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
     if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int)) < 0) {
-        fprintf(stderr, "Setsockopt opt: SO_REUSEADDR\n");
+        log_level_msg("Management Setsockopt opt: SO_REUSEADDR", LEVEL_ERROR);
         return -1;
     }
 
     if (selector_fd_set_nio(socketfd) < 0) {
-        fprintf(stderr, "selector_fd_set_nio\n");
+        log_level_msg("Management selector_fd_set_nio", LEVEL_ERROR);
         return -1;
     }
 
     if (bind(socketfd, sockaddr, len) < 0) {
-        fprintf(stderr, "bind\n");
+        log_level_msg("Management bind", LEVEL_ERROR);
         return -1;
     }
 
@@ -313,14 +311,14 @@ management_read(struct selector_key *key) {
         } else {
             uint8_t method = management.request.method;
             uint16_t value = management.request.value;
-
-            char aux_buffer[AUX_BUFFER_SIZE];
+           
             switch (management.request.type) {
 
                 case RETRIEVAL:
 
-                    sprintf(aux_buffer, "Retrieval method: %d", method);
-                    log_level_msg(aux_buffer, LEVEL_DEBUG);
+                    sprintf(log_buffer, "Retrieval method: %d", method);
+                    log_level_msg(log_buffer, LEVEL_DEBUG);
+
                     if (method <= RETRIEVAL_METHODS_COUNT - 1) {
                         send_reply(key->fd, (struct sockaddr *) &clnt_addr, clnt_addr_len, PERCY_VERSION,
                                    SUCCESS_STATUS,
@@ -328,10 +326,11 @@ management_read(struct selector_key *key) {
                         return;
                     }
                     break;
+
                 case MODIFICATION:
 
-                    sprintf(aux_buffer, "Modification method: %d with entry: %d", method, value);
-                    log_level_msg(aux_buffer, LEVEL_DEBUG);
+                    sprintf(log_buffer, "Modification method: %d with entry: %d", method, value);
+                    log_level_msg(log_buffer, LEVEL_DEBUG);
 
                     if (method <= MODIFICATION_METHODS_COUNT - 1) {
                         if (validate_input_value(method, value)) {
@@ -365,9 +364,8 @@ send_reply(int fd, struct sockaddr *addr, socklen_t clnt_addr_len, uint8_t ver, 
     build_reply(reply, ver, status, resv, value);
     ssize_t bytes_sent = sendto(fd, reply, PERCY_RESPONSE_SIZE, 0, addr, clnt_addr_len);
     if (bytes_sent < 0) {
-        char aux_buffer[AUX_BUFFER_SIZE];
-        sprintf(aux_buffer, "Something went wrong(management)");
-        log_level_msg(aux_buffer, LEVEL_ERROR);
+        sprintf(log_buffer, "Something went wrong(management)");
+        log_level_msg(log_buffer, LEVEL_ERROR);
     }
 }
 

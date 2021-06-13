@@ -32,14 +32,11 @@ digraph g {
     A_D_R -> ERROR   [label= "Error"];
 
     CONNECTED -> CLOSING   [label= "One Side Closed Connection"];
-    CONNECTED -> ERROR   [label= "Error"];
 
     CLOSING -> EMPTY_BUF   [label= "Send Leftover Data"];
     CLOSING -> DONE   [label= "No Data Left"];
-    CLOSING -> ERROR   [label= "Error"];
 
     EMPTY_BUF -> DONE   [label= "No Data Left"];
-    EMPTY_BUF -> ERROR   [label= "Error"];
 
     ERROR -> DONE   [label= "Send Error"];
 

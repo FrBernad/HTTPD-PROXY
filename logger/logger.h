@@ -17,7 +17,11 @@ typedef enum {
 int
 init_logger(fd_selector s);
 
+void
+destroy_logger();
+
 void 
-logger_log(char *log, uint64_t total_bytes);
+logger_log(char *log, uint64_t total_bytes, log_level level);
+
 
 #endif

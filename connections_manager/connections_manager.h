@@ -1,5 +1,5 @@
-#ifndef _CONNECTIONS_H_
-#define _CONNECTIONS_H_
+#ifndef _CONNECTIONS_MANAGER_H_
+#define _CONNECTIONS_MANAGER_H_
 
 #include "utils/selector/selector.h"
 #include <stdint.h>
@@ -9,7 +9,6 @@ init_connections_manager(double threshold);
 
 void
 accept_new_connection(struct selector_key *key);
-
 
 void
 connection_garbage_collect(struct selector_key *key);

@@ -1,10 +1,11 @@
-#include "connections.h"
+#include "connections_manager.h"
 
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "connections_def.h"
+#include "logger/logger_utils.h"
 #include "metrics/metrics.h"
 #include "state_machine/stm_initializer.h"
 
@@ -50,8 +51,7 @@ static double inactive_threshold;
 
 static uint64_t buffers_size = BUFFER_SIZE;
 
-void
-init_connections_manager(double threshold) {
+void init_connections_manager(double threshold) {
     client_handler.handle_read = proxy_client_read;
     client_handler.handle_write = proxy_client_write;
     client_handler.handle_close = proxy_client_close;  //DEFINE
@@ -69,14 +69,12 @@ init_connections_manager(double threshold) {
 **     PROXY LISTENER SOCKET SETTERS
 */
 
-
 uint64_t
 get_buffer_size() {
     return buffers_size;
 }
 
-void
-set_buffer_size(uint16_t new_buff_size){
+void set_buffer_size(uint16_t new_buff_size) {
     buffers_size = new_buff_size;
 }
 
@@ -90,20 +88,20 @@ void accept_new_connection(struct selector_key *key) {
 
     int client_socket;
 
-    if ((client_socket = accept(key->fd, (struct sockaddr *) &addr, &addrlen)) < 0) {
-        fprintf(stderr, "Error accept\n");
+    if ((client_socket = accept(key->fd, (struct sockaddr *)&addr, &addrlen)) < 0) {
+        log_level_msg("Error accept",LEVEL_ERROR);
         return;
     }
 
     if (selector_fd_set_nio(client_socket) < 0) {
-        fprintf(stderr, "error setting new connection as NON-BLOCKIN\n");
+        log_level_msg("Error setting new connection as NON-BLOCKIN",LEVEL_ERROR);
         close(client_socket);
         return;
     }
 
     proxy_connection_t *new_connection = create_new_connection(client_socket);
     if (new_connection == NULL) {
-        fprintf(stderr, "error creating new connection\n");
+        log_level_msg("Error creating new connection",LEVEL_ERROR);
         close(client_socket);
         return;
     }
@@ -113,7 +111,7 @@ void accept_new_connection(struct selector_key *key) {
     int status = selector_register(key->s, client_socket, &client_handler, OP_READ, new_connection);
 
     if (status != SELECTOR_SUCCESS) {
-        fprintf(stderr, "error registering new fd\n");
+        log_level_msg("Error registering new fd",LEVEL_ERROR);
         close(client_socket);
         free_connection_data(new_connection);
         return;
@@ -127,6 +125,7 @@ create_new_connection(int clientFd) {
     if (new_connection == NULL) {
         return NULL;
     }
+    
     uint8_t *read_buffer = malloc(buffers_size * sizeof(uint8_t));
 
     if (read_buffer == NULL) {
@@ -246,7 +245,7 @@ proxy_origin_read(struct selector_key *key) {
     if (total_bytes < 0) {
         close_proxy_connection(key);
     }
-        /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
+    /* Si el origin no quiere mandar nada más, marco al origin como que está cerrando y
                     que envie los bytes que quedan en su buffer */
     else {
         if (total_bytes == 0) {
@@ -354,13 +353,10 @@ free_connection_data(proxy_connection_t *connection) {
     free(connection);
 }
 
-
 /*
 **     PROXY GARBAGE COLLECTOR FUNCTION
 */
-void
-connection_garbage_collect(struct selector_key *key) {
-
+void connection_garbage_collect(struct selector_key *key) {
     // proxy/management listenting socket or logger fd
     if (key->data == NULL || key->fd == STDERR_FILENO || key->fd == STDOUT_FILENO) {
         return;

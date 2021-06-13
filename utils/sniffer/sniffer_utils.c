@@ -1,9 +1,9 @@
 #include "sniffer_utils.h"
 
 #include <stdio.h>
-#include "logger/logger_utils.h"
 
-#include "connections/connections_def.h"
+#include "connections_manager/connections_def.h"
+#include "logger/logger_utils.h"
 
 void
 sniff_data(struct selector_key *key) {

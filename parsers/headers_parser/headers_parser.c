@@ -20,7 +20,7 @@ h_field_value_end(uint8_t c, headers_parser_t *p);
 void
 headers_parser_init(headers_parser_t *p) {
     p->state = headers_field_name;
-    p->headersCount = 0;
+    p->headers_count = 0;
     p->i = 0;
     p->n = MAX_HEADER_FIELD_NAME_LENGTH;
 }
@@ -66,7 +66,7 @@ h_field_name(uint8_t c, headers_parser_t *p) {
     }
 
     if (c == ':') {
-        p->headersCount++;
+        p->headers_count++;
         p->i = 0;
         p->n = MAX_HEADER_FIELD_VALUE_LENGTH;
         return headers_field_value;

@@ -4,8 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "connections/connections.h"
-#include "connections/connections_def.h"
+#include "connections_manager/connections_manager.h"
+#include "connections_manager/connections_def.h"
 #include "metrics/metrics.h"
 #include "utils/net/net_utils.h"
 
@@ -153,10 +153,10 @@ try_next_dns_connection(struct selector_key *key) {
 
     doh_connection_t *doh = connection->doh_connection;
 
-    bool responseError = doh->doh_response.header.flags.rcode != 0;
+    bool response_error = doh->doh_response.header.flags.rcode != 0;
 
     if (doh->current_type == ipv4_try) {
-        if (!responseError) {
+        if (!response_error) {
             return try_next_ipv4_connection(key);
         }
         doh_response_parser_destroy(&connection->doh_connection->doh_parser);
@@ -165,7 +165,7 @@ try_next_dns_connection(struct selector_key *key) {
         return handle_origin_doh_connection(key);
     }
 
-    if (responseError) {
+    if (response_error) {
         connection->error = INTERNAL_SERVER_ERROR;  //FIXME: preguntar bien esto que pasa con el rcode
         return ERROR;
     }
@@ -178,22 +178,19 @@ try_next_ipv4_connection(struct selector_key *key) {
     proxy_connection_t *connection = ATTACHMENT(key);
 
     doh_connection_t *doh = connection->doh_connection;
-    struct answer currentAnswer;
+    struct answer current_answer;
     struct sockaddr_in ipv4;
 
     /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->current_try != 0) {
-        increase_failed_connections();
-    }
 
     while (doh->current_try < doh->doh_response.header.ancount) {
-        currentAnswer = doh->doh_response.answers[doh->current_try++];
-        if (currentAnswer.a_type != IPV4_TYPE) {
+        current_answer = doh->doh_response.answers[doh->current_try++];
+        if (current_answer.a_type != IPV4_TYPE) {
             continue;
         }
 
         memset(&ipv4, 0, sizeof(ipv4));
-        ipv4.sin_addr = currentAnswer.aip.ipv4;
+        ipv4.sin_addr = current_answer.aip.ipv4;
         ipv4.sin_family = AF_INET;
         ipv4.sin_port = connection->connection_parsers.request_line.request.request_target.port;
 
@@ -222,22 +219,17 @@ try_next_ipv6_connection(struct selector_key *key) {
     proxy_connection_t *connection = ATTACHMENT(key);
 
     doh_connection_t *doh = connection->doh_connection;
-    struct answer currentAnswer;
+    struct answer current_answer;
     struct sockaddr_in6 ipv6;
 
-    /*Significa que no es la primera vez que intento con una ip*/
-    if (doh->current_try != 0) {
-        increase_failed_connections();
-    }
-
     while (doh->current_try < doh->doh_response.header.ancount) {
-        currentAnswer = doh->doh_response.answers[doh->current_try++];
-        if (currentAnswer.a_type != IPV6_TYPE) {
+        current_answer = doh->doh_response.answers[doh->current_try++];
+        if (current_answer.a_type != IPV6_TYPE) {
             continue;
         }
 
         memset(&ipv6, 0, sizeof(ipv6));
-        ipv6.sin6_addr = currentAnswer.aip.ipv6;
+        ipv6.sin6_addr = current_answer.aip.ipv6;
         ipv6.sin6_family = AF_INET6;
         ipv6.sin6_port = connection->connection_parsers.request_line.request.request_target.port;
 

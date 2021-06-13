@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "connections/connections_def.h"
+#include "connections_manager/connections_def.h"
 #include "logger/logger_utils.h"
 #include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
@@ -26,6 +26,7 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         /*Si doh_connection == NULL es que nunca mande el doh_request, si no esta active tengo que probar ipv6 */
         if (connection->connection_request.host_type == domain &&
             (connection->doh_connection == NULL || !connection->doh_connection->is_active)) {
+            increase_failed_connections();
             return SEND_DOH_REQUEST;
         }
         /*En este caso ya estoy conectado al origin*/
@@ -48,14 +49,11 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         return SEND_REQUEST_LINE;
     }
 
+    increase_failed_connections();
+
     // try next ip from doh response
     if (connection->connection_request.host_type == domain && connection->doh_connection != NULL) {
         return try_next_dns_connection(key);
-    }
-
-    if (connection->connection_request.host_type != domain) {
-        // Connection with direct ip failed
-        increase_failed_connections();
     }
 
     connection->error = INTERNAL_SERVER_ERROR;

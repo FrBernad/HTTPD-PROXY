@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "connections/connections_def.h"
+#include "connections_manager/connections_def.h"
 #include "utils/doh/doh_utils.h"
 
 static void

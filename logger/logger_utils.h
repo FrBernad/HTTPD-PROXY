@@ -14,7 +14,7 @@ void
 log_connection_closed(struct selector_key *key);
 
 void
-log_connection_failed(struct selector_key *key, char *reasonPhrase);
+log_connection_failed(struct selector_key *key, char *reason_phrase);
 
 void
 log_level_msg(char *msg, log_level level);

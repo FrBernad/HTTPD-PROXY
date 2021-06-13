@@ -5,8 +5,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "connections/connections.h"
+#include "connections_manager/connections_manager.h"
 #include "logger/logger.h"
+#include "logger/logger_utils.h"
 #include "management/management.h"
 #include "metrics/metrics.h"
 #include "utils/args/args.h"
@@ -49,14 +50,14 @@ signal_handler(int signum);
 static void
 init_signal_handler(int signum);
 
-static httpd_t connectionsManager;
+static httpd_t httpd;
 static struct http_args args;
 static bool finished = false;
 
 int main(int argc, char *argv[]) {
     parse_args(argc, argv, &args);
 
-    connectionsManager.port = htons(args.http_port);
+    httpd.port = htons(args.http_port);
 
     close(STDIN_FILENO);
 
@@ -82,13 +83,13 @@ int main(int argc, char *argv[]) {
     init_metrics();
 
     if (init_proxy_listener(selector) < 0) {
-        fprintf(stderr, "Passive socket creation\n");
+        log_level_msg("Passive socket creation",LEVEL_ERROR);
         return_val = 2;
         goto finally;
     }
 
     if (init_management(selector) < 0) {
-        fprintf(stderr, "Management socket creation\n");
+        log_level_msg("Management socket creation",LEVEL_ERROR);
         return_val = 2;
         goto finally;
     }
@@ -104,18 +105,20 @@ int main(int argc, char *argv[]) {
 
     finally:
 
+    destroy_logger();
+
     if (selector != NULL) {
         selector_destroy(selector);
     }
 
     selector_close();
 
-    if (connectionsManager.proxy_fd_6 >= 0) {
-        close(connectionsManager.proxy_fd_6);
+    if (httpd.proxy_fd_6 >= 0) {
+        close(httpd.proxy_fd_6);
     }
 
-    if (connectionsManager.proxy_fd_4 >= 0) {
-        close(connectionsManager.proxy_fd_6);
+    if (httpd.proxy_fd_4 >= 0) {
+        close(httpd.proxy_fd_6);
     }
 
     return return_val;
@@ -151,19 +154,16 @@ init_selector() {
             }};
 
     if (selector_init(&initConfig) != SELECTOR_SUCCESS) {
-        fprintf(stderr, "selector_init\n");
         return NULL;
     }
 
     fd_selector selector = selector_new(MAX_CONNECTIONS);
 
     if (selector == NULL) {
-        fprintf(stderr, "selector_new\n");
         return NULL;
     }
 
     if (selector_set_garbage_collector(selector, connection_garbage_collect, DEFAULT_SELECTOR_TIMEOUT) < 0) {
-        fprintf(stderr, "gelector garbage collector\n");
         return NULL;
     }
 
@@ -173,11 +173,11 @@ init_selector() {
 static int
 init_proxy_listener(fd_selector selector) {
     // Zero out structure
-    memset(&connectionsManager.proxy_handler, 0, sizeof(connectionsManager.proxy_handler));
+    memset(&httpd.proxy_handler, 0, sizeof(httpd.proxy_handler));
 
-    int *proxy_fd_6 = &connectionsManager.proxy_fd_6;
+    int *proxy_fd_6 = &httpd.proxy_fd_6;
     *proxy_fd_6 = -1;
-    int *proxy_fd_4 = &connectionsManager.proxy_fd_4;
+    int *proxy_fd_4 = &httpd.proxy_fd_4;
     *proxy_fd_4 = -1;
 
     if (args.http_addr == NULL) {
@@ -185,7 +185,7 @@ init_proxy_listener(fd_selector selector) {
         struct sockaddr_in6 sockaddr6 = {
                 .sin6_addr = in6addr_any,
                 .sin6_family = AF_INET6,
-                .sin6_port = connectionsManager.port
+                .sin6_port = httpd.port
         };
 
         *proxy_fd_6 = ipv6_only_proxy_listener(sockaddr6);
@@ -194,27 +194,27 @@ init_proxy_listener(fd_selector selector) {
         struct sockaddr_in sockaddr4 = {
                 .sin_addr.s_addr = INADDR_ANY,
                 .sin_family = AF_INET,
-                .sin_port = connectionsManager.port,
+                .sin_port = httpd.port,
         };
 
         if ((*proxy_fd_4 = ipv4_only_proxy_listener(sockaddr4)) < 0 && *proxy_fd_6 < 0) {
             return -1;
         }
 
-    } else if (inet_pton(AF_INET, args.http_addr, &connectionsManager.ipv4_addr)) {
+    } else if (inet_pton(AF_INET, args.http_addr, &httpd.ipv4_addr)) {
         struct sockaddr_in sockaddr = {
-                .sin_addr = connectionsManager.ipv4_addr,
+                .sin_addr = httpd.ipv4_addr,
                 .sin_family = AF_INET,
-                .sin_port = connectionsManager.port,
+                .sin_port = httpd.port,
         };
         if ((*proxy_fd_4 = ipv4_only_proxy_listener(sockaddr)) < 0) {
             return -1;
         }
-    } else if (inet_pton(AF_INET6, args.http_addr, &connectionsManager.ipv6_addr)) {
+    } else if (inet_pton(AF_INET6, args.http_addr, &httpd.ipv6_addr)) {
         struct sockaddr_in6 sockaddr = {
-                .sin6_addr = connectionsManager.ipv6_addr,
+                .sin6_addr = httpd.ipv6_addr,
                 .sin6_family = AF_INET6,
-                .sin6_port = connectionsManager.port,
+                .sin6_port = httpd.port,
         };
         if ((*proxy_fd_6 = ipv6_only_proxy_listener(sockaddr)) < 0) {
             return -1;
@@ -223,17 +223,17 @@ init_proxy_listener(fd_selector selector) {
         return -1;
     }
 
-    connectionsManager.proxy_handler.handle_read = accept_new_connection;
+    httpd.proxy_handler.handle_read = accept_new_connection;
 
     if (*proxy_fd_4 >= 0) {
-        if (selector_register(selector, *proxy_fd_4, &connectionsManager.proxy_handler, OP_READ, NULL) !=
+        if (selector_register(selector, *proxy_fd_4, &httpd.proxy_handler, OP_READ, NULL) !=
             SELECTOR_SUCCESS && *proxy_fd_6 < 0) {
             return -1;
         }
     }
 
     if (*proxy_fd_6 >= 0) {
-        if (selector_register(selector, *proxy_fd_6, &connectionsManager.proxy_handler, OP_READ, NULL) !=
+        if (selector_register(selector, *proxy_fd_6, &httpd.proxy_handler, OP_READ, NULL) !=
             SELECTOR_SUCCESS && *proxy_fd_4 < 0) {
             return -1;
         }
@@ -246,12 +246,12 @@ static int
 ipv6_only_proxy_listener(struct sockaddr_in6 sockaddr) {
     int proxyFd = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
     if (proxyFd < 0) {
-        fprintf(stderr, "Passive socket creation\n");
+        log_level_msg("Passive socket creation",LEVEL_ERROR);
         return -1;
     }
 
     if (setsockopt(proxyFd, IPPROTO_IPV6, IPV6_V6ONLY, &(int) {1}, sizeof(int)) < 0) {
-        fprintf(stderr, "Setsockopt opt: IPV6_ONLY\n");
+        log_level_msg("Setsockopt opt: IPV6_ONLY",LEVEL_ERROR);
         return -1;
     }
 
@@ -262,7 +262,7 @@ static int
 ipv4_only_proxy_listener(struct sockaddr_in sockaddr) {
     int proxyFd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (proxyFd < 0) {
-        fprintf(stderr, "Passive socket creation\n");
+        log_level_msg("Passive socket creation",LEVEL_ERROR);
         return -1;
     }
 
@@ -272,22 +272,22 @@ ipv4_only_proxy_listener(struct sockaddr_in sockaddr) {
 static int
 default_proxy_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
     if (setsockopt(socketfd, SOL_SOCKET, SO_REUSEADDR, &(int) {1}, sizeof(int)) < 0) {
-        fprintf(stderr, "Setsockopt opt: SO_REUSEADDR\n");
+        log_level_msg("Setsockopt opt: SO_REUSEADDR",LEVEL_ERROR);
         return -1;
     }
 
     if (selector_fd_set_nio(socketfd) < 0) {
-        fprintf(stderr, "selector_fd_set_nio\n");
+        log_level_msg("Socket selector_fd_set_nio",LEVEL_ERROR);
         return -1;
     }
 
     if (bind(socketfd, sockaddr, len) < 0) {
-        fprintf(stderr, "bind\n");
+        log_level_msg("Socket bind",LEVEL_ERROR);
         return -1;
     }
 
     if (listen(socketfd, MAX_PENDING) < 0) {
-        fprintf(stderr, "listen\n");
+        log_level_msg("Socket listen",LEVEL_ERROR);
         return -1;
     }
 

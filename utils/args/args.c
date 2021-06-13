@@ -13,7 +13,7 @@ port(const char *s) {
     const long sl = strtol(s, &end, 10);
 
     if (end == s || '\0' != *end || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) || sl < 0 || sl > USHRT_MAX) {
-        fprintf(stderr, "port should in in the range of 1-65536: %s\n", s);
+        fprintf(stderr, "Port should in in the range of 1-65536: %s\n", s);
         exit(1);
         return 1;
     }
@@ -24,8 +24,7 @@ static void
 version(void) {
     fprintf(stderr,
             "HTTP proxy version 1.0\n"
-            "ITBA Protocolos de Comunicación 2021/1 -- Grupo 10\n"
-            "AQUI VA LA LICENCIA\n");
+            "ITBA Protocolos de Comunicación 2021/1 -- Grupo 10\n");
 }
 
 static void

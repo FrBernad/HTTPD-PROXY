@@ -1,4 +1,4 @@
-CONNECTIONS=connections
+CONNECTIONS=connections_manager
 PARSERS=parsers/*
 STATE_MACHINE=state_machine
 STATES=states/*

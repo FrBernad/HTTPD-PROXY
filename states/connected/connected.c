@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "connections/connections_def.h"
+#include "connections_manager/connections_def.h"
 #include "httpd.h"
 #include "logger/logger_utils.h"
 #include "parsers/status_line_parser/status_line_parser.h"

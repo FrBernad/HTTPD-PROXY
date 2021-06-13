@@ -1,6 +1,6 @@
 #include "empty_buffers.h"
 
-#include "connections/connections_def.h"
+#include "connections_manager/connections_def.h"
 #include "metrics/metrics.h"
 
 static void

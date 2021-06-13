@@ -1,12 +1,15 @@
 #include "logger.h"
 
 #include <errno.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "utils/buffer/buffer.h"
 
 #define BUFFER_SIZE 1024
+
+#define IS_STDOUT_LEVEL(l) ((l) >= LEVEL_TRACE && (l) <= LEVEL_WARN)
+#define IS_STDERR_LEVEL(l) ((l) <= LEVEL_FATAL && (l) >= LEVEL_ERROR)
 
 static fd_selector selector;
 
@@ -18,7 +21,8 @@ static buffer stderr_buffer;
 static void
 logger_on_write_ready(struct selector_key *key);
 
-int init_logger(fd_selector s) {
+int 
+init_logger(fd_selector s) {
     selector = s;
 
     uint8_t *stdout = malloc(BUFFER_SIZE * sizeof(uint8_t));
@@ -30,6 +34,7 @@ int init_logger(fd_selector s) {
 
     uint8_t *stderr = malloc(BUFFER_SIZE * sizeof(uint8_t));
     if (stderr == NULL) {
+        free(stdout);
         return -1;
     }
 
@@ -49,12 +54,34 @@ int init_logger(fd_selector s) {
     return 1;
 }
 
-void logger_log(char *log, uint64_t total_bytes) {
+void 
+destroy_logger() {
+    if (stdout_buffer.data != NULL) {
+        free(stdout_buffer.data);
+    }
+
+    if (stderr_buffer.data != NULL) {
+        free(stderr_buffer.data);
+    }
+}
+
+void 
+logger_log(char *log, uint64_t total_bytes, log_level level) {   
+
     int fd;
     buffer *buff;
 
-    fd = STDOUT_FILENO;
-    buff = &stdout_buffer;
+    if(IS_STDOUT_LEVEL(level)){
+        fd = STDOUT_FILENO;
+        buff = &stdout_buffer;
+        
+    }else if (IS_STDERR_LEVEL(level)){
+        fd = STDERR_FILENO;
+        buff = &stderr_buffer;   
+    }
+    else{
+        return;
+    }
 
     ssize_t bytes_written = write(fd, log, total_bytes);
     if (bytes_written > 0) {

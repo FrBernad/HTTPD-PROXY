@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "connections/connections_def.h"
+#include "connections_manager/connections_def.h"
 #include "logger/logger_utils.h"
 
 static void
-write_error(struct selector_key *key, errors_t errorCode, char *reason_phrase);
+write_error(struct selector_key *key, errors_t error_code, char *reason_phrase);
 
 void
 error_on_arrival(unsigned state, struct selector_key *key) {
@@ -75,7 +75,7 @@ error_on_write_ready(struct selector_key *key) {
 }
 
 static void
-write_error(struct selector_key *key, errors_t errorCode, char *reason_phrase) {
+write_error(struct selector_key *key, errors_t error_code, char *reason_phrase) {
     proxy_connection_t *connection = ATTACHMENT(key);
 
     buffer *buffer = &connection->origin_buffer;
@@ -84,6 +84,6 @@ write_error(struct selector_key *key, errors_t errorCode, char *reason_phrase) {
 
     size_t maxBytes;
     uint8_t *data = buffer_write_ptr(buffer, &maxBytes);
-    int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", errorCode, reason_phrase);
+    int len = sprintf((char *)data, "HTTP/1.0 %d %s\r\n\r\n", error_code, reason_phrase);
     buffer_write_adv(buffer, len);
 }

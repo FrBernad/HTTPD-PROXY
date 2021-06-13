@@ -11,13 +11,8 @@
 #include "states/try_connection_ip/try_connection_ip.h"
 #include "states/error/error.h"
 #include "stm.h"
-#include "connections/connections_def.h"
+#include "connections_manager/connections_def.h"
 
-//   unsigned (*on_read_ready) (struct selector_key *key);
-//     /** ejecutado cuando hay datos disponibles para ser escritos */
-//     unsigned (*on_write_ready)(struct selector_key *key);
-//     /** ejecutado cuando hay una resolución de nombres lista */
-//     unsigned (*on_block_ready)(struct selector_key *key);
 
 static const struct state_definition connection_states[] = {
     {.state = PARSING_REQUEST_LINE,
