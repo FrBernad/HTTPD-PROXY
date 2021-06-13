@@ -14,7 +14,6 @@
 #define MAX_PORT 65535
 #define PASS_PHRASE_LEN 6
 #define IS_DIGIT(x) (x >= '0' && x <= '9')
-#define ARGS_QUANTITY 3
 
 struct request_percy {
     uint8_t ver;
@@ -51,7 +50,7 @@ parse_answer(uint8_t *buff, int len);
 
 int main(int argc, char const *argv[]) {
     if (argc != 3) {
-        perror("Wrong number of arguments. Use ./http <ip> <port>\n\n");
+        fprintf(stderr, "Wrong number of arguments. Use ./http <ip> <port>\n\n");
         exit(1);
     }
 
@@ -65,14 +64,14 @@ int main(int argc, char const *argv[]) {
     int socket_fd;
     int port = atoi(argv[2]);
     if (port <= 0 || port >= MAX_PORT) {
-        perror("Invalid port. \n\n");
+        fprintf(stderr, "Invalid port. \n\n");
         exit(1);
     }
 
     if (inet_pton(AF_INET, argv[1], &ip_addr.ipv4) > 0) {
         servaddr_len = sizeof(serv_addr);
         if ((socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-            perror("Client socket creation failed");
+            fprintf(stderr, "Client socket creation failed");
             exit(1);
         }
         memset(&serv_addr, 0, servaddr_len);
@@ -82,7 +81,7 @@ int main(int argc, char const *argv[]) {
     } else if (inet_pton(AF_INET6, argv[1], &ip_addr.ipv6) > 0) {
         servaddr_len = sizeof(serv_addr);
         if ((socket_fd = socket(AF_INET6, SOCK_DGRAM, 0)) < 0) {
-            perror("Client socket creation failed");
+            fprintf(stderr, "Client socket creation failed");
             exit(1);
         }
         memset(&serv_addr, 0, servaddr_len);
@@ -90,7 +89,7 @@ int main(int argc, char const *argv[]) {
         ((struct sockaddr_in6 *)&serv_addr)->sin6_port = htons(port);
         ((struct sockaddr_in6 *)&serv_addr)->sin6_addr = ip_addr.ipv6;
     } else {
-        perror("Invalid ip address");
+        fprintf(stderr, "Invalid ip address");
         exit(1);
     }
 
@@ -109,8 +108,8 @@ int main(int argc, char const *argv[]) {
             else {
                 int len = 0;
                 build_request(buff, &len, option, value);
-                sendto(socketFd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&serv_addr, servaddr_len);
-                int n = recvfrom(socketFd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&serv_addr, &servaddr_len);
+                sendto(socket_fd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&serv_addr, servaddr_len);
+                int n = recvfrom(socket_fd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&serv_addr, &servaddr_len);
                 parse_answer(buff, n);
             }
         } else {
@@ -138,11 +137,12 @@ process_input(uint8_t *buff, int bytes_to_read, int *option, int *value) {
     }
 
     *option = aux;
-
-    if (*option >= 1 && *option <= 8) {
+    //RETRIEVAL METHODS
+    if (*option >= 1 && *option <= 9) {
         *value = 0;
         return 0;
-    } else if (*option >= 9 && *option <= 11) {
+        //MODIFICATION METHODS
+    } else if (*option >= 9 && *option <= 12) {
         return get_value(option, value);
     } else {
         return -1;
@@ -151,8 +151,24 @@ process_input(uint8_t *buff, int bytes_to_read, int *option, int *value) {
 
 static int
 get_value(int *option, int *value) {
-    printf("\n\n1 to set on the sniffer and 0 to set off:   \n\n");
+    switch (*option) {
+            // Method: X'00'   | Enable o disable sniffer
+        case 10:
+            printf("\n\n1 to enable or 0 to disable\n\n");
+            break;
 
+        // Method: X'01'   |  Set I/O buffer size.
+        case 11:
+            printf("\n\nBuffer I/O size must be between 1024 and 8192\n\n");
+            break;
+
+        // Method: X'02'   | Set selector timeout.
+        case 12:
+            printf("\n\nSelector timeout must be between 4 and 12\n\n");
+            break;
+        default:
+            break;
+    }
     printf("Value: ");
     fflush(stdout);
 
@@ -198,48 +214,67 @@ build_request(uint8_t *buffer, int *size_of_buffer, int option, uint16_t value) 
     buffer[9] = 0;
 
     switch (option) {
+            //RETRIEVAL METHODS
+
+        // Method: X'00'   | Request the number of historical connections.
         case 1:
             buffer[7] = 0;   //TYPE
             buffer[8] = 0;   //METHOD
             buffer[10] = 0;  //VALUE
             buffer[11] = 0;  //VALUE
             break;
+
+        // Method: X'01'   | Request the number of concurrent connections.
         case 2:
             buffer[7] = 0;   //TYPE
             buffer[8] = 1;   //METHOD
             buffer[10] = 0;  //VALUE
             buffer[11] = 0;  //VALUE
             break;
+
+        // Method: X'02'   | Request the number of bytes sent.
         case 3:
+
             buffer[7] = 0;   //TYPE
             buffer[8] = 2;   //METHOD
             buffer[10] = 0;  //VALUE
             buffer[11] = 0;  //VALUE
             break;
+
+        // Method: X'03'   | Request the number of bytes received.
         case 4:
+
             buffer[7] = 0;   //TYPE
             buffer[8] = 3;   //METHOD
             buffer[10] = 0;  //VALUE
             buffer[11] = 0;  //VALUE
             break;
+
+        // Method: X'04'   | Request the number of total bytes transfered.
         case 5:
             buffer[7] = 0;   //TYPE
             buffer[8] = 4;   //METHOD
             buffer[10] = 0;  //VALUE
             buffer[11] = 0;  //VALUE
             break;
+
+        // Method: X'05'   | Request I/O buffer sizes
         case 6:
             buffer[7] = 0;   //TYPE
             buffer[8] = 5;   //METHOD
             buffer[10] = 0;  //VALUE
             buffer[11] = 0;  //VALUE
             break;
+
+        // Method: X'06'   | Request selector timeout.
         case 7:
             buffer[7] = 0;   //TYPE
             buffer[8] = 6;   //METHOD
             buffer[10] = 0;  //VALUE
             buffer[11] = 0;  //VALUE
             break;
+
+            // Method: X'07'   | Request the maximum amount of concurrent connections.
         case 8:
             buffer[7] = 0;   //TYPE
             buffer[8] = 7;   //METHOD
@@ -247,19 +282,34 @@ build_request(uint8_t *buffer, int *size_of_buffer, int option, uint16_t value) 
             buffer[11] = 0;  //VALUE
             break;
 
+        // Method: X'08'   | Request the number of failed connections.
         case 9:
+            buffer[7] = 0;   //TYPE
+            buffer[8] = 8;   //METHOD
+            buffer[10] = 0;  //VALUE
+            buffer[11] = 0;  //VALUE
+            break;
+
+        // MODIFICATION METHODS
+
+        // Method: X'00'   | Enable o disable sniffer
+        case 10:
             buffer[7] = 1;            //TYPE
             buffer[8] = 0;            //METHOD
             buffer[10] = value >> 8;  //VALUE
             buffer[11] = value;       //VALUE
             break;
-        case 10:
+
+        // Method: X'01'   |  Set I/O buffer size.
+        case 11:
             buffer[7] = 1;            //TYPE
             buffer[8] = 1;            //METHOD
             buffer[10] = value >> 8;  //VALUE
             buffer[11] = value;       //VALUE
             break;
-        case 11:
+
+        // Method: X'02'   | Set selector timeout.
+        case 12:
             buffer[7] = 1;            //TYPE
             buffer[8] = 2;            //METHOD
             buffer[10] = value >> 8;  //VALUE
@@ -286,16 +336,17 @@ show_options() {
     printf("-2  Request the number of concurrent connections. \n");
     printf("-3  Request the number of bytes sent.\n");
     printf("-4  Request the number of bytes received.\n");
-    printf("-5  Request I/O buffer sizes  \n");
-    printf("-6  Request selector timeout.\n");
-    printf("-7  Request the maximum amount of concurrent connections.\n");
-    printf("-8  Request the number of failed connections.\n\n");
+    printf("-5  Request the number of total bytes transfered.\n");
+    printf("-6  Request I/O buffer sizes  \n");
+    printf("-7  Request selector timeout.\n");
+    printf("-8  Request the maximum amount of concurrent connections.\n");
+    printf("-9  Request the number of failed connections.\n\n");
 
     printf("Modification methods:\n\n");
 
-    printf("-9  Enable or disable sniffer mode.  \n");
-    printf("-10 Set I/O buffer size.  \n");
-    printf("-11 Set selector timeout.  \n\n");
+    printf("-10 Enable or disable sniffer mode.  \n");
+    printf("-11 Set I/O buffer size.  \n");
+    printf("-12 Set selector timeout.  \n\n");
 
     printf("Option: ");
     fflush(stdout);

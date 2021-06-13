@@ -39,7 +39,7 @@ typedef struct values_range {
 typedef struct modification_method {
     values_range range_of_value;
 
-    uint64_t (*modification_method)(uint16_t);
+    void (*modification_method)(uint16_t);
 
 } modification_method;
 
@@ -48,9 +48,11 @@ static uint64_t (*retrieval_methods[RETRIEVAL_METHODS_COUNT])(void);
 static struct modification_method modification_methods[MODIFICATION_METHODS_COUNT];
 
 typedef struct {
+    fd_selector selector;
+
     int socketFd4;
     int socketFd6;
-    //FIXME:union
+
     struct in_addr ipv4addr;
     struct in6_addr ipv6addr;
     in_port_t port;
@@ -106,11 +108,15 @@ management_close(struct selector_key *key);
 
 static int validate_input_value(uint8_t method, uint16_t value);
 
-static uint64_t set_sniffer_mode(uint16_t op);
+static void
+set_sniffer_mode(uint16_t op);
 
-static uint64_t set_buffer_size(uint16_t value);
+static uint64_t
+get_select_timeout();
 
-static uint64_t set_selector_timeout(uint16_t value);
+static void
+set_select_timeout(uint16_t value);
+
 
 static management_t management;
 
@@ -138,6 +144,7 @@ int init_management(fd_selector selector) {
         }
     }
 
+    management.selector = selector;
     management.requestParser.request = &management.request;
     management.passphrase = (uint8_t *) "123456";
 
@@ -263,24 +270,24 @@ static void init_management_functions() {
     retrieval_methods[3] = get_total_bytes_received;
     retrieval_methods[4] = get_total_bytes_transferred;
     retrieval_methods[5] = get_buffer_size;
-    retrieval_methods[6] = get_selector_timeout;
+    retrieval_methods[6] = get_select_timeout;
     retrieval_methods[7] = get_concurrent_connections;
     retrieval_methods[8] = get_failed_connections;
 
 
     //max and min values for modification methods are specified in the documentation of the protocol
 
-    modificationMethods[0].range_of_value.min = 0;
-    modificationMethods[0].range_of_value.max = 1;
-    modificationMethods[0].modificationMethod = set_sniffer_mode;
+    modification_methods[0].range_of_value.min = 0;
+    modification_methods[0].range_of_value.max = 1;
+    modification_methods[0].modification_method = set_sniffer_mode;
 
-    modificationMethods[1].range_of_value.min = 1024;
-    modificationMethods[1].range_of_value.max = 8192;
-    modificationMethods[1].modificationMethod = set_buffer_size;
+    modification_methods[1].range_of_value.min = 1024;
+    modification_methods[1].range_of_value.max = 8192;
+    modification_methods[1].modification_method = set_buffer_size;
 
-    modificationMethods[2].range_of_value.min = 4;
-    modificationMethods[2].range_of_value.max = 12;
-    modificationMethods[2].modificationMethod = set_selector_timeout;
+    modification_methods[2].range_of_value.min = 4;
+    modification_methods[2].range_of_value.max = 12;
+    modification_methods[2].modification_method = set_select_timeout;
 }
 
 // Management functions
@@ -312,7 +319,7 @@ management_read(struct selector_key *key) {
 
                 case RETRIEVAL:
 
-                    sprintf(aux_buffer, "received %d", method);
+                    sprintf(aux_buffer, "Retrieval method: %d", method);
                     log_level_msg(aux_buffer, LEVEL_DEBUG);
                     if (method <= RETRIEVAL_METHODS_COUNT - 1) {
                         send_reply(key->fd, (struct sockaddr *) &clnt_addr, clnt_addr_len, PERCY_VERSION,
@@ -323,19 +330,20 @@ management_read(struct selector_key *key) {
                     break;
                 case MODIFICATION:
 
-                    sprintf(aux_buffer, "Modification method : %d with entry: %d", method, value);
+                    sprintf(aux_buffer, "Modification method: %d with entry: %d", method, value);
                     log_level_msg(aux_buffer, LEVEL_DEBUG);
 
                     if (method <= MODIFICATION_METHODS_COUNT - 1) {
                         if (validate_input_value(method, value)) {
+                            modification_methods[method].modification_method(value);
                             send_reply(key->fd, (struct sockaddr *) &clnt_addr, clnt_addr_len, PERCY_VERSION,
-                                       SUCCESS_STATUS, PERCY_RESV,
-                                       modification_methods[method].modification_method(value));
+                                       SUCCESS_STATUS, PERCY_RESV, 0
+                            );
                             return;
                         } else {
                             send_reply(key->fd, (struct sockaddr *) &clnt_addr, clnt_addr_len, PERCY_VERSION,
-                                       UNSUCCESFUL_STATUS, PERCY_RESV,
-                                       modification_methods[method].modification_method(value));
+                                       UNSUCCESFUL_STATUS, PERCY_RESV, 0
+                            );
                             return;
                         }
                     }
@@ -429,25 +437,17 @@ static int validate_input_value(uint8_t method, uint16_t value) {
     return false;
 }
 
-uint64_t set_sniffer_mode(uint16_t op) {
-    if (op == 0) {
-        set_disectors_disabled();
-        return 0;
-    }
-    if (op == 1) {
-        set_disectors_enabled();
-        return 0;
-    }
-
-    return 1;
+static void
+set_sniffer_mode(uint16_t op) {
+    set_disector_value(op);
 }
 
-static uint64_t set_buffer_size(uint16_t value){
-
-    return 0;
-
+static uint64_t
+get_select_timeout() {
+    return get_selector_timeout(management.selector);
 }
 
-static uint64_tset_selector_timeout(uint16_t value){
-    return 0;
+static void
+set_select_timeout(uint16_t value) {
+    set_selector_timeout(management.selector, value);
 }

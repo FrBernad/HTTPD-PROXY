@@ -11,7 +11,6 @@
 #include "metrics/metrics.h"
 #include "utils/args/args.h"
 #include "utils/doh/doh_utils.h"
-#include "utils/selector/selector.h"
 
 typedef struct httpd_t {
     struct in6_addr ipv6_addr;
@@ -295,19 +294,16 @@ default_proxy_settings(int socketfd, struct sockaddr *sockaddr, socklen_t len) {
     return socketfd;
 }
 
-uint64_t get_selector_timeout() {
-    return DEFAULT_SELECTOR_TIMEOUT;
-}
-
 struct http_args
 get_httpd_args() {
     return args;
 }
 
-void set_disectors_enabled() {
-    args.disectors_enabled = true;
-}
-
-void set_disectors_disabled() {
-    args.disectors_enabled = false;
+void
+set_disector_value(uint16_t value) {
+    if (value) {
+        args.disectors_enabled = true;
+    } else {
+        args.disectors_enabled = false;
+    }
 }

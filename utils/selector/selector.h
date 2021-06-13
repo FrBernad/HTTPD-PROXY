@@ -194,5 +194,11 @@ selector_status
 selector_notify_block(fd_selector s,
                  const int   fd);
 
+void
+set_selector_timeout(fd_selector s, long timeout);
+
+long
+get_selector_timeout(fd_selector s);
+
 
 #endif

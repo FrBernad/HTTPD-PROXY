@@ -4,11 +4,12 @@
 #include "utils/selector/selector.h"
 #include <stdint.h>
 
-void 
+void
+init_connections_manager(double threshold);
+
+void
 accept_new_connection(struct selector_key *key);
 
-void 
-init_connections_manager(double threshold);
 
 void
 connection_garbage_collect(struct selector_key *key);
@@ -18,5 +19,9 @@ register_origin_socket(struct selector_key *key);
 
 uint64_t
 get_buffer_size();
+
+void
+set_buffer_size(uint16_t new_buff_size);
+
 
 #endif

@@ -312,6 +312,16 @@ run_garbage_collector(fd_selector s) {
     }
 }
 
+void
+set_selector_timeout(fd_selector s, long timeout) {
+    s->master_t.tv_sec = timeout;
+}
+
+long
+get_selector_timeout(fd_selector s) {
+    return s->master_t.tv_sec;
+}
+
 fd_selector
 selector_new(const size_t initial_elements) {
     size_t size = sizeof(struct fdselector);

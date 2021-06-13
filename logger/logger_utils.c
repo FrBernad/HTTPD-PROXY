@@ -86,7 +86,7 @@ void log_level_msg(char *msg, log_level level) {
     }
     int new_max_len = MAX_BUFFER - len;
 
-    int n = snprintf(buffer + len, new_max_len, "| %s : %s\n", level_texts[level], msg);
+    int n = snprintf(buffer + len, new_max_len, "%s\t%s\n", level_texts[level], msg);
 
     if (n < 0 || n >= (int) (new_max_len)) {
         return;

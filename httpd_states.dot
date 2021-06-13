@@ -1,0 +1,49 @@
+digraph g {
+    rankdir=LR;
+
+    node       [shape = circle];
+    //
+    P_R_L         [label = "Parsing\nRequest\nLine"];
+    T_C_I         [label = "Try\nConnection\nIP"];
+    S_D_R         [label = "Send\nDoh\nRequest"];
+    A_D_R         [label = "Await\nDOH\nResponse"];
+    S_R_L         [label = "Send\nRequest\nLine"];
+    CONNECTED     [label = "Connected"];
+    CLOSING       [label = "Closing"];
+    EMPTY_BUF     [label = "Empty\nBuffers"];
+    ERROR          [label = "Error"];
+    DONE          [label = "Done", shape = doublecircle];
+
+    P_R_L -> T_C_I   [label= "Host Type IP"];
+    P_R_L -> S_D_R   [label= "Host Type Domain"];
+    P_R_L -> ERROR   [label= "Error"];
+    
+    T_C_I -> S_R_L   [label= "Connected to origin"];
+    T_C_I -> S_D_R   [label= "Fail IPV4 DNS,\nTry IPV6"];
+    T_C_I -> ERROR   [label= "Error"];
+
+    S_R_L -> CONNECTED   [label= "Request Line Sent"];
+    S_R_L -> ERROR   [label= "Error"];
+
+    S_D_R -> A_D_R   [label= "Send Request"];
+    S_D_R -> ERROR   [label= "Error"];
+
+    A_D_R -> T_C_I   [label= "Try Resolved IP"];
+    A_D_R -> ERROR   [label= "Error"];
+
+    CONNECTED -> CLOSING   [label= "One Side Closed Connection"];
+    CONNECTED -> ERROR   [label= "Error"];
+
+    CLOSING -> EMPTY_BUF   [label= "Send Leftover Data"];
+    CLOSING -> DONE   [label= "No Data Left"];
+    CLOSING -> ERROR   [label= "Error"];
+
+    EMPTY_BUF -> DONE   [label= "No Data Left"];
+    EMPTY_BUF -> ERROR   [label= "Error"];
+
+    ERROR -> DONE   [label= "Send Error"];
+
+
+
+    
+}

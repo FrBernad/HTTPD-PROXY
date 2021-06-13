@@ -7,9 +7,6 @@
 #include "connections_def.h"
 #include "metrics/metrics.h"
 #include "state_machine/stm_initializer.h"
-#include "utils/selector/selector.h"
-#include "logger/logger_utils.h"
-#include "logger/logger.h"
 
 // STATIC FUNCTIONS
 static proxy_connection_t *
@@ -51,7 +48,10 @@ static fd_handler origin_handler;
 
 static double inactive_threshold;
 
-void init_connections_manager(double threshold) {
+static uint64_t buffers_size = BUFFER_SIZE;
+
+void
+init_connections_manager(double threshold) {
     client_handler.handle_read = proxy_client_read;
     client_handler.handle_write = proxy_client_write;
     client_handler.handle_close = proxy_client_close;  //DEFINE
@@ -63,6 +63,21 @@ void init_connections_manager(double threshold) {
     origin_handler.handle_block = NULL;
 
     inactive_threshold = threshold;
+}
+
+/*
+**     PROXY LISTENER SOCKET SETTERS
+*/
+
+
+uint64_t
+get_buffer_size() {
+    return buffers_size;
+}
+
+void
+set_buffer_size(uint16_t new_buff_size){
+    buffers_size = new_buff_size;
 }
 
 /*
@@ -112,14 +127,14 @@ create_new_connection(int clientFd) {
     if (new_connection == NULL) {
         return NULL;
     }
-    uint8_t *read_buffer = malloc(BUFFER_SIZE * sizeof(uint8_t));
+    uint8_t *read_buffer = malloc(buffers_size * sizeof(uint8_t));
 
     if (read_buffer == NULL) {
         free(new_connection);
         return NULL;
     }
 
-    uint8_t *write_buffer = malloc(BUFFER_SIZE * sizeof(uint8_t));
+    uint8_t *write_buffer = malloc(buffers_size * sizeof(uint8_t));
 
     if (write_buffer == NULL) {
         free(new_connection);
@@ -339,9 +354,6 @@ free_connection_data(proxy_connection_t *connection) {
     free(connection);
 }
 
-uint64_t get_buffer_size() {
-    return BUFFER_SIZE;
-}
 
 /*
 **     PROXY GARBAGE COLLECTOR FUNCTION
