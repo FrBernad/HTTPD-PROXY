@@ -696,11 +696,11 @@ r_answer_cname_pointer_rdata(doh_response_parser_t *p, uint8_t c) {
     switch (p->i) {
         case 1:
             p->i = 0;
-            if (++p->response->answer_index == p->response->header.ancount){
+            if (++p->response->answer_index == p->response->header.ancount) {
                 next = doh_response_done;
+            } else {
+                next = response_answer_name_label_length;
             }
-
-            next = response_answer_name_label_length;
             break;
 
         default:

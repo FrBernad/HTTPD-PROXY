@@ -77,3 +77,15 @@ useful information. The provided functionalities are:
 ## PERCY Protocol
 The **PERCY protocol** used to communicate with the proxy management service is defined in the **percy_protocol.txt**
 file. This file describes the protocol standards that allows a client to create a successful self-made implementation.
+
+## Testing
+The project can be tested by running `make test` on the source directory. The ***test*** directive will analyze the entire project
+using ***cppcheck*** and ***scanbuild*** static analysis tools. Moreover, it will analyze all project functions
+complexities using ***GNU complexity***. Once the testing is done a directory named ***test_results***
+will be created in the root folder containing the following files:
+- ***results.ccpcheck***
+- ***results.complexity***
+- ***scanbuild_results:*** contains results in a nice html page in case any report was made.
+- ***results.sb***
+
+To remove the test results, run `make cleanTest` on the source folder.

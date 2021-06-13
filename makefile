@@ -14,8 +14,14 @@ OBJECTS_MANAGEMENT_CLIENT_FILES=$(SOURCES_MANAGEMENT_CLIENT_FILES:.c=.o)
 SOURCES_FILES=$(foreach dir,$(SOURCE_DIRS),$(wildcard $(dir)/*.c))
 OBJECTS_FILES=$(SOURCES_FILES:.c=.o)
 
-SOURCES_CPP=$(SOURCES_C:.c=.cpp)
+SOURCES_ALL=$(SOURCES_SERVER)
+SOURCES_ALL+=$(SOURCES_MANAGEMENT_CLIENT_FILES)
+SOURCES_ALL+=$(SOURCES_FILES)
 
+SOURCES_CPP=$(SOURCES_ALL:.c=.cppcheck)
+
+
+#MAIN DIRECTIVES
 all: $(EXECUTABLE_SERVER) $(EXECUTABLE_MANAGEMENT_CLIENT)
 
 $(EXECUTABLE_SERVER): $(OBJECTS_FILES)
@@ -24,25 +30,30 @@ $(EXECUTABLE_SERVER): $(OBJECTS_FILES)
 $(EXECUTABLE_MANAGEMENT_CLIENT): $(OBJECTS_MANAGEMENT_CLIENT_FILES)
 	$(CC) $(CFLAGS) $^ -o $@
 
-test: cpp scanbuild #complexity 
 
-cpp: $(SOURCES_CPP)
+#TEST DIRECTIVES
+test: testDir scanbuild cppcheck complexity
 
-%.cpp: %.c
-	cppcheck --quiet --enable=all --force --inconclusive $< 2>> results.cppOut
+testDir: clean cleanTest
+	@mkdir test_results
+
+cppcheck: $(SOURCES_CPP)
+
+%.cppcheck: %.c
+	cppcheck --quiet --enable=all --force --suppress=unusedFunction:* --suppress=missingInclude:* --inconclusive $< 2>> test_results/results.cppcheck
 
 scanbuild: 
-	CC=gcc scan-build -disable-checker deadcode.DeadStores -o scanBuildResults make >  results.sb
+	CC=gcc scan-build -disable-checker deadcode.DeadStores -o test_results/scanbuild_results make > test_results/results.sb
 
-#complexity:
-#	complexity --histogram --score $(SOURCES_C) >results.cpxt 2> /dev/null
+complexity:
+	complexity --histogram --score --thresh=3 $(SOURCES_ALL) > test_results/results.complexity 2> /dev/null
+
+#CLEAN DIRECTIVES
 
 clean:
 	rm -rf $(OBJECTS_FILES) $(EXECUTABLE_SERVER) $(OBJECTS_MANAGEMENT_CLIENT_FILES) $(EXECUTABLE_MANAGEMENT_CLIENT)
 
-cleanTest:
-	rm -rf results.cppOut results.sb scanBuildResults 
+cleanTest: clean
+	rm -rf test_results
 
-#results.cpxt 
-
-.PHONY: all clean cleanTest cpp pvs test
+.PHONY: all clean cleanTest test testDir cppcheck scanbuild

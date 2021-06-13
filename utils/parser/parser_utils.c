@@ -70,7 +70,7 @@ neq(struct parser_event *ret, uint8_t c) {
  * };
  *
  */
-void parser_utils_strcmpi(char *s, struct parser_definition *def) {
+void parser_utils_strcmpi(char *s, struct parser_definition *parser_definition) {
     size_t n = strlen(s);
 
     struct parser_state_transition states[MAX_STATES][STATE_TRANSITIONS];
@@ -109,10 +109,10 @@ void parser_utils_strcmpi(char *s, struct parser_definition *def) {
     states[n + 1][0].act1 = neq;
     nstates[n + 1] = 1;
 
-    def->start_state = 0;
-    def->states_count = n+2;
+    parser_definition->start_state = 0;
+    parser_definition->states_count = n+2;
 
-    memcpy(def->states, states, sizeof(states));
-    memcpy(def->states_n, nstates, sizeof(nstates));
+    memcpy(parser_definition->states, states, sizeof(states));
+    memcpy(parser_definition->states_n, nstates, sizeof(nstates));
 
 }
