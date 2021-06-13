@@ -1,5 +1,5 @@
-#ifndef _DOH_UTILS_H_
-#define _DOH_UTILS_H_
+#ifndef _DOH_UTILS_H_a7f4753b43156535d35ea8735eadbbc8cde78075b177028080f12ef3
+#define _DOH_UTILS_H_a7f4753b43156535d35ea8735eadbbc8cde78075b177028080f12ef3
 
 #include <stdint.h>
 

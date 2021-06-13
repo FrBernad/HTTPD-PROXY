@@ -1,5 +1,5 @@
-#ifndef METRICS_H
-#define METRICS_H
+#ifndef _METRICS_H_c7dacafc854f4321622263195ec3dcb1942d40f74f9f7f2ba658bd8f
+#define _METRICS_H_c7dacafc854f4321622263195ec3dcb1942d40f74f9f7f2ba658bd8f
 
 #include <stdint.h>
 

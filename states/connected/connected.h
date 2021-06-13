@@ -1,5 +1,5 @@
-#ifndef CONNECTED_H
-#define CONNECTED_H
+#ifndef _CONNECTED_H_4081f12b10e32102b271e48f0977bb6a6b88464f883b334a30dbbbdc
+#define _CONNECTED_H_4081f12b10e32102b271e48f0977bb6a6b88464f883b334a30dbbbdc
 
 #include "utils/selector/selector.h"
 

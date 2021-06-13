@@ -1,5 +1,5 @@
-#ifndef CONNECTIONS_DEF_H
-#define CONNECTIONS_DEF_H
+#ifndef _CONNECTIONS_DEF_H_ccb5723bf8d49b53562f77d37eb22055d05593e5b73b735c09af7985
+#define _CONNECTIONS_DEF_H_ccb5723bf8d49b53562f77d37eb22055d05593e5b73b735c09af7985
 
 #include <netdb.h>
 #include <sys/types.h>

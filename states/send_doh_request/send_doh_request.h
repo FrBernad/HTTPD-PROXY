@@ -1,5 +1,5 @@
-#ifndef SEND_DOH_REQUEST_H
-#define SEND_DOH_REQUEST_H
+#ifndef _SEND_DOH_REQUEST_H_21404efdc7b518e90527f77123daa1923ccbdca13c3c2954eca3fcd9
+#define _SEND_DOH_REQUEST_H_21404efdc7b518e90527f77123daa1923ccbdca13c3c2954eca3fcd9
 
 #include "utils/selector/selector.h"
 

@@ -1,5 +1,5 @@
-#ifndef CLOSING_H
-#define CLOSING_H
+#ifndef _CLOSING_H_68358fef672f84939dbd309e4e52caa422b5a140c024afa549c3ebb7
+#define _CLOSING_H_68358fef672f84939dbd309e4e52caa422b5a140c024afa549c3ebb7
 
 #include "utils/selector/selector.h"
 

@@ -1,5 +1,5 @@
-#ifndef EMPTY_BUFFERS_H
-#define EMPTY_BUFFERS_H
+#ifndef _EMPTY_BUFFERS_H_baa55a654f9603962f1b91f1b63771b3a1d28c0b9d5434e4cd362e5d
+#define _EMPTY_BUFFERS_H_baa55a654f9603962f1b91f1b63771b3a1d28c0b9d5434e4cd362e5d
 
 #include "utils/selector/selector.h"
 

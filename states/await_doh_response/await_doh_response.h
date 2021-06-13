@@ -1,5 +1,5 @@
-#ifndef AWAIT_DOH_RESPONSE_H
-#define AWAIT_DOH_RESPONSE_H
+#ifndef _AWAIT_DOH_RESPONSE_H_98d74d29570a086c5a5c5289543193595d1c1dacedc6792180ecadc1
+#define _AWAIT_DOH_RESPONSE_H_98d74d29570a086c5a5c5289543193595d1c1dacedc6792180ecadc1
 
 #include "utils/selector/selector.h"
 

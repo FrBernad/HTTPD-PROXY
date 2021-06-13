@@ -1,5 +1,5 @@
-#ifndef _CONNECTIONS_MANAGER_H_
-#define _CONNECTIONS_MANAGER_H_
+#ifndef _CONNECTIONS_MANAGER_H_9b145ec4592ab6a7be934f802094f3b8d844fc1000ec077586c5b1cc
+#define _CONNECTIONS_MANAGER_H_9b145ec4592ab6a7be934f802094f3b8d844fc1000ec077586c5b1cc
 
 #include "utils/selector/selector.h"
 #include <stdint.h>

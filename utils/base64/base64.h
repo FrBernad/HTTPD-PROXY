@@ -6,8 +6,8 @@
  * See README for more details.
  */
 
-#ifndef BASE64_H
-#define BASE64_H
+#ifndef _BASE64_H_e9d284c2f319e5639e261724276ea80c98e49e4e64299a3a990196ea
+#define _BASE64_H_e9d284c2f319e5639e261724276ea80c98e49e4e64299a3a990196ea
 
 #include <stddef.h>
 #include <stdint.h>

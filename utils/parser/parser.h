@@ -1,5 +1,5 @@
-#ifndef PARSER_H_00180a6350a1fbe79f133adf0a96eb6685c242b6
-#define PARSER_H_00180a6350a1fbe79f133adf0a96eb6685c242b6
+#ifndef _PARSER_H_00180a6350a1fbe79f133adf0a96eb6685c242b6
+#define _PARSER_H_00180a6350a1fbe79f133adf0a96eb6685c242b6
 
 /**
  * parser.c -- pequeño motor para parsers/lexers.

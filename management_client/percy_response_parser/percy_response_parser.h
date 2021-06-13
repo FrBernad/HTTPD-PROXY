@@ -1,5 +1,5 @@
-#ifndef PERCY_RESPONSE_PARSER_H
-#define PERCY_RESPONSE_PARSER_H
+#ifndef _PERCY_RESPONSE_PARSER_H_0e5ee1c0a0072ac39c7ab7c3397fb2feda42d0528f1f3b9fa83a08a9
+#define _PERCY_RESPONSE_PARSER_H_0e5ee1c0a0072ac39c7ab7c3397fb2feda42d0528f1f3b9fa83a08a9
 
 #include <stdint.h>
 /*        +----------+----------+----------+----------+

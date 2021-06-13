@@ -1,5 +1,5 @@
-#ifndef LOGGER_UTILS_H
-#define LOGGER_UTILS_H
+#ifndef _LOGGER_UTILS_H_3ee92ecd7369be131d48d6e6a85428aa80dde39d08a047611e637a2f
+#define _LOGGER_UTILS_H_3ee92ecd7369be131d48d6e6a85428aa80dde39d08a047611e637a2f
 
 #include "utils/selector/selector.h"
 #include "logger/logger.h"
