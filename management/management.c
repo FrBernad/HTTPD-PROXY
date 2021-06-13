@@ -23,7 +23,7 @@
         PERCY_VERSION = 0x01,
         PERCY_RESV = 0x00,
         RETRIEVAL = 0,
-        RETRIEVAL_METHODS_COUNT = 9,
+        RETRIEVAL_METHODS_COUNT = 8,
         MODIFICATION = 1,
         MODIFICATION_METHODS_COUNT = 3,
     };
@@ -267,8 +267,7 @@ static void init_management_functions() {
     retrieval_methods[4] = get_total_bytes_transferred;
     retrieval_methods[5] = get_buffer_size;
     retrieval_methods[6] = get_select_timeout;
-    retrieval_methods[7] = get_concurrent_connections;
-    retrieval_methods[8] = get_failed_connections;
+    retrieval_methods[7] = get_failed_connections;
 
 
     //max and min values for modification methods are specified in the documentation of the protocol

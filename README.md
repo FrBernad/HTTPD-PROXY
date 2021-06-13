@@ -58,9 +58,8 @@ of the options listed below for further customization.
 
 
 ## Management Service
-A management service client is provided by the proxy. The **httpctl** file communicates with the management service
-on the default port and address. This client allows you to change the proxy settings in real time and retrieve
-useful information. The provided functionalities are:
+A management service client is provided by the proxy. The **httpctl** file communicates with the management service on the default port and address. These values can be changed passing the ***-L*** and ***-o*** arguments to change de address and port respectively. To ask for the client's help the ***-h*** argument is available. This client allows you to change the proxy settings in real time and retrieve
+useful metrics. The provided functionalities are:
 - **Request the number of historical connections.**
 - **Request the number of concurrent connections.**
 - **Request the number of bytes sent.**
