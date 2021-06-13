@@ -29,6 +29,6 @@ struct http_args{
  * la ejecucion.
  */
 void 
-parse_args(const int argc, char **argv, struct http_args *args);
+parse_args(int argc, char **argv, struct http_args *args);
 
 #endif

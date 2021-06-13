@@ -1,12 +1,9 @@
 #include "doh_parser.h"
 
 #include <arpa/inet.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "utils/parser/parser_utils.h"
 
 static enum doh_response_state
 r_header_id(doh_response_parser_t *p, uint8_t c);

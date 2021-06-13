@@ -373,7 +373,7 @@ r_version(uint8_t c, request_parser_t *p) {
         return request_version_major;
     }
 
-    return request_version;;
+    return request_version;
 }
 
 static enum request_state

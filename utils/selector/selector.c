@@ -13,18 +13,15 @@
 #include <stdlib.h>  // malloc
 #include <string.h>  // memset
 #include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
 
 #define N(x) (sizeof(x) / sizeof((x)[0]))
 
 #define ERROR_DEFAULT_MSG "something failed"
 
 /** retorna una descripción humana del fallo */
-const char *
-selector_error(const selector_status status) {
-    const char *msg;
+char *
+selector_error(selector_status status) {
+    char *msg;
     switch (status) {
         case SELECTOR_SUCCESS:
             msg = "Success";
@@ -48,7 +45,7 @@ selector_error(const selector_status status) {
 }
 
 static void
-wake_handler(const int signal) {
+wake_handler(int signal) {
     // nada que hacer. está solo para interrumpir el select
 }
 
@@ -57,7 +54,7 @@ struct selector_init conf;
 static sigset_t emptyset, blockset;
 
 selector_status
-selector_init(const struct selector_init *c) {
+selector_init(struct selector_init *c) {
     memcpy(&conf, c, sizeof(conf));
 
     // inicializamos el sistema de comunicación entre threads y el selector
@@ -103,7 +100,7 @@ selector_close(void) {
 struct item {
     int fd;
     fd_interest interest;
-    const fd_handler *handler;
+    fd_handler *handler;
     void *data;
 };
 
@@ -122,7 +119,7 @@ struct blocking_job {
 };
 
 /** marca para usar en item->fd para saber que no está en uso */
-static const int FD_UNUSED = -1;
+static int FD_UNUSED = -1;
 
 /** verifica si el item está usado */
 #define ITEM_USED(i) ((FD_UNUSED != (i)->fd))
@@ -175,7 +172,7 @@ struct fdselector {
  * determina el tamaño a crecer, generando algo de slack para no tener
  * que realocar constantemente.
  */
-static size_t next_capacity(const size_t n) {
+static size_t next_capacity(size_t n) {
     unsigned bits = 0;
     size_t tmp = n;
     while (tmp != 0) {
@@ -202,7 +199,7 @@ item_init(struct item *item) {
  * asume que ya está blanqueada la memoria.
  */
 static void
-items_init(fd_selector s, const size_t last) {
+items_init(fd_selector s, size_t last) {
     assert(last <= s->fd_size);
     for (size_t i = last; i < s->fd_size; i++) {
         item_init(s->fds + i);
@@ -227,7 +224,7 @@ items_max_fd(fd_selector s) {
 }
 
 static void
-items_update_fdset_for_fd(fd_selector s, const struct item *item) {
+items_update_fdset_for_fd(fd_selector s, struct item *item) {
     FD_CLR(item->fd, &s->master_r);
     FD_CLR(item->fd, &s->master_w);
 
@@ -248,10 +245,10 @@ items_update_fdset_for_fd(fd_selector s, const struct item *item) {
  * soporta
  */
 static selector_status
-ensure_capacity(fd_selector s, const size_t n) {
+ensure_capacity(fd_selector s, size_t n) {
     selector_status ret = SELECTOR_SUCCESS;
 
-    const size_t element_size = sizeof(*s->fds);
+    size_t element_size = sizeof(*s->fds);
     if (n < s->fd_size) {
         // nada para hacer, entra...
         ret = SELECTOR_SUCCESS;
@@ -260,7 +257,7 @@ ensure_capacity(fd_selector s, const size_t n) {
         ret = SELECTOR_MAXFD;
     } else if (NULL == s->fds) {
         // primera vez.. alocamos
-        const size_t new_size = next_capacity(n);
+        size_t new_size = next_capacity(n);
 
         s->fds = calloc(new_size, element_size);
         if (NULL == s->fds) {
@@ -271,7 +268,7 @@ ensure_capacity(fd_selector s, const size_t n) {
         }
     } else {
         // hay que agrandar...
-        const size_t new_size = next_capacity(n);
+        size_t new_size = next_capacity(n);
         if (new_size > SIZE_MAX / element_size) {  // ver MEM07-C
             ret = SELECTOR_ENOMEM;
         } else {
@@ -280,7 +277,7 @@ ensure_capacity(fd_selector s, const size_t n) {
                 ret = SELECTOR_ENOMEM;
             } else {
                 s->fds = tmp;
-                const size_t old_size = s->fd_size;
+                size_t old_size = s->fd_size;
                 s->fd_size = new_size;
 
                 items_init(s, old_size);
@@ -323,7 +320,7 @@ get_selector_timeout(fd_selector s) {
 }
 
 fd_selector
-selector_new(const size_t initial_elements) {
+selector_new(size_t initial_elements) {
     size_t size = sizeof(struct fdselector);
     fd_selector ret = malloc(size);
     if (ret != NULL) {
@@ -381,9 +378,9 @@ void selector_destroy(fd_selector s) {
 
 selector_status
 selector_register(fd_selector s,
-                  const int fd,
-                  const fd_handler *handler,
-                  const fd_interest interest,
+                  int fd,
+                  fd_handler *handler,
+                  fd_interest interest,
                   void *data) {
     selector_status ret = SELECTOR_SUCCESS;
     // 0. validación de argumentos
@@ -424,7 +421,7 @@ selector_register(fd_selector s,
 
 selector_status
 selector_unregister_fd(fd_selector s,
-                       const int fd) {
+                       int fd) {
     selector_status ret = SELECTOR_SUCCESS;
 
     if (NULL == s || INVALID_FD(fd)) {
@@ -552,7 +549,7 @@ handle_block_notifications(fd_selector s) {
 
 selector_status
 selector_notify_block(fd_selector s,
-                      const int fd) {
+                      int fd) {
     selector_status ret = SELECTOR_SUCCESS;
 
     // TODO(juan): usar un pool
@@ -629,7 +626,7 @@ selector_select(fd_selector s) {
     return ret;
 }
 
-int selector_fd_set_nio(const int fd) {
+int selector_fd_set_nio(int fd) {
     int ret = 0;
     int flags = fcntl(fd, F_GETFD, 0);
     if (flags == -1) {

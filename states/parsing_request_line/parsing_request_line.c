@@ -1,15 +1,12 @@
 #include "parsing_request_line.h"
 
 #include <arpa/inet.h>
-#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "connections_manager/connections_def.h"
 #include "connections_manager/connections_manager.h"
 #include "httpd.h"
-#include "logger/logger_utils.h"
-#include "metrics/metrics.h"
 #include "utils/doh/doh_utils.h"
 #include "utils/net/net_utils.h"
 #include "utils/sniffer/sniffer_utils.h"
@@ -29,7 +26,6 @@ void parsing_host_on_arrival(unsigned state, struct selector_key *key) {
 
     // Init request line parser
     request_line->request_parser.request = &request_line->request;
-    request_line->buffer = &connection->client_buffer;
     request_parser_init(&request_line->request_parser);
 
     // Init sniffer settings
@@ -45,8 +41,8 @@ parsing_host_on_read_ready(struct selector_key *key) {
 
     struct request_line_t *request_line = &connection->connection_parsers.request_line;
 
-    while (buffer_can_read(request_line->buffer)) {
-        request_state state = request_parser_feed(&request_line->request_parser, buffer_read(request_line->buffer));
+    while (buffer_can_read(&connection->client_buffer)) {
+        request_state state = request_parser_feed(&request_line->request_parser, buffer_read(&connection->client_buffer));
         connection->bytes_to_analize--;
 
         if (check_request_line_error(connection, state)) {
@@ -115,13 +111,13 @@ build_connection_request(struct selector_key *key) {
 
     struct request_line request_line = connection->connection_parsers.request_line.request;
 
-    if (strcmp((char *)request_line.method, "OPTIONS") == 0 && request_line.request_target.origin_form[0] == 0) {
-        sprintf((char *)connection_request->request_line, "%s * HTTP/1.0\r\n", request_line.method);
+    if (strcmp((char *) request_line.method, "OPTIONS") == 0 && request_line.request_target.origin_form[0] == 0) {
+        sprintf((char *) connection_request->request_line, "%s * HTTP/1.0\r\n", request_line.method);
     } else {
-        if (strcmp((char *)connection->connection_parsers.request_line.request.method, "CONNECT") == 0) {
+        if (strcmp((char *) connection->connection_parsers.request_line.request.method, "CONNECT") == 0) {
             connection_request->connect = true;
         }
-        sprintf((char *)connection_request->request_line, "%s %s HTTP/1.0\r\n", request_line.method,
+        sprintf((char *) connection_request->request_line, "%s %s HTTP/1.0\r\n", request_line.method,
                 request_line.request_target.origin_form);
     }
 
@@ -142,13 +138,13 @@ build_connection_request(struct selector_key *key) {
             break;
     }
 
-    sprintf((char *)connection_request->target, "%s%s:%d%s",
+    sprintf((char *) connection_request->target, "%s%s:%d%s",
             request_line.request_target.type == absolute_form ? "http://" : "",
             origin_host,
-            (int)connection_request->port,
-            connection_request->connect == true ? "" : (char *)request_line.request_target.origin_form);
+            (int) connection_request->port,
+            connection_request->connect == true ? "" : (char *) request_line.request_target.origin_form);
 
-    strcpy((char *)connection_request->method, (char *)request_line.method);
+    strcpy((char *) connection_request->method, (char *) request_line.method);
 }
 
 static unsigned
@@ -159,14 +155,14 @@ handle_origin_ip_connection(struct selector_key *key) {
 
     if (request_target->host_type == ipv4) {
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&request_target->host.ipv4,
-            sizeof(request_target->host.ipv4),
-            AF_INET);
+                (struct sockaddr *) &request_target->host.ipv4,
+                sizeof(request_target->host.ipv4),
+                AF_INET);
     } else {
         connection->origin_fd = establish_origin_connection(
-            (struct sockaddr *)&request_target->host.ipv6,
-            sizeof(request_target->host.ipv6),
-            AF_INET6);
+                (struct sockaddr *) &request_target->host.ipv6,
+                sizeof(request_target->host.ipv6),
+                AF_INET6);
     }
 
     if (connection->origin_fd == -1) {

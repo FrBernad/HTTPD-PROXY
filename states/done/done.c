@@ -1,6 +1,5 @@
 #include "done.h"
 #include "connections_manager/connections_def.h"
-#include "logger/logger_utils.h"
 
 void
 done_on_arrival(unsigned state, struct selector_key *key) {

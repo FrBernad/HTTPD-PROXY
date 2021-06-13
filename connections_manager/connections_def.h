@@ -40,7 +40,6 @@ typedef enum connection_status {
 } connection_status_t;
 
 typedef struct request_line_t {
-    buffer *buffer;
     struct request_line request;
     struct request_parser request_parser;
 } request_line_st;

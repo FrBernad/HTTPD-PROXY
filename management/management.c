@@ -1,8 +1,6 @@
 #include "management/management.h"
 
 #include <arpa/inet.h>
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -304,7 +302,7 @@ management_read(struct selector_key *key) {
         log_level_msg("Something went wrong(management)", LEVEL_DEBUG);
     }
 
-    if (parse_request(bytes_rcvd)) {
+    if (parse_request()) {
         if (!validate_passphrase()) {
             send_reply(key->fd, (struct sockaddr *) &clnt_addr, clnt_addr_len, PERCY_VERSION, UNAUTH_STATUS, PERCY_RESV,
                        0);

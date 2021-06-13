@@ -1,11 +1,8 @@
 
 #include "closing.h"
 
-#include <stdio.h>
-
 #include "connections_manager/connections_def.h"
 #include "metrics/metrics.h"
-#include "logger/logger_utils.h"
 
 static void
 set_closing_connection_interests(struct selector_key *key);

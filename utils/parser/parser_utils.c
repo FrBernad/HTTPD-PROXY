@@ -1,7 +1,6 @@
 #include "parser_utils.h"
 
 #include <ctype.h>
-#include <stdlib.h>
 #include <string.h>
 
 char *

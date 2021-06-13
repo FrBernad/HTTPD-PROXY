@@ -6,7 +6,6 @@
 
 #include "connections_manager/connections_manager.h"
 #include "connections_manager/connections_def.h"
-#include "metrics/metrics.h"
 #include "utils/net/net_utils.h"
 
 static unsigned

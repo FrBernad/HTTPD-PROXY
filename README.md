@@ -5,20 +5,22 @@
 - [Joaquín Legammare](https://github.com/JoacoLega)
 
 # PERCY HTTP PROXY
-**PERCY HTTP PROXY** is a simple *HTTP* proxy daemon. It provides a *configuration system*, that allows the client
-to change the daemon setting in *real time*. By default a configuration client is provided. This client communicates
-with the proxy using de *PERCY protocol* defined here. Moreover, the daemon also logs connections and *HTTP* and *POP3*
-*sniffed credentials*.
+**PERCY HTTP PROXY** is a simple **HTTP** proxy daemon. It provides a **configuration system**, that allows the client
+to change the daemon setting in **real time**. By default, a configuration client is provided. This client communicates
+with the proxy using de **PERCY protocol** defined here. The proxy provides a garbage collector system which cleans up 
+inactive connections, increasing its performance. Moreover, the daemon also logs connections and **HTTP**/**POP3**
+**sniffed credentials**.
 
 # Installation
-Standing on the root project folder run the command `make all`. This will generate the proxy daemon (**httpd**) and a 
+Standing on the root project folder run the command `make all`. This will generate the proxy daemon (**httpd**), and a 
 client (**httpctl**) that allows to change the proxy settings in real time.
 
 # Usage
-Once the **httpd** file has been created, it can be executed to start the proxy daemon. 
+Once the **httpd** file has been created, it can be executed to start the proxy daemon using any
+of the options listed below for further customization. 
 
-## Proxy Options
-- **--doh-ip <dirección-doh>**
+### Proxy Options
+- **--doh-ip <address-doh>**
         establishes the DoH server's address. Default: 127.0.0.1.
 
 - **--doh-port <port>**
@@ -37,18 +39,18 @@ Once the **httpd** file has been created, it can be executed to start the proxy 
         prints help and finish
 
 - **-N** 
-        disables password disectors.
+        disables password dissectors.
 
-- **-l <dirección-http>** 
+- **-l <address-http>** 
         establishes the address where the HTTP proxy serves. Default: all interfaces.
 
-- **-L <dirección-de-management>** 
+- **-L <address-de-management>** 
         establishes the address where the management service serves. Default: loopback only.
 
-- **-o <puerto-de-management>** 
+- **-o <management-port>** 
         establishes the port where management service serves. Default: 9090.
 
-- **-p <puerto-local>** 
+- **-p <local-port>** 
         tcp port which listens for incoming HTTP connections. Default: 8080.
 
 - **-v** 
@@ -56,22 +58,22 @@ Once the **httpd** file has been created, it can be executed to start the proxy 
 
 
 ## Management Service
-A management service client is provided by the proxy. The **httpctl** file communicates with the maganement service
+A management service client is provided by the proxy. The **httpctl** file communicates with the management service
 on the default port and address. This client allows you to change the proxy settings in real time and retrieve
-usefull information. The provided functionalities are:
+useful information. The provided functionalities are:
 - **Request the number of historical connections.**
 - **Request the number of concurrent connections.**
 - **Request the number of bytes sent.**
 - **Request the number of bytes received.**
-- **Request the number of total bytes transfered.**
+- **Request the number of total bytes transferred.**
 - **Request I/O buffer sizes.**
 - **Request selector timeout.**
 - **Request the maximum amount of concurrent.**
 - **Request the number of failed connections.**
 - **Set I/O buffer size.**
 - **Set selector timeout.**
-- **Enable or disable disectors.**
+- **Enable or disable dissectors.**
 
 ## PERCY Protocol
 The **PERCY protocol** used to communicate with the proxy management service is defined in the **percy_protocol.txt**
-file. This file describes the protocol standards that allows a client to create a succesful self made implementation.
+file. This file describes the protocol standards that allows a client to create a successful self-made implementation.

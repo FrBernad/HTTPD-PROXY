@@ -8,9 +8,9 @@
 #include <string.h> /* memset */
 
 static unsigned short
-port(const char *s) {
+port(char *s) {
     char *end = 0;
-    const long sl = strtol(s, &end, 10);
+    long sl = strtol(s, &end, 10);
 
     if (end == s || '\0' != *end || ((LONG_MIN == sl || LONG_MAX == sl) && ERANGE == errno) || sl < 0 || sl > USHRT_MAX) {
         fprintf(stderr, "Port should in in the range of 1-65536: %s\n", s);
@@ -28,7 +28,7 @@ version(void) {
 }
 
 static void
-usage(const char *progname) {
+usage(char *progname) {
     fprintf(stderr,
             "Usage: %s [OPTION]...\n\n"
             "   -h                                 Imprime la ayuda y termina.\n\n"
@@ -53,7 +53,7 @@ usage(const char *progname) {
     exit(1);
 }
 
-void parse_args(const int argc, char **argv, struct http_args *args) {
+void parse_args(int argc, char **argv, struct http_args *args) {
     memset(args, 0, sizeof(*args));
 
     args->http_addr = NULL;

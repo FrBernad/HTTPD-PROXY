@@ -1,7 +1,6 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -79,7 +78,7 @@ int main(int argc, char *argv[]) {
         goto finally;
     }
 
-    init_doh(args.doh);
+    init_doh();
     init_metrics();
 
     if (init_proxy_listener(selector) < 0) {
@@ -146,7 +145,7 @@ signal_handler(int signum) {
 
 static fd_selector
 init_selector() {
-    const struct selector_init initConfig = {
+    struct selector_init initConfig = {
             .signal = SIGALRM,
             .select_timeout = {
                     .tv_sec = DEFAULT_SELECTOR_TIMEOUT,

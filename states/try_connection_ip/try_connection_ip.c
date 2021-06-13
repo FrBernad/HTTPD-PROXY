@@ -1,7 +1,6 @@
 #include "try_connection_ip.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "connections_manager/connections_def.h"
 #include "logger/logger_utils.h"

@@ -8,7 +8,7 @@
 
 #define N(x) (sizeof(x) / sizeof((x)[0]))
 
-void stm_init(struct state_machine *stm, unsigned initial_state, unsigned last_state, const struct state_definition *states) {
+void stm_init(struct state_machine *stm, unsigned initial_state, unsigned last_state, struct state_definition *states) {
     stm->initial = initial_state;
     stm->max_state = last_state;
     stm->states = states;
@@ -59,7 +59,7 @@ stm_handler_read(struct state_machine *stm, struct selector_key *key) {
     if (stm->current->on_read_ready == 0) {
         abort();
     }
-    const unsigned int ret = stm->current->on_read_ready(key);
+    unsigned int ret = stm->current->on_read_ready(key);
     jump(stm, ret, key);
 
     return ret;
@@ -71,7 +71,7 @@ stm_handler_write(struct state_machine *stm, struct selector_key *key) {
     if (stm->current->on_write_ready == 0) {
         abort();
     }
-    const unsigned int ret = stm->current->on_write_ready(key);
+    unsigned int ret = stm->current->on_write_ready(key);
     jump(stm, ret, key);
 
     return ret;
@@ -83,7 +83,7 @@ stm_handler_block(struct state_machine *stm, struct selector_key *key) {
     if (stm->current->on_block_ready == 0) {
         abort();
     }
-    const unsigned int ret = stm->current->on_block_ready(key);
+    unsigned int ret = stm->current->on_block_ready(key);
     jump(stm, ret, key);
 
     return ret;

@@ -1,7 +1,5 @@
 #include "sniffer_utils.h"
 
-#include <stdio.h>
-
 #include "connections_manager/connections_def.h"
 #include "logger/logger_utils.h"
 

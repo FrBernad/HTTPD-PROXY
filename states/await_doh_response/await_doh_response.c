@@ -4,9 +4,7 @@
 
 #include "connections_manager/connections_manager.h"
 #include "connections_manager/connections_def.h"
-#include "states/send_doh_request/send_doh_request.h"
 #include "utils/doh/doh_utils.h"
-#include "utils/net/net_utils.h"
 
 static void
 init_doh_state(struct selector_key *key);

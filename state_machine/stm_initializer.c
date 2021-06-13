@@ -10,11 +10,10 @@
 #include "states/send_request_line/send_request_line.h"
 #include "states/try_connection_ip/try_connection_ip.h"
 #include "states/error/error.h"
-#include "stm.h"
 #include "connections_manager/connections_def.h"
 
 
-static const struct state_definition connection_states[] = {
+static struct state_definition connection_states[] = {
     {.state = PARSING_REQUEST_LINE,
      .on_arrival = parsing_host_on_arrival,
      .on_departure = NULL,

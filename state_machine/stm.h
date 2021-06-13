@@ -27,11 +27,11 @@ struct state_machine {
     /**
      * declaracion de los estados: deben estar ordenados segun .[].state.
      */
-    const struct state_definition *states;
+    struct state_definition *states;
     /** cantidad de estados */
     unsigned max_state;
     /** estado actual */
-    const struct state_definition *current;
+    struct state_definition *current;
 };
 
 extern struct selector_key *key;
@@ -47,9 +47,9 @@ struct state_definition {
     unsigned state;
 
     /** ejecutado al arribar al estado */
-    void (*on_arrival)(const unsigned state, struct selector_key *key);
+    void (*on_arrival)(unsigned state, struct selector_key *key);
     /** ejecutado al salir del estado */
-    void (*on_departure)(const unsigned state, struct selector_key *key);
+    void (*on_departure)(unsigned state, struct selector_key *key);
     /** ejecutado cuando hay datos disponibles para ser leidos */
     unsigned (*on_read_ready)(struct selector_key *key);
     /** ejecutado cuando hay datos disponibles para ser escritos */
@@ -59,7 +59,7 @@ struct state_definition {
 };
 
 /** inicializa el la máquina */
-void stm_init(struct state_machine *stm, unsigned initial_state, unsigned last_state, const struct state_definition *states);
+void stm_init(struct state_machine *stm, unsigned initial_state, unsigned last_state, struct state_definition *states);
 
 /** obtiene el identificador del estado actual */
 unsigned

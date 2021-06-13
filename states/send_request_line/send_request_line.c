@@ -1,6 +1,5 @@
 #include "send_request_line.h"
 
-#include <stdio.h>
 #include <string.h>
 
 #include "connections_manager/connections_def.h"

@@ -61,13 +61,13 @@ typedef enum {
 } selector_status;
 
 /** retorna una descripción humana del fallo */
-const char *
-selector_error(const selector_status status);
+char *
+selector_error(selector_status status);
 
 /** opciones de inicialización del selector */
 struct selector_init {
     /** señal a utilizar para notificaciones internas */
-    const int signal;
+    int signal;
 
     /** tiempo máximo de bloqueo durante `selector_iteratate' */
     struct timespec select_timeout;
@@ -75,7 +75,7 @@ struct selector_init {
 
 /** inicializa la librería */
 selector_status
-selector_init(const struct selector_init *c);
+selector_init(struct selector_init *c);
 
 /** deshace la incialización de la librería */
 selector_status
@@ -83,7 +83,7 @@ selector_close(void);
 
 /* instancia un nuevo selector. returna NULL si no puede instanciar  */
 fd_selector
-selector_new(const size_t initial_elements);
+selector_new(size_t initial_elements);
 
 /** destruye un selector creado por _new. Tolera NULLs */
 void
@@ -153,9 +153,9 @@ selector_set_garbage_collector(fd_selector s, void (*garbage_collect)(struct sel
  */
 selector_status
 selector_register(fd_selector        s,
-                  const int          fd,
-                  const fd_handler  *handler,
-                  const fd_interest  interest,
+                  int          fd,
+                  fd_handler  *handler,
+                  fd_interest  interest,
                   void *data);
 
 /**
@@ -163,7 +163,7 @@ selector_register(fd_selector        s,
  */
 selector_status
 selector_unregister_fd(fd_selector   s,
-                       const int     fd);
+                       int     fd);
 
 /** permite cambiar los intereses para un file descriptor */
 selector_status
@@ -187,12 +187,12 @@ selector_select(fd_selector s);
  * retorna -1 ante error, y deja detalles en errno.
  */
 int
-selector_fd_set_nio(const int fd);
+selector_fd_set_nio(int fd);
 
 /** notifica que un trabajo bloqueante terminó */
 selector_status
 selector_notify_block(fd_selector s,
-                 const int   fd);
+                 int   fd);
 
 void
 set_selector_timeout(fd_selector s, long timeout);

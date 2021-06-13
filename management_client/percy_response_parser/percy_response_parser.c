@@ -1,5 +1,4 @@
 #include "percy_response_parser.h"
-#include <stdint.h>
 #include <string.h>
 
 static enum percy_response_state 

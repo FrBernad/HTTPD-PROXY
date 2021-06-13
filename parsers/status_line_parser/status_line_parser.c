@@ -1,7 +1,5 @@
 #include "status_line_parser.h"
 
-#include <arpa/inet.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "utils/parser/parser_utils.h"

@@ -1,6 +1,5 @@
 #include "send_doh_request.h"
 
-#include <stdbool.h>
 #include <stdio.h>
 
 #include "connections_manager/connections_def.h"

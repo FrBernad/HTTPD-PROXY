@@ -1,11 +1,8 @@
 #include <arpa/inet.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 #include "management_client/percy_response_parser/percy_response_parser.h"
@@ -108,7 +105,7 @@ int main(int argc, char const *argv[]) {
             else {
                 int len = 0;
                 build_request(buff, &len, option, value);
-                sendto(socket_fd, buff, len, MSG_CONFIRM, (const struct sockaddr *)&serv_addr, servaddr_len);
+                sendto(socket_fd, buff, len, MSG_CONFIRM, (struct sockaddr *)&serv_addr, servaddr_len);
                 int n = recvfrom(socket_fd, buff, MAX_BUFF, MSG_WAITALL, (struct sockaddr *)&serv_addr, &servaddr_len);
                 parse_answer(buff, n);
             }
@@ -336,7 +333,7 @@ show_options() {
     printf("-2  Request the number of concurrent connections. \n");
     printf("-3  Request the number of bytes sent.\n");
     printf("-4  Request the number of bytes received.\n");
-    printf("-5  Request the number of total bytes transfered.\n");
+    printf("-5  Request the number of total bytes transferred.\n");
     printf("-6  Request I/O buffer sizes  \n");
     printf("-7  Request selector timeout.\n");
     printf("-8  Request the maximum amount of concurrent connections.\n");

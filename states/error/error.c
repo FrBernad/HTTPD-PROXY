@@ -1,10 +1,8 @@
 #include "error.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "connections_manager/connections_def.h"
-#include "logger/logger_utils.h"
 
 static void
 write_error(struct selector_key *key, errors_t error_code, char *reason_phrase);

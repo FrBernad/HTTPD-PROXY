@@ -11,7 +11,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static const uint8_t base64_table[65] =
+static uint8_t base64_table[65] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /**
@@ -29,7 +29,7 @@ static const uint8_t base64_table[65] =
 uint8_t *base64_encode(uint8_t *src, size_t len,
                              size_t *out_len) {
     uint8_t *out, *pos;
-    const uint8_t *end, *in;
+    uint8_t *end, *in;
     size_t olen;
     int line_len;
 

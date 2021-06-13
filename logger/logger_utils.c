@@ -2,7 +2,6 @@
 
 #include <arpa/inet.h>
 #include <stdio.h>
-#include <time.h>
 
 #include "connections_manager/connections_def.h"
 
@@ -86,7 +85,7 @@ void log_level_msg(char *msg, log_level level) {
 
     int n = snprintf(buffer + len, new_max_len, "%s\t%s\n", level_texts[level], msg);
 
-    if (n < 0 || n >= (int)(new_max_len)) {
+    if (n < 0 || n >= new_max_len) {
         return;
     }
 
