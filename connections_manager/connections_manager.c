@@ -89,19 +89,19 @@ void accept_new_connection(struct selector_key *key) {
     int client_socket;
 
     if ((client_socket = accept(key->fd, (struct sockaddr *)&addr, &addrlen)) < 0) {
-        log_level_msg("Error accept",LEVEL_ERROR);
+        log_level_msg("Error accept", LEVEL_ERROR);
         return;
     }
 
     if (selector_fd_set_nio(client_socket) < 0) {
-        log_level_msg("Error setting new connection as NON-BLOCKIN",LEVEL_ERROR);
+        log_level_msg("Error setting new connection as NON-BLOCKIN", LEVEL_ERROR);
         close(client_socket);
         return;
     }
 
     proxy_connection_t *new_connection = create_new_connection(client_socket);
     if (new_connection == NULL) {
-        log_level_msg("Error creating new connection",LEVEL_ERROR);
+        log_level_msg("Error creating new connection", LEVEL_ERROR);
         close(client_socket);
         return;
     }
@@ -111,7 +111,7 @@ void accept_new_connection(struct selector_key *key) {
     int status = selector_register(key->s, client_socket, &client_handler, OP_READ, new_connection);
 
     if (status != SELECTOR_SUCCESS) {
-        log_level_msg("Error registering new fd",LEVEL_ERROR);
+        log_level_msg("Error registering new fd", LEVEL_ERROR);
         close(client_socket);
         free_connection_data(new_connection);
         return;
@@ -125,7 +125,7 @@ create_new_connection(int clientFd) {
     if (new_connection == NULL) {
         return NULL;
     }
-    
+
     uint8_t *read_buffer = malloc(buffers_size * sizeof(uint8_t));
 
     if (read_buffer == NULL) {
@@ -326,6 +326,9 @@ int register_origin_socket(struct selector_key *key) {
 static void
 close_proxy_connection(struct selector_key *key) {
     proxy_connection_t *connection = ATTACHMENT(key);
+    if (stm_state(&connection->stm) >= SEND_REQUEST_LINE) {
+        unregister_connection();
+    }
     if (connection->origin_status != INACTIVE_STATUS) {
         selector_unregister_fd(key->s, connection->origin_fd);
     }
@@ -366,6 +369,9 @@ void connection_garbage_collect(struct selector_key *key) {
 
     // if inactive close connection
     if (connection->client_fd == key->fd && difftime(time(NULL), connection->last_action_time) >= inactive_threshold) {
+        if (stm_state(&connection->stm) >= SEND_REQUEST_LINE) {
+            unregister_connection();
+        }
         close_proxy_connection(key);
     }
 }

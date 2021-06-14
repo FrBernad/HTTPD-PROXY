@@ -25,7 +25,6 @@ try_connection_ip_on_write_ready(struct selector_key *key) {
         /*Si doh_connection == NULL es que nunca mande el doh_request, si no esta active tengo que probar ipv6 */
         if (connection->connection_request.host_type == domain &&
             (connection->doh_connection == NULL || !connection->doh_connection->is_active)) {
-            increase_failed_connections();
             return SEND_DOH_REQUEST;
         }
         /*En este caso ya estoy conectado al origin*/
