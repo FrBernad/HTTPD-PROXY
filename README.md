@@ -58,7 +58,7 @@ of the options listed below for further customization.
 
 
 ## Management Service
-A management service client is provided by the proxy. The **httpctl** file communicates with the management service on the default port and address. These values can be changed passing the ***-L*** and ***-o*** arguments to change de address and port respectively. To ask for the client's help the ***-h*** argument is available. This client allows you to change the proxy settings in real time and retrieve
+A management service client is provided by the proxy. This client communicates with the server using the ***PERCY protocol***. This proxy ***requires authentication***. By default the proxy passphrase is set to ***"123456"***. The **httpctl** file communicates with the management service on the default port (9090) and address (loopback). These values can be modified by passing the ***-L*** and ***-o*** arguments to change the address and port respectively. To ask for the client's help the ***-h*** argument is available. This client allows you to change the proxy settings in real time and retrieve
 useful metrics. The provided functionalities are:
 - **Request the number of historical connections.**
 - **Request the number of concurrent connections.**
