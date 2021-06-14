@@ -81,11 +81,11 @@ int main(int argc, char *argv[]) {
             serv_addr.ss_family = AF_INET6;
             ((struct sockaddr_in6 *)&serv_addr)->sin6_port = htons(port);
             ((struct sockaddr_in6 *)&serv_addr)->sin6_addr = ip_addr.ipv6;
-        }else{
+        } else {
             fprintf(stderr, "Connection to management service failed\n");
             exit(1);
         }
-    }else{
+    } else {
         if (inet_pton(AF_INET, args.client_addr, &ip_addr.ipv4) > 0) {
             servaddr_len = sizeof(serv_addr);
             if ((socket_fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
@@ -334,7 +334,7 @@ build_request(uint8_t *buffer, int *size_of_buffer, int option, uint16_t value) 
 
 static void
 clear_screen() {
-    printf("\033{1;1H\033[2J\n");
+    printf("\033{\033[2J\n");
 }
 
 static void
@@ -364,7 +364,7 @@ show_options() {
 
 static void
 error() {
-    printf("Invalid option\n");
+    printf("\n\nInvalid option\n\n");
 }
 
 static void
@@ -378,8 +378,6 @@ parse_answer(uint8_t *buff, int len) {
     while (i < len) {
         percy_response_parser_feed(&percy_response_parser, buff[i++]);
     }
-
-    clear_screen();
 
     printf("\n\nRESPONSE: \n\n");
 
