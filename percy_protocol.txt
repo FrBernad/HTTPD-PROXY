@@ -19,7 +19,7 @@ Category: Standards Track
 
 Abstract
 
-  This protocol aims to provide interaction between the client and a
+  This protocol aims to provide interaction between a client and a
   http proxy server.
 
 Status of This Memo
@@ -48,21 +48,23 @@ Table of Contents
       4.1. Overview  ......................................................
       4.2. Request Methods Definitions  ...................................
            4.2.1. Request Historical Connections  .........................
-           4.2.2. Request Concurrent Connections  ......................... 
-           4.2.3. Request Bytes Sent ......................................
-           4.2.4. Request Bytes received ..................................
-           4.2.5. Request Bytes Transfered ................................
-           4.2.5. Request I/O Buffer Size .................................
-           4.2.6. Request Selector Timeout ................................
-           4.2.7. Request Failed Connections ..............................
+           4.2.2. Request Concurrent Connections  .........................
+           4.2.3. Request Bytes Sent  .....................................
+           4.2.4. Request Bytes received  .................................
+           4.2.5. Request Bytes Transferred  ..............................
+           4.2.6. Request I/O Buffer Size  ................................
+           4.2.7. Request Selector Timeout  ...............................
+           4.2.8. Request Failed Connections  .............................
       4.3. Modification Methods Definitions  ..............................
-           4.3.1 Set I/O Buffer Size  .....................................
-           4.3.2 Set Selector Timeout .....................................
+           4.3.1 Enable o disable sniffer .................................
+           4.3.2. Set I/O Buffer Size .....................................
+           4.3.3. Set Selector Timeout ....................................
       4.4. Method Error Handling  .........................................
-           4.4.1. Retrieval Methods .......................................
-           4.4.2. Modification Methods ....................................
-                  4.4.2.1. Set I/O Buffer Size (Sec. 4.3.1.) ..............
-                  4.4.2.2. Set Selector Timeout (Sec. 4.3.2.) .............
+           4.4.1. Retrieval Methods  ......................................
+           4.4.2. Modification Methods  ...................................
+                  4.4.2.1. Enable o disable sniffer (Sec. 4.3.1.)  ........
+                  4.4.2.2. Set I/O Buffer Size (Sec. 4.3.2.)  .............
+                  4.4.2.3. Set Selector Timeout (Sec. 4.3.3.)  ............
            4.4.3. Unauthorized Requests ...................................
 
 
@@ -73,10 +75,10 @@ Table of Contents
    exchanging messages between a client and a server.  A PERCY "client" 
    is a program that establishes a connection to a server for the purpose 
    of sending one or more requests.  A PERCY "server" is a program that 
-   recieves and analizes requests and proceeds to sending PERCY responses.
+   receives and analyzes requests and proceeds to sending PERCY responses.
    This protocol aims to provide interaction between a client and a http proxy 
-   managment service using UDP in a byte oriented way.  Furthermore, it allows 
-   the client to change the proxy configuration while the server is runnning.  
+   management service using UDP in a byte oriented way.  Furthermore, it allows
+   the client to change the proxy configuration while the server is running.
    To assure the privacy and security of the client, an authentication with 
    the server is mandatory on each request made. 
 
@@ -98,14 +100,14 @@ Table of Contents
                                             
 3.1. Making a request
   
-   In order to send a request to the http proxy managment service, the client MUST send an 
+   In order to send a request to the http proxy management service, the client MUST send an
    UDP message to the port and address the server is listening to.  This service is 
-   conventionally located on UDP port 9090.  A passphrase MUST be provided to authorize 
-   each request.
+   conventionally located on UDP port 9090 and loopback address.  A passphrase MUST be provided
+   to authorize each request.
 
 3.2. Sending a response
 
-   Once a request is received, the server MUST analize the passphrase sent by the client.
+   Once a request is received, the server MUST analyze the passphrase sent by the client.
    Once the passphrase is validated, the server MUST send a response corresponding to
    the requested method.  There may be subsequent requests/responses, all following the 
    structure defined below.
@@ -125,16 +127,16 @@ Table of Contents
     VER             A single byte field that specifies the version of the PERCY protocol being used.
                     Currently X'01' is the only available version.
 
+    PASSPHRASE      A six byte field that specifies a passphrase to authorize the request.
+
     TYPE            A single byte field that specifies the type of the method being requested.
-                    The values are:   
-    
+                    The values are:
+
                     X'00'               a retrieval request
 
-                    X'01'               a modification request 
+                    X'01'               a modification request
 
-                    X'02'               a server response 
-                    
-    PASSPHRASE     A six byte field that specifies a passphrase to authorize the request.
+                    X'02'               a server response
 
     METHOD         A single byte field that specifies the method being requested.
 
@@ -207,7 +209,7 @@ Table of Contents
     +---------+-------------------------------------------------+-------+
     | X'03'   | Request the number of bytes received.           | 4.2.4 |
     +---------+-------------------------------------------------+-------+
-    | X'04'   | Request the number of total bytes transfered.   | 4.2.5 |
+    | X'04'   | Request the number of total bytes transferred.  | 4.2.5 |
     +---------+-------------------------------------------------+-------+
     | X'05'   | Request I/O buffer sizes                        | 4.2.6 |
     +---------+-------------------------------------------------+-------+
@@ -254,9 +256,9 @@ Table of Contents
    valid X'03' request, the server MUST reply setting the value field with the integer number of bytes received by the
    server stored in big endian format.
 
-4.2.5. Request Bytes Transfered
+4.2.5. Request Bytes Transferred
 
-   The X'04' retrieval method returns the number of total bytes transfered by the proxy.  In response of a valid
+   The X'04' retrieval method returns the number of total bytes transferred by the proxy.  In response of a valid
    X'04' request, the server MUST reply setting the value field with the integer number of bytes received by the server
    stored in big endian format.
 
@@ -315,7 +317,7 @@ Table of Contents
    When the value received in the value field is invalid, the server MUST reply with
    a X'02' state.
 
-4.4.2.3. Set Selector Timeout (Sec. 4.3.2.)
+4.4.2.3. Set Selector Timeout (Sec. 4.3.3.)
 
    When the value received in the value field is invalid, the server MUST reply with
    a X'02' state.
