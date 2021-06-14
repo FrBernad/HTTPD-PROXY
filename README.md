@@ -4,6 +4,8 @@
 - [Agustín Manfredi](https://github.com/imanfredi)
 - [Joaquín Legammare](https://github.com/JoacoLega)
 
+El informe se encuentra en el directorio padre baje el nombre [informe.pdf](https://bitbucket.org/itba/pc-2021a-10/src/master/Informe.pdf).
+
 # PERCY HTTP PROXY
 **PERCY HTTP PROXY** is a simple **HTTP** proxy daemon. It provides a **configuration system**, that allows the client
 to change the daemon setting in **real time**. By default, a configuration client is provided. This client communicates
