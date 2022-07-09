@@ -2,7 +2,7 @@
 - [Francisco Bernad](https://github.com/FrBernad)
 - [Nicolás Rampoldi](https://github.com/NicolasRampoldi) 
 - [Agustín Manfredi](https://github.com/imanfredi)
-- [Joaquín Legammare](https://github.com/JoacoLega)
+- [Joaquín Legammare](https://github.com/JLegammare)
 
 The report can be found in the root directory under the name [informe.pdf](https://bitbucket.org/itba/pc-2021a-10/src/master/Informe.pdf).
 
